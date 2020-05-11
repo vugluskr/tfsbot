@@ -1,0 +1,3 @@
+# Utils
+GET         /v1/handle              controllers.Handler.handle(request: Request)
+POST        /v1/handle              controllers.Handler.handle(request: Request)

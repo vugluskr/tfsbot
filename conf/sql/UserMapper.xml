@@ -1,0 +1,48 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sql.UserMapper">
+    <insert id="insertUser">
+        insert into users(id, nick, options, pwd, dir_id)
+        VALUES (#{id} , #{nick} , #{options} , #{pwd} , #{dirId})
+    </insert>
+
+    <select id="selectUser" resultMap="UserMap">
+        select u.id,
+               u.nick,
+               u.options,
+               u.pwd,
+               u.dir_id,
+               ua.alias,
+               ua.cmd
+        from users u
+                 left outer join aliases ua on ua.owner = u.id
+        where u.id = #{id}
+    </select>
+
+    <resultMap id="UserMap" type="model.User">
+        <id column="id" property="id"/>
+        <result property="dirId" column="dir_id"/>
+        <result property="nick" column="nick"/>
+        <result property="options" column="options"/>
+        <result property="pwd" column="pwd"/>
+
+        <collection property="aliases" notNullColumn="alias" resultMap="AliasMap"/>
+    </resultMap>
+
+    <resultMap id="AliasMap" type="model.UserAlias">
+        <result property="alias" column="alias"/>
+        <result property="cmd" column="cmd"/>
+    </resultMap>
+
+    <update id="updatePwd">
+        update users
+        set dir_id = #{dirId} ,
+            pwd    = #{pwd}
+        where id = #{id}
+    </update>
+
+    <insert id="insertAlias">
+        insert into aliases(owner, alias, cmd)
+        values (#{userId} , #{alias.alias} , #{alias.cmd} )
+    </insert>
+</mapper>

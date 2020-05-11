@@ -1,0 +1,30 @@
+<configuration>
+
+    <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT">
+        <encoder>
+            <pattern>%d [%-15.15t] %-5p %-30.30c{1} - %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender class="ch.qos.logback.classic.AsyncAppender" name="ASYNCSTDOUT">
+        <appender-ref ref="STDOUT"/>
+    </appender>
+
+    <logger level="ERROR" name="utils"/>
+    <logger level="ERROR" name="modules"/>
+    <logger level="DEBUG" name="services"/>
+    <logger level="ERROR" name="listeners"/>
+
+    <!--    <logger level="OFF" name="mappers"/>-->
+    <logger level="OFF" name="play"/>
+    <logger level="OFF" name="akka"/>
+    <logger level="OFF" name="org.mybatis"/>
+    <logger level="OFF" name="io.swagger"/>
+    <logger level="OFF" name="org.apache"/>
+    <logger level="OFF" name="com.zaxxer"/>
+
+    <root level="DEBUG">
+        <appender-ref ref="ASYNCSTDOUT"/>
+    </root>
+
+</configuration>
