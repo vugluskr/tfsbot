@@ -1,6 +1,5 @@
 package services.impl;
 
-import akka.actor.ActorSystem;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
@@ -10,11 +9,7 @@ import model.telegram.api.TextRef;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
-import scala.concurrent.ExecutionContext;
-import scala.concurrent.duration.Duration;
 import services.TgApi;
-
-import java.util.concurrent.TimeUnit;
 
 import static utils.TextUtils.isEmpty;
 

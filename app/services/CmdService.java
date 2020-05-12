@@ -237,11 +237,12 @@ public class CmdService {
         if (isEmpty(parts))
             return;
 
-        final List<String> paths = strings2paths(user.getPwd(), parts);
-        if (isEmpty(paths))
+        final List<TFile> toRm = globalize(parts, user);
+
+        if (isEmpty(toRm))
             return;
 
-        fsService.rmByPaths(paths, user);
+        fsService.rm(toRm.stream().map(TFile::getId).collect(Collectors.toList()), user);
         doPropmpt(user);
     }
 
