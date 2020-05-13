@@ -73,7 +73,14 @@ public class GuiService {
             update.setParseMode(data.getParseMode());
             update.setText(data.getText());
 
-            tgApi.updateMessage(update);
+            CompletableFuture.runAsync(() -> tgApi.updateMessage(update).thenAccept(reply -> {
+                if (reply == null || !reply.isOk()) {
+                    user.setLastMessageId(0);
+                    userService.updateOpts(user);
+
+                    sendScreen(data, user);
+                }
+            }));
         } else
             CompletableFuture.runAsync(() -> tgApi.sendMessage(data).thenAccept(apiMessageReply -> {
                 if (apiMessageReply == null || !apiMessageReply.isOk())
@@ -109,7 +116,7 @@ public class GuiService {
     private void doLs(final long id, final User user) {
         final TFile file = fsService.get(id, user);
 
-        sendScreen(new TextRef(user.getPwd(), user.getId()).setMd2().withKeyboard(makeLsScreen(file, fsService.list(id, user))), user);
+        sendScreen(new TextRef(user.getPwd(), user.getId()).withKeyboard(makeLsScreen(file, fsService.list(id, user))), user);
     }
 
     private interface c {

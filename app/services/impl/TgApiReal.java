@@ -66,14 +66,18 @@ public class TgApiReal implements TgApi {
     }
 
     @Override
-    public void updateMessage(final UpdateMessage update) {
+    public CompletionStage<ApiMessageReply> updateMessage(final UpdateMessage update) {
         if (isEmpty(update) || isEmpty(update.getText()))
-            return;
+            return CompletableFuture.completedFuture(null);
 
         final JsonNode node = Json.toJson(update);
 
-        ws.url(apiUrl + "editMessageText")
+        return ws.url(apiUrl + "editMessageText")
                 .post(node)
-                .thenAccept(wsr -> logger.debug("API call: editMessageText\n" + node + "\nResponse: " + wsr.getBody()));
+                .thenApply(wsr -> {
+                    logger.debug("API call: editMessageText\n" + node + "\nResponse: " + wsr.getBody());
+
+                    return Json.fromJson(wsr.asJson(), ApiMessageReply.class);
+                });
     }
 }

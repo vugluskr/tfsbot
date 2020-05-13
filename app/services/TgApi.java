@@ -20,5 +20,5 @@ public interface TgApi {
 
     CompletionStage<ApiMessageReply> sendMessage(TextRef text);
 
-    void updateMessage(UpdateMessage update);
+    CompletionStage<ApiMessageReply> updateMessage(UpdateMessage update);
 }

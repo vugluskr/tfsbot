@@ -51,7 +51,7 @@ public class TgApiFake implements TgApi {
     }
 
     @Override
-    public void updateMessage(final UpdateMessage update) {
-
+    public CompletionStage<ApiMessageReply> updateMessage(final UpdateMessage update) {
+        return CompletableFuture.completedFuture(null);
     }
 }
