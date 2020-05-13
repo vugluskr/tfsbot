@@ -58,6 +58,6 @@ public class UserService {
     }
 
     public void updateOpts(final User user) {
-        mapper.updateOpts(user.getOptions(), user.getId());
+        mapper.updateOpts(user.getMode(), user.getLastMessageId(), user.getLastDialogId(), user.getOptions(), user.getId());
     }
 }

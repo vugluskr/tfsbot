@@ -18,5 +18,6 @@ public interface UserMapper {
 
     void insertAlias(@Param("alias") UserAlias alias, @Param("userId") long userId);
 
-    void updateOpts(@Param("options") int options, @Param("userId") long userId);
+    void updateOpts(@Param("mode") int mode, @Param("lastMessageId") long lastMessageId, @Param("lastDialogId") long lastDialogId, @Param("options") int options,
+                    @Param("userId") long userId);
 }

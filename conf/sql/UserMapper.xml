@@ -47,6 +47,11 @@
     </insert>
 
     <update id="updateOpts">
-        update users set options = #{options} where id = #{userId}
+        update users
+        set mode         = #{mode} ,
+            last_message = #{lastMessageId} ,
+            last_dialog  = #{lastDialogId} ,
+            options      = #{options}
+        where id = #{userId}
     </update>
 </mapper>

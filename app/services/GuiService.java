@@ -2,10 +2,7 @@ package services;
 
 import model.TFile;
 import model.User;
-import model.telegram.api.InlineButton;
-import model.telegram.api.InlineKeyboard;
-import model.telegram.api.TextRef;
-import model.telegram.api.UpdateRef;
+import model.telegram.api.*;
 import play.Logger;
 import utils.TextUtils;
 import utils.UOpts;
@@ -14,6 +11,7 @@ import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static utils.TextUtils.isEmpty;
 
@@ -54,7 +52,7 @@ public class GuiService {
                             user.setDirId(id);
                             user.setPwd(file.getPath());
                             userService.updatePwd(user);
-                            tgApi.sendMessage(new TextRef(user.getPwd(), user.getId()).withKeyboard(makeLsScreen(file, fsService.list(id, user))));
+                            doLs(id, user);
                         }
                         break;
                 }
@@ -64,6 +62,26 @@ public class GuiService {
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
         }
+    }
+
+    private void sendScreen(final TextRef data, final User user) {
+        if (user.getLastMessageId() > 0 && user.getLastDialogId() <= 0) {
+            final UpdateMessage update = new UpdateMessage();
+            update.setChatId(user.getId());
+            update.setMessageId(user.getLastMessageId());
+            update.setReplyMarkup(data.getReplyMarkup());
+            update.setParseMode(data.getParseMode());
+            update.setText(data.getText());
+
+            tgApi.updateMessage(update);
+        } else
+            CompletableFuture.runAsync(() -> tgApi.sendMessage(data).thenAccept(apiMessageReply -> {
+                if (apiMessageReply == null || !apiMessageReply.isOk())
+                    return;
+
+                user.setLastMessageId(apiMessageReply.getResult().getMessageId());
+                userService.updateOpts(user);
+            }));
     }
 
     private InlineKeyboard makeLsScreen(final TFile current, final Collection<TFile> listing) {
@@ -91,7 +109,7 @@ public class GuiService {
     private void doLs(final long id, final User user) {
         final TFile file = fsService.get(id, user);
 
-        tgApi.sendMessage(new TextRef(user.prompt(), user.getId()).setMd2().withKeyboard(makeLsScreen(file, fsService.list(id, user))));
+        sendScreen(new TextRef(user.getPwd(), user.getId()).setMd2().withKeyboard(makeLsScreen(file, fsService.list(id, user))), user);
     }
 
     private interface c {

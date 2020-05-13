@@ -5,11 +5,16 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
 import com.typesafe.config.Config;
 import model.TFile;
+import model.telegram.api.ApiMessageReply;
 import model.telegram.api.TextRef;
+import model.telegram.api.UpdateMessage;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
 import services.TgApi;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import static utils.TextUtils.isEmpty;
 
@@ -45,14 +50,30 @@ public class TgApiReal implements TgApi {
     }
 
     @Override
-    public void sendMessage(final TextRef text) {
+    public CompletionStage<ApiMessageReply> sendMessage(final TextRef text) {
         if (isEmpty(text) || isEmpty(text.getText()))
-            return;
+            return CompletableFuture.completedFuture(null);
 
         final JsonNode node = Json.toJson(text);
 
-        ws.url(apiUrl + "sendMessage")
+        return ws.url(apiUrl + "sendMessage")
                 .post(node)
-                .thenAccept(wsr -> logger.debug("API call: sendMessage\n" + node + "\nResponse: " + wsr.getBody()));
+                .thenApply(wsr -> {
+                    logger.debug("API call: sendMessage\n" + node + "\nResponse: " + wsr.getBody());
+
+                    return Json.fromJson(wsr.asJson(), ApiMessageReply.class);
+                });
+    }
+
+    @Override
+    public void updateMessage(final UpdateMessage update) {
+        if (isEmpty(update) || isEmpty(update.getText()))
+            return;
+
+        final JsonNode node = Json.toJson(update);
+
+        ws.url(apiUrl + "editMessageText")
+                .post(node)
+                .thenAccept(wsr -> logger.debug("API call: editMessageText\n" + node + "\nResponse: " + wsr.getBody()));
     }
 }

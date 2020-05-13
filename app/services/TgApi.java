@@ -2,8 +2,12 @@ package services;
 
 import com.google.inject.ImplementedBy;
 import model.TFile;
+import model.telegram.api.ApiMessageReply;
 import model.telegram.api.TextRef;
+import model.telegram.api.UpdateMessage;
 import services.impl.TgApiReal;
+
+import java.util.concurrent.CompletionStage;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -14,5 +18,7 @@ import services.impl.TgApiReal;
 public interface TgApi {
     void sendFile(TFile file, long chatId);
 
-    void sendMessage(TextRef text);
+    CompletionStage<ApiMessageReply> sendMessage(TextRef text);
+
+    void updateMessage(UpdateMessage update);
 }

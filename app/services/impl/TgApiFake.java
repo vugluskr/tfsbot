@@ -1,12 +1,16 @@
 package services.impl;
 
 import model.TFile;
+import model.telegram.api.ApiMessageReply;
 import model.telegram.api.TextRef;
+import model.telegram.api.UpdateMessage;
 import play.Logger;
 import play.libs.Json;
 import services.TgApi;
 
 import javax.inject.Singleton;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -33,14 +37,21 @@ public class TgApiFake implements TgApi {
     }
 
     @Override
-    public void sendMessage(final TextRef text) {
+    public CompletionStage<ApiMessageReply> sendMessage(final TextRef text) {
         if (text == null || isEmpty(text.getText())) {
             logger.warn("Not send empty msg: " + Json.toJson(text));
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         logger.info("Send prewrapped message to chat '" + text.getChatId() + "':\n" + text.getText());
         if (msgSendListener != null)
             msgSendListener.accept(text);
+
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public void updateMessage(final UpdateMessage update) {
+
     }
 }
