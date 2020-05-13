@@ -16,6 +16,9 @@ public class TextRef {
     @JsonProperty("parse_mode")
     private String parseMode;
 
+    @JsonProperty("reply_markup")
+    private ReplyMarkup replyMarkup;
+
     public TextRef() {
     }
 
@@ -71,6 +74,23 @@ public class TextRef {
 
     public void setParseMode(final String parseMode) {
         this.parseMode = parseMode;
+    }
+    public TextRef withKeyboard(final InlineKeyboard keyboard) {
+        setReplyMarkup(keyboard);
+        return this;
+    }
+
+    public TextRef withForcedReply() {
+        setReplyMarkup(new ForceReply());
+        return this;
+    }
+
+    public ReplyMarkup getReplyMarkup() {
+        return replyMarkup;
+    }
+
+    public void setReplyMarkup(final ReplyMarkup replyMarkup) {
+        this.replyMarkup = replyMarkup;
     }
 
     @Override

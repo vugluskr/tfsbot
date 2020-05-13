@@ -56,4 +56,8 @@ public class UserService {
     public void insertAlias(final UserAlias alias, final User user) {
         mapper.insertAlias(alias, user.getId());
     }
+
+    public void updateOpts(final User user) {
+        mapper.updateOpts(user.getOptions(), user.getId());
+    }
 }

@@ -6,6 +6,7 @@ import model.UserAlias;
 import model.telegram.ContentType;
 import model.telegram.api.TextRef;
 import utils.MdPadTable;
+import utils.UOpts;
 
 import javax.inject.Inject;
 import java.nio.file.FileSystems;
@@ -70,6 +71,14 @@ public class CmdService {
 
     public void handleCmd(final String cmd, final User user) {
         switch (cmd.toLowerCase()) {
+            case "gui":
+                if (UOpts.Gui.is(user))
+                    UOpts.Gui.clear(user);
+                else
+                    UOpts.Gui.set(user);
+                userService.updateOpts(user);
+                doPropmpt(user);
+                break;
             case "/start":
             case "help":
             case "?":
@@ -348,7 +357,7 @@ public class CmdService {
     }
 
     private List<TFile> globalize(final String[] parts, final User user) {
-        final String current = user.getPwd();
+        final String current = notNull(user.getPwd(), "/");
         final Map<String, String> globParents = new HashMap<>();
         final List<String> cleanParts = new ArrayList<>(0);
 

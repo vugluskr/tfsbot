@@ -17,6 +17,14 @@ public class InlineButton {
     @JsonProperty("switch_inline_query_current_chat")
     private String inlineQuery;
 
+    public InlineButton() {
+    }
+
+    public InlineButton(final String text, final String callbackData) {
+        this.text = text;
+        this.callbackData = callbackData;
+    }
+
     public String getInlineQuery() {
         return inlineQuery;
     }

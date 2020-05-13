@@ -12,7 +12,9 @@ import play.mvc.Http;
 import play.mvc.Result;
 import services.CmdService;
 import services.FsService;
+import services.GuiService;
 import services.UserService;
+import utils.UOpts;
 
 import javax.inject.Inject;
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +39,9 @@ public class Handler extends Controller {
     @Inject
     private FsService fsService;
 
+    @Inject
+    private GuiService guiService;
+
     public Result handle(final Http.Request request) {
         if (!request.hasBody() || !request.method().equalsIgnoreCase("POST"))
             return ok();
@@ -52,7 +57,10 @@ public class Handler extends Controller {
         logger.debug("INCOMING MESSAGE:\n" + request.body().asJson());
         final User user = userService.getContact(input);
 
-        if (input.getMessage() != null) {
+        if (UOpts.Gui.is(user)) {
+            final UpdateRef finalInput = input;
+            CompletableFuture.runAsync(() -> guiService.handle(finalInput, user));
+        } else if (input.getMessage() != null) {
             final MessageRef message = input.getMessage();
             final TeleFile teleFile = message.getTeleFile();
             final String cmd = notNull(input.getMessage().getText()).replaceAll(Pattern.quote("\\\""), "\"");

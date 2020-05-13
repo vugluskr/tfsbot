@@ -45,4 +45,8 @@
         insert into aliases(owner, alias, cmd)
         values (#{userId} , #{alias.alias} , #{alias.cmd} )
     </insert>
+
+    <update id="updateOpts">
+        update users set options = #{options} where id = #{userId}
+    </update>
 </mapper>
