@@ -2,9 +2,7 @@ package services;
 
 import com.google.inject.ImplementedBy;
 import model.TFile;
-import model.telegram.api.ApiMessageReply;
-import model.telegram.api.TextRef;
-import model.telegram.api.UpdateMessage;
+import model.telegram.api.*;
 import services.impl.TgApiReal;
 
 import java.util.concurrent.CompletionStage;
@@ -21,4 +19,8 @@ public interface TgApi {
     CompletionStage<ApiMessageReply> sendMessage(TextRef text);
 
     CompletionStage<ApiMessageReply> updateMessage(UpdateMessage update);
+
+    CompletionStage<Void> deleteMessage(DeleteMessage deleteMessage);
+
+    void sendCallbackAnswer(CallbackAnswer callbackAnswer);
 }

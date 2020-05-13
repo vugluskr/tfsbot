@@ -5,9 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
 import com.typesafe.config.Config;
 import model.TFile;
-import model.telegram.api.ApiMessageReply;
-import model.telegram.api.TextRef;
-import model.telegram.api.UpdateMessage;
+import model.telegram.api.*;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
@@ -79,5 +77,33 @@ public class TgApiReal implements TgApi {
 
                     return Json.fromJson(wsr.asJson(), ApiMessageReply.class);
                 });
+    }
+
+    @Override
+    public CompletionStage<Void> deleteMessage(final DeleteMessage deleteMessage) {
+        if (isEmpty(deleteMessage) || deleteMessage.getMessageId() <= 0)
+            return CompletableFuture.completedFuture(null);
+
+        final JsonNode node = Json.toJson(deleteMessage);
+
+        return ws.url(apiUrl + "deleteMessage")
+                .post(node)
+                .thenApply(wsr -> {
+                    logger.debug("API call: deleteMessage\n" + node + "\nResponse: " + wsr.getBody());
+                    
+                    return null;
+                });
+    }
+
+    @Override
+    public void sendCallbackAnswer(final CallbackAnswer callbackAnswer) {
+        if (isEmpty(callbackAnswer) || callbackAnswer.getCallbackId() <= 0)
+            return;
+
+        final JsonNode node = Json.toJson(callbackAnswer);
+
+        ws.url(apiUrl + "answerCallbackQuery")
+                .post(node)
+                .thenAccept(wsr -> logger.debug("API call: answerCallbackQuery\n" + node + "\nResponse: " + wsr.getBody()));
     }
 }

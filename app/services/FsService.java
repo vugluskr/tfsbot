@@ -3,6 +3,7 @@ package services;
 import model.TFile;
 import model.User;
 import model.telegram.ContentType;
+import play.Logger;
 import sql.FsMapper;
 
 import javax.inject.Inject;
@@ -20,6 +21,8 @@ import static utils.TextUtils.isEmpty;
  * tfs ☭ sweat and blood
  */
 public class FsService {
+    private static final Logger.ALogger logger = Logger.of(FsService.class);
+
     @Inject
     private FsMapper mapper;
 
@@ -33,11 +36,15 @@ public class FsService {
     }
 
     public void upload(final TFile file, final User owner) {
-        file.setParentId(owner.getDirId());
-        file.setIndate(System.currentTimeMillis());
+        try {
+            file.setParentId(owner.getDirId());
+            file.setIndate(System.currentTimeMillis());
 
-        mapper.dropEntryByName(file.getName(), file.getParentId(), owner.getId());
-        mapper.mkFile(file, owner.getId());
+            mapper.dropEntryByName(file.getName(), file.getParentId(), owner.getId());
+            mapper.mkFile(file, owner.getId());
+        } catch (final Exception e) {
+            logger.error(e.getMessage(), e);
+        }
     }
 
     public void rm(final long id, final User owner) {

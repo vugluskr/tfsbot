@@ -5,11 +5,12 @@ import model.User;
 import model.telegram.api.*;
 import play.Logger;
 import utils.TextUtils;
-import utils.UOpts;
+import utils.UserMode;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -30,35 +31,82 @@ public class GuiService {
     @Inject
     private FsService fsService;
 
+    @SuppressWarnings("SwitchStatementWithTooFewBranches")
     public void handle(final UpdateRef input, final User user) {
         try {
-            final String callback;
-            if (input.getCallback() != null && !isEmpty((callback = input.getCallback().getData()))) {
-                final long id = TextUtils.getLong(callback);
-                final String cmd = id > 0 ? callback.substring(0, callback.indexOf(String.valueOf(id))) : callback;
+            final MessageRef messageRef = input.getMessage() != null ? input.getMessage() : input.getEditedMessage();
+            final String text = input.getMessage() != null ? input.getMessage().getText() : input.getEditedMessage() != null ? input.getEditedMessage().getText() : null;
+            final String callback = input.getCallback() != null ? input.getCallback().getData() : null;
+            final TeleFile file = input.getMessage() != null ? input.getMessage().getTeleFile() : input.getEditedMessage() != null ? input.getEditedMessage().getTeleFile() : null;
+            final UserMode mode = UserMode.resolve(user);
 
-                switch (cmd) {
-                    case c.mkDir:
-                        UOpts.WaitFolderName.set(user);
-                        userService.updateOpts(user);
-                        tgApi.sendMessage(new TextRef("New folder name:", user.getId()).withForcedReply());
-                        break;
-                    case c.ls:
-                        doLs(id, user);
-                        break;
-                    case c.cd:
-                        final TFile file = fsService.get(id, user);
-                        if (file != null) {
-                            user.setDirId(id);
-                            user.setPwd(file.getPath());
-                            userService.updatePwd(user);
-                            doLs(id, user);
+            if (messageRef != null)
+                CompletableFuture.runAsync(() -> tgApi.deleteMessage(new DeleteMessage(user.getId(), messageRef.getMessageId())));
+
+            if (user.getLastDialogId() > 0) {
+                CompletableFuture.runAsync(() -> tgApi.deleteMessage(new DeleteMessage(user.getId(), user.getLastDialogId())));
+                user.setLastDialogId(0);
+            }
+
+            final CallbackAnswer answer = new CallbackAnswer(input.getCallback() != null ? input.getCallback().getId() : 0, "");
+
+            switch (mode) {
+                case MkDirWaitName:
+                    if (!isEmpty(text)) {
+                        if (fsService.findHere(text, user) == null) {
+                            fsService.mkdir(text, user.getDirId(), user.getId());
+                            answer.setText("Directory '" + text + "' created");
+                            doLs(user.getDirId(), user, false);
+                        } else {
+                            answer.setText("cannot create directory ‘" + text + "’: File exists");
+                            answer.setAlert(true);
                         }
                         break;
-                }
-            } else {
-                doLs(user.getDirId(), user);
+                    }
+                default:
+                    if (file != null)
+                        CompletableFuture.runAsync(() -> fsService.upload(new TFile(file), user));
+                    else if (!isEmpty(callback)) {
+                        final long id = TextUtils.getLong(callback);
+                        final String cmd = id > 0 ? callback.substring(0, callback.indexOf(String.valueOf(id))) : callback;
+
+                        switch (cmd) {
+                            case c.mkDir:
+                                user.setMode(UserMode.MkDirWaitName.ordinal());
+                                CompletableFuture.runAsync(() -> tgApi.sendMessage(new TextRef("New folder name:", user.getId()).withForcedReply()).thenAccept(apiMessageReply -> {
+                                    if (!apiMessageReply.isOk())
+                                        return;
+
+                                    user.setLastDialogId(apiMessageReply.getResult().getMessageId());
+                                    userService.updateOpts(user);
+                                }));
+                                break;
+                            case c.fullLs:
+                                answer.setText("full listing");
+                            case c.ls:
+                                doLs(id, user, cmd.equals(c.fullLs));
+                                break;
+                            case c.cd:
+                                final TFile dir = fsService.get(id, user);
+                                if (dir != null) {
+                                    user.setDirId(id);
+                                    user.setPwd(dir.getPath());
+                                    userService.updatePwd(user);
+                                    doLs(id, user, false);
+                                    answer.setText("cd " + dir.getPath());
+                                }
+                                break;
+                            case c.get:
+                                final TFile data = fsService.get(id, user);
+                                if (data != null)
+                                    CompletableFuture.runAsync(() -> tgApi.sendFile(data, user.getId()));
+                        }
+                    } else
+                        doLs(user.getDirId(), user, false);
             }
+
+            if (answer.getCallbackId() > 0)
+                CompletableFuture.runAsync(() -> tgApi.sendCallbackAnswer(answer));
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
         }
@@ -91,32 +139,38 @@ public class GuiService {
             }));
     }
 
-    private InlineKeyboard makeLsScreen(final TFile current, final Collection<TFile> listing) {
+    private InlineKeyboard makeLsScreen(final TFile current, final Collection<TFile> listing, final boolean full) {
         final List<List<InlineButton>> kbd = new ArrayList<>();
         final List<InlineButton> headRow = new ArrayList<>();
         if (current.getId() > 1) headRow.add(new InlineButton("\u23cf", c.cd + current.getParentId()));
         headRow.add(new InlineButton("\u2398", c.mkDir));
         kbd.add(headRow);
 
-        listing.stream().sorted((o1, o2) -> {
-            final int res = Boolean.compare(o2.isDir(), o1.isDir());
-            return res != 0 ? res : o1.getName().compareTo(o2.getName());
-        }).forEach(f -> {
-            final List<InlineButton> row = new ArrayList<>(2);
+        listing.stream()
+                .sorted((o1, o2) -> {
+                    final int res = Boolean.compare(o2.isDir(), o1.isDir());
+                    return res != 0 ? res : o1.getName().compareTo(o2.getName());
+                })
+                .limit(full ? listing.size() : 10)
+                .forEach(f -> {
+                    final List<InlineButton> row = new ArrayList<>(2);
 //            row.add(new InlineButton("\u238a", c.rm + f.getId()));
 //            row.add(new InlineButton("\u2702", c.mv + f.getId()));
 //            row.add(new InlineButton("\u2380", c.mv + f.getId()));
-            row.add(new InlineButton((f.isDir() ? "\uD83D\uDCC2 " : "") + f.getName(), (f.isDir() ? c.cd : c.get) + f.getId()));
-            kbd.add(row);
-        });
+                    row.add(new InlineButton((f.isDir() ? "\uD83D\uDCC2 " : "") + f.getName(), (f.isDir() ? c.cd : c.get) + f.getId()));
+                    kbd.add(row);
+                });
+
+        if (listing.size() > 10)
+            kbd.add(Collections.singletonList(new InlineButton("Show all (" + (listing.size() - 10) + " more entries)", c.fullLs + current.getId())));
 
         return new InlineKeyboard(kbd);
     }
 
-    private void doLs(final long id, final User user) {
+    private void doLs(final long id, final User user, final boolean full) {
         final TFile file = fsService.get(id, user);
 
-        sendScreen(new TextRef(user.getPwd(), user.getId()).withKeyboard(makeLsScreen(file, fsService.list(id, user))), user);
+        sendScreen(new TextRef(user.getPwd(), user.getId()).withKeyboard(makeLsScreen(file, fsService.list(id, user), full)), user);
     }
 
     private interface c {
@@ -126,5 +180,6 @@ public class GuiService {
         String rm = "rm_";
         String mv = "mv_";
         String get = "gt_";
+        String fullLs = "mr_";
     }
 }
