@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.*;
  * 05.05.2020
  * tfs ☭ sweat and blood
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TextRef {
     private String text;
 

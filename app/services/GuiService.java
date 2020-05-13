@@ -83,7 +83,7 @@ public class GuiService {
     private void doLs(final long id, final User user) {
         final TFile file = fsService.get(id, user);
 
-        tgApi.sendMessage(new TextRef(user.prompt(), user.getId()).withKeyboard(makeLsScreen(file, fsService.list(id, user))));
+        tgApi.sendMessage(new TextRef(user.prompt(), user.getId()).setMd2().withKeyboard(makeLsScreen(file, fsService.list(id, user))));
     }
 
     private interface c {
