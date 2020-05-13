@@ -1,9 +1,7 @@
 package services.impl;
 
 import model.TFile;
-import model.telegram.api.ApiMessageReply;
-import model.telegram.api.TextRef;
-import model.telegram.api.UpdateMessage;
+import model.telegram.api.*;
 import play.Logger;
 import play.libs.Json;
 import services.TgApi;
@@ -53,5 +51,15 @@ public class TgApiFake implements TgApi {
     @Override
     public CompletionStage<ApiMessageReply> updateMessage(final UpdateMessage update) {
         return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public CompletionStage<Void> deleteMessage(final DeleteMessage deleteMessage) {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public void sendCallbackAnswer(final CallbackAnswer callbackAnswer) {
+
     }
 }
