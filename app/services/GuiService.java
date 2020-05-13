@@ -65,17 +65,17 @@ public class GuiService {
         headRow.add(new InlineButton("\u2398", c.mkDir));
         kbd.add(headRow);
 
+        final List<InlineButton> row = new ArrayList<>(2);
         listing.stream().sorted((o1, o2) -> {
             final int res = Boolean.compare(o2.isDir(), o1.isDir());
             return res != 0 ? res : o1.getName().compareTo(o2.getName());
         }).forEach(f -> {
-            final List<InlineButton> row = new ArrayList<>(2);
-            row.add(new InlineButton("\u238a", c.rm + f.getId()));
-            row.add(new InlineButton("\u2702", c.mv + f.getId()));
-            row.add(new InlineButton("\u2380", c.mv + f.getId()));
-            row.add(new InlineButton(f.getName(), (f.isDir() ? c.cd : c.get) + f.getId()));
-            kbd.add(row);
+//            row.add(new InlineButton("\u238a", c.rm + f.getId()));
+//            row.add(new InlineButton("\u2702", c.mv + f.getId()));
+//            row.add(new InlineButton("\u2380", c.mv + f.getId()));
+            row.add(new InlineButton((f.isDir() ? "\u1F4C1 " : "") + f.getName(), (f.isDir() ? c.cd : c.get) + f.getId()));
         });
+        kbd.add(row);
 
         return new InlineKeyboard(kbd);
     }
