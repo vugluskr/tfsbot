@@ -12,6 +12,9 @@
                u.options,
                u.pwd,
                u.dir_id,
+               u.last_dialog,
+               u.last_message,
+               u.mode,
                ua.alias,
                ua.cmd
         from users u
@@ -25,6 +28,9 @@
         <result property="nick" column="nick"/>
         <result property="options" column="options"/>
         <result property="pwd" column="pwd"/>
+        <result property="mode" column="mode"/>
+        <result property="lastDialogId" column="last_dialog"/>
+        <result property="lastMessageId" column="last_message"/>
 
         <collection property="aliases" notNullColumn="alias" resultMap="AliasMap"/>
     </resultMap>
