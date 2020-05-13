@@ -11,7 +11,6 @@ import utils.TextUtils;
 import utils.UOpts;
 
 import javax.inject.Inject;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -48,6 +47,15 @@ public class GuiService {
                         break;
                     case c.ls:
                         doLs(id, user);
+                        break;
+                    case c.cd:
+                        final TFile file = fsService.get(id, user);
+                        if (file != null) {
+                            user.setDirId(id);
+                            user.setPwd(file.getPath());
+                            userService.updatePwd(user);
+                            tgApi.sendMessage(new TextRef(user.getPwd(), user.getId()).withKeyboard(makeLsScreen(file, fsService.list(id, user))));
+                        }
                         break;
                 }
             } else {
