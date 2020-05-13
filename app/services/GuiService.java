@@ -52,6 +52,8 @@ public class GuiService {
 
             switch (mode) {
                 case MkDirWaitName:
+                    user.setMode(0);
+                    CompletableFuture.runAsync(() -> userService.updateOpts(user));
                     if (!isEmpty(text)) {
                         if (fsService.findHere(text, user) == null) {
                             fsService.mkdir(text, user.getDirId(), user.getId());
