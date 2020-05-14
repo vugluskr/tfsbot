@@ -23,6 +23,7 @@ import static utils.TextUtils.isEmpty;
  */
 public class GuiService {
     private static final Logger.ALogger logger = Logger.of(GuiService.class);
+    private static final String cancel = "\uD83D\uDDD9";
 
     @Inject
     private TgApi tgApi;
@@ -144,8 +145,11 @@ public class GuiService {
     private InlineKeyboard makeLsScreen(final TFile current, final Collection<TFile> listing, final boolean full) {
         final List<List<InlineButton>> kbd = new ArrayList<>();
         final List<InlineButton> headRow = new ArrayList<>();
-        if (current.getId() > 1) headRow.add(new InlineButton("\u23cf", c.cd + current.getParentId()));
-        headRow.add(new InlineButton("\u2398", c.mkDir));
+        headRow.add(new InlineButton("\u2302", c.cd + "1"));
+        if (current.getParentId() > 1) headRow.add(new InlineButton("\u2b60", c.cd + current.getParentId()));
+        headRow.add(new InlineButton("\u2315", c.search)); // search
+        headRow.add(new InlineButton("\u2380", c.mkDir));
+        headRow.add(new InlineButton("\u2699", c.editMode)); // edit
         kbd.add(headRow);
 
         listing.stream()
@@ -163,8 +167,8 @@ public class GuiService {
                     kbd.add(row);
                 });
 
-        if (listing.size() > 10)
-            kbd.add(Collections.singletonList(new InlineButton("Show all (" + (listing.size() - 10) + " more entries)", c.fullLs + current.getId())));
+        if (!full && listing.size() > 10)
+            kbd.add(Collections.singletonList(new InlineButton("\u1801 (+" + (listing.size() - 10) + ")", c.fullLs + current.getId())));
 
         return new InlineKeyboard(kbd);
     }
@@ -183,5 +187,7 @@ public class GuiService {
         String mv = "mv_";
         String get = "gt_";
         String fullLs = "mr_";
+        String search = "sr";
+        String editMode = "ed";
     }
 }
