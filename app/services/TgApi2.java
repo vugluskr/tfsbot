@@ -10,7 +10,6 @@ import model.telegram.api.ReplyMarkup;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
-import play.libs.ws.ahc.AhcCurlRequestLogger;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -48,8 +47,11 @@ public class TgApi2 {
                 node.set("reply_markup", Json.toJson(replyMarkup));
 
             CompletableFuture.runAsync(() -> ws.url(apiUrl + "editMessageText")
-                    .setRequestFilter(new AhcCurlRequestLogger())
                     .post(node)
+                    .thenApply(wsr -> {
+                        logger.debug("UpdateMessageText:\nrequest: " + node + "\nresponse: " + wsr.getBody());
+                        return wsr;
+                    })
                     .thenApply(wsr -> wsr.asJson().get("ok").asBoolean() ? wsr.asJson().get("result").get("message_id").asLong() : 0)
                     .thenAccept(msgId -> {
                         if (msgId <= 0)
@@ -63,7 +65,6 @@ public class TgApi2 {
 
     public void deleteMessage(final long messageId, final long userId) {
         CompletableFuture.runAsync(() -> ws.url(apiUrl + "deleteMessage")
-                .setRequestFilter(new AhcCurlRequestLogger())
                 .setContentType(jsonType)
                 .post("{\"chat_id\":" + userId + ",\"message_id\":" + messageId + "}"));
     }
@@ -86,7 +87,6 @@ public class TgApi2 {
             node.set("reply_markup", Json.toJson(replyMarkup));
 
         CompletableFuture.runAsync(() -> ws.url(apiUrl + "sendMessage")
-                .setRequestFilter(new AhcCurlRequestLogger())
                 .post(node)
                 .thenApply(wsr -> wsr.asJson().get("result").get("message_id").asLong())
                 .thenAccept(msgIdConsumer));
@@ -104,7 +104,6 @@ public class TgApi2 {
         node.put("cache_time", cacheTime);
 
         CompletableFuture.runAsync(() -> ws.url(apiUrl + "answerCallbackQuery")
-                .setRequestFilter(new AhcCurlRequestLogger())
                 .post(node));
     }
 
@@ -121,7 +120,6 @@ public class TgApi2 {
             node.set("reply_markup", Json.toJson(replyMarkup));
 
         CompletableFuture.runAsync(() -> ws.url(apiUrl + media.getType().getUrlPath())
-                .setRequestFilter(new AhcCurlRequestLogger())
                 .post(node)
                 .thenApply(wsr -> wsr.asJson().get("result").get("message_id").asLong())
                 .thenAccept(msgIdConsumer));
