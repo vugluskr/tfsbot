@@ -52,7 +52,8 @@ public class TgApi2 {
                         logger.debug("UpdateMessageText:\nrequest: " + node + "\nresponse: " + wsr.getBody());
                         return wsr;
                     })
-                    .thenApply(wsr -> wsr.asJson().get("ok").asBoolean() ? wsr.asJson().get("result").get("message_id").asLong() : 0)
+                    .thenApply(wsr -> wsr.asJson().get("ok").asBoolean() ? wsr.asJson().get("result").get("message_id").asLong() :
+                            wsr.asJson().get("description").asText().contains("are exactly the same") ? updateMessageId : 0)// небольшой хак, если тг отвечает, что сообщение одинаковое - просто ничо делать не будем
                     .thenAccept(msgId -> {
                         if (msgId <= 0)
                             sendMessage(text, format, userId, replyMarkup, msgIdConsumer);
