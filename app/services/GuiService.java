@@ -45,10 +45,10 @@ public class GuiService {
             final Request request = new Request(input);
             logger.debug("Request:\n" + request);
             if (request.id > 0)
-                tgApi.deleteMessage(request.id, user.getId());
+                tgApi.deleteMessage(request.id, user);
 
             if (user.getLastDialogId() > 0) {
-                tgApi.deleteMessage(user.getLastDialogId(), user.getId());
+                tgApi.deleteMessage(user.getLastDialogId(), user);
                 user.setLastDialogId(0);
                 updateOpts.set(true);
             }
@@ -68,7 +68,7 @@ public class GuiService {
                         fsService.mkdir(request.text, user.getDirId(), user.getId());
                         doLs(user.getDirId(), user);
                     } else
-                        tgApi.sendPlainText("cannot create directory ‘" + request.text + "’: File exists", user.getId(), dialogId -> {
+                        tgApi.sendPlainText("cannot create directory ‘" + request.text + "’: File exists", user, dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -85,7 +85,7 @@ public class GuiService {
                         UOpts.WaitFolderName.set(user);
                         updateOpts.set(true);
 
-                        tgApi.ask("Type new folder name:", user.getId(), dialogId -> {
+                        tgApi.ask("Type new folder name:", user, dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -112,16 +112,32 @@ public class GuiService {
                                 add(new InlineButton(Uni.rename, CallCmd.rename.of(file.getId())));
                                 add(new InlineButton(Uni.move, CallCmd.mv.of(file.getId())));
                                 add(new InlineButton(Uni.drop, CallCmd.rm.of(file.getId())));
-                            }})), user.getId(), dialogId -> {
+                            }})), user, dialogId -> {
                                 user.setLastDialogId(dialogId);
                                 userService.updateOpts(user);
                             });
+                        break;
                     case pageUp:
                     case pageDown:
                         user.setOffset(user.getOffset() + (request.callbackCmd == pageUp ? 10 : -10));
                         callAnswer = "page #" + ((user.getOffset() / 10) + 1);
                         doLs(user.getDirId(), user);
                         userService.updateOffset(user);
+                        break;
+                    case editMode:
+                        UOpts.GearMode.set(user);
+                        updateOpts.set(true);
+                        doLs(user.getDirId(), user);
+                        break;
+                    case rm:
+                        fsService.rm(request.callbackId, user);
+                        callAnswer = "Entry deleted";
+                        doLs(user.getDirId(), user);
+                        break;
+                    case mv:
+                        callAnswer = "Choose destination";
+                        UOpts.MovingFile.set(user);
+                        doLs(request.callbackId, user);
                         break;
                 }
 
@@ -137,7 +153,7 @@ public class GuiService {
     }
 
     private void sendScreen(final TextRef data, final User user) {
-        tgApi.sendOrUpdate(data.getText(), data.getParseMode(), data.getReplyMarkup(), user.getLastMessageId(), user.getId(), msgId -> {
+        tgApi.sendOrUpdate(data.getText(), data.getParseMode(), data.getReplyMarkup(), user.getLastMessageId(), user, msgId -> {
             if (msgId == 0 || msgId != user.getLastMessageId()) {
                 user.setLastMessageId(msgId);
                 userService.updateOpts(user);
@@ -145,7 +161,24 @@ public class GuiService {
         });
     }
 
+    private void doGearLs(final long id, final User user) {
+
+    }
+
+    private void doMoveLs(final long id, final User user) {
+        final TFile movedEntry = fsService.get(id, user);
+
+    }
+
     private void doLs(final long id, final User user) {
+        if (UOpts.GearMode.is(user)) {
+            doGearLs(id, user);
+            return;
+        } else if (UOpts.MovingFile.is(user)) {
+            doMoveLs(id, user);
+            return;
+        }
+
         final TFile current = fsService.get(id, user);
         final TextRef ref = new TextRef(user.getPwd(), user.getId());
         final List<List<InlineButton>> kbd = new ArrayList<>();

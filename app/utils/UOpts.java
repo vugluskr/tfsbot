@@ -8,7 +8,7 @@ import model.User;
  * tfs ☭ sweat and blood
  */
 public enum  UOpts {
-    Gui, WaitFolderName;
+    Gui, WaitFolderName, MovingFile, GearMode;
 
     public final int bitmask() {
         return 1 << ordinal();
