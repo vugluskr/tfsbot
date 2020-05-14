@@ -17,7 +17,6 @@
                u.mode,
                u.ls_offset,
                u.selection,
-               u.last_hit,
                ua.alias,
                ua.cmd
         from users u
@@ -36,7 +35,6 @@
         <result property="lastMessageId" column="last_message"/>
         <result property="offset" column="ls_offset"/>
         <result property="selection" column="selection"/>
-        <result property="lastHit" column="last_hit"/>
 
         <collection property="aliases" notNullColumn="alias" resultMap="AliasMap"/>
     </resultMap>
@@ -71,8 +69,8 @@
         set mode         = #{mode} ,
             last_message = #{lastMessageId} ,
             last_dialog  = #{lastDialogId} ,
-            last_hit     = #{lastHit} ,
-            options      = #{options}
+            options      = #{options} ,
+            selection    = #{selection}
         where id = #{userId}
     </update>
 </mapper>

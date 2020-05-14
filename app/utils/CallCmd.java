@@ -21,7 +21,8 @@ public enum CallCmd {
     cancelDialog("cn_"),
     pageUp("pg+"),
     pageDown("pg-"),
-    ;
+    normalMode("nm_"),
+    select("sl_");
 
     public final String id;
 

@@ -45,10 +45,10 @@ public class GuiService {
             final Request request = new Request(input);
             logger.debug("Request:\n" + request);
             if (request.id > 0)
-                tgApi.deleteMessage(request.id, user);
+                tgApi.deleteMessage(request.id, user.getId());
 
             if (user.getLastDialogId() > 0) {
-                tgApi.deleteMessage(user.getLastDialogId(), user);
+                tgApi.deleteMessage(user.getLastDialogId(), user.getId());
                 user.setLastDialogId(0);
                 updateOpts.set(true);
             }
@@ -68,7 +68,7 @@ public class GuiService {
                         fsService.mkdir(request.text, user.getDirId(), user.getId());
                         doLs(user.getDirId(), user);
                     } else
-                        tgApi.sendPlainText("cannot create directory ‘" + request.text + "’: File exists", user, dialogId -> {
+                        tgApi.sendPlainText("cannot create directory ‘" + request.text + "’: File exists", user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -85,7 +85,7 @@ public class GuiService {
                         UOpts.WaitFolderName.set(user);
                         updateOpts.set(true);
 
-                        tgApi.ask("Type new folder name:", user, dialogId -> {
+                        tgApi.ask("Type new folder name:", user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -112,20 +112,28 @@ public class GuiService {
                                 add(new InlineButton(Uni.rename, CallCmd.rename.of(file.getId())));
                                 add(new InlineButton(Uni.move, CallCmd.mv.of(file.getId())));
                                 add(new InlineButton(Uni.drop, CallCmd.rm.of(file.getId())));
-                            }})), user, dialogId -> {
+                            }})), user.getId(), dialogId -> {
                                 user.setLastDialogId(dialogId);
                                 userService.updateOpts(user);
                             });
                         break;
                     case pageUp:
                     case pageDown:
-                        user.setOffset(user.getOffset() + (request.callbackCmd == pageUp ? 10 : -10));
+                        user.setOffset(Math.max(0, user.getOffset() + (request.callbackCmd == pageUp ? 10 : -10)));
                         callAnswer = "page #" + ((user.getOffset() / 10) + 1);
                         doLs(user.getDirId(), user);
                         userService.updateOffset(user);
                         break;
+                    case normalMode:
+                        UOpts.GearMode.clear(user);
+                        user.setOffset(0);
+                        updateOpts.set(true);
+                        doLs(user.getDirId(), user);
+                        break;
                     case editMode:
                         UOpts.GearMode.set(user);
+                        user.setSelection(",");
+                        user.setOffset(0);
                         updateOpts.set(true);
                         doLs(user.getDirId(), user);
                         break;
@@ -138,6 +146,17 @@ public class GuiService {
                         callAnswer = "Choose destination";
                         UOpts.MovingFile.set(user);
                         doLs(request.callbackId, user);
+                        break;
+                    case select:
+                        if (user.getSelection().contains("," + request.callbackId + ",")) {
+                            user.setSelection(user.getSelection().replace("," + request.callbackId + ",", ","));
+                            tgApi.sendCallbackAnswer("selected", request.callbackReplyId, false, 0);
+                        } else {
+                            user.setSelection(user.getSelection() + request.callbackId + ",");
+                            tgApi.sendCallbackAnswer("deselected", request.callbackReplyId, false, 0);
+                        }
+                        doGearLs(user.getDirId(), user);
+                        updateOpts.set(true);
                         break;
                 }
 
@@ -153,7 +172,7 @@ public class GuiService {
     }
 
     private void sendScreen(final TextRef data, final User user) {
-        tgApi.sendOrUpdate(data.getText(), data.getParseMode(), data.getReplyMarkup(), user.getLastMessageId(), user, msgId -> {
+        tgApi.sendOrUpdate(data.getText(), data.getParseMode(), data.getReplyMarkup(), user.getLastMessageId(), user.getId(), msgId -> {
             if (msgId == 0 || msgId != user.getLastMessageId()) {
                 user.setLastMessageId(msgId);
                 userService.updateOpts(user);
@@ -162,6 +181,57 @@ public class GuiService {
     }
 
     private void doGearLs(final long id, final User user) {
+        final TFile current = fsService.get(id, user);
+        final TextRef ref = new TextRef(user.getPwd(), user.getId());
+        final List<List<InlineButton>> kbd = new ArrayList<>();
+        final List<InlineButton> headRow = new ArrayList<>();
+        headRow.add(new InlineButton(Uni.home, CallCmd.cd.of(1L)));
+        if (current.getParentId() > 1) headRow.add(new InlineButton(Uni.leftArrow, CallCmd.cd.of(current.getParentId())));
+        headRow.add(new InlineButton(Uni.search, CallCmd.search));
+        headRow.add(new InlineButton(Uni.back, CallCmd.normalMode));
+        kbd.add(headRow);
+
+        ref.setText(escapeMd(user.getPwd()) + "\n\n_" + escapeMd("Select entries to move or delete. Hit '" + Uni.back + "' to return to normal mode.") + "_");
+        ref.setMd2();
+
+        final List<TFile> entries = fsService.list(id, user);
+        if (isEmpty(user.getSelection()))
+            user.setSelection(",");
+
+        entries.stream()
+                .sorted((o1, o2) -> {
+                    final int res = Boolean.compare(o2.isDir(), o1.isDir());
+                    return res != 0 ? res : o1.getName().compareTo(o2.getName());
+                })
+                .skip(user.getOffset())
+                .limit(10)
+                .forEach(f -> {
+                    final List<InlineButton> row = new ArrayList<>(2);
+                    row.add(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId())));
+                    row.add(new InlineButton(user.getSelection().contains("," + f.getId() + ",") ? Uni.checked : Uni.unchecked, CallCmd.select.of(f.getId())));
+                    kbd.add(row);
+                });
+
+        final List<InlineButton> pageRow = new ArrayList<>();
+
+        if (!entries.isEmpty()) {
+            if (user.getOffset() > 0)
+                pageRow.add(new InlineButton(Uni.leftArrow, CallCmd.pageDown));
+            if (user.getOffset() + 10 < entries.size())
+                pageRow.add(new InlineButton(Uni.rightArrow, pageUp));
+        }
+
+        if (user.getSelection().length() > 2) {
+            pageRow.add(new InlineButton(Uni.move, CallCmd.mv));
+            pageRow.add(new InlineButton(Uni.drop, CallCmd.rm));
+        }
+
+        if (!pageRow.isEmpty())
+            kbd.add(pageRow);
+
+        ref.setReplyMarkup(new InlineKeyboard(kbd));
+
+        sendScreen(ref, user);
 
     }
 
@@ -179,7 +249,7 @@ public class GuiService {
             return;
         }
 
-        final TFile current = fsService.get(id, user);
+         TFile current = fsService.get(id, user);
         final TextRef ref = new TextRef(user.getPwd(), user.getId());
         final List<List<InlineButton>> kbd = new ArrayList<>();
         final List<InlineButton> headRow = new ArrayList<>();

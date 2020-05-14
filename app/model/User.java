@@ -19,7 +19,6 @@ public class User {
     private int offset;
     private long lastMessageId;
     private long lastDialogId;
-    private long lastHit;
 
     private String pwd, selection;
     private long dirId;
@@ -111,27 +110,11 @@ public class User {
         this.offset = offset;
     }
 
-    public long getLastHit() {
-        return lastHit;
-    }
-
-    public void setLastHit(final long lastHit) {
-        this.lastHit = lastHit;
-    }
-
     public String getSelection() {
         return selection;
     }
 
     public void setSelection(final String selection) {
         this.selection = selection;
-    }
-
-    public long getDelay() {
-        try {
-            return lastHit <= 0 ? 0 : System.currentTimeMillis() - lastHit;
-        } finally {
-            lastHit = System.currentTimeMillis() + 1000;
-        }
     }
 }

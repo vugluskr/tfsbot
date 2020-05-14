@@ -19,4 +19,7 @@ public interface Uni {
     String drop = "\uD83D\uDDD1"; // 🗑
     String rename = "\u270E"; // ✎
     String move = "\u21B7"; // ↷
+    String back = "\u23CE"; // ⏎
+    String unchecked = "\u2610"; // ☐
+    String checked = "\u2611"; // ☑
 }
