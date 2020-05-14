@@ -3,7 +3,8 @@ package model;
 
 import utils.TextUtils;
 
-import java.util.*;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -128,7 +129,7 @@ public class User {
 
     public long getDelay() {
         try {
-            return System.currentTimeMillis() - lastHit;
+            return lastHit <= 0 ? 0 : System.currentTimeMillis() - lastHit;
         } finally {
             lastHit = System.currentTimeMillis() + 1000;
         }
