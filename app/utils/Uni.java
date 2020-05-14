@@ -18,4 +18,5 @@ public interface Uni {
     String edit = "\u00B6"; // ¶
     String drop = "\uD83D\uDDD1"; // 🗑
     String rename = "\u270E"; // ✎
+    String move = "\u21B7"; // ↷
 }

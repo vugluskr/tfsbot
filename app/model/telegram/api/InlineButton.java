@@ -20,9 +20,9 @@ public class InlineButton {
     public InlineButton() {
     }
 
-    public InlineButton(final String text, final String callbackData) {
+    public InlineButton(final String text, final Object callbackData) {
         this.text = text;
-        this.callbackData = callbackData;
+        this.callbackData = String.valueOf(callbackData);
     }
 
     public String getInlineQuery() {
