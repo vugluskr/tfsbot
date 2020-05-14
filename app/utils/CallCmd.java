@@ -19,6 +19,8 @@ public enum CallCmd {
     search("sr"),
     editMode("ed_"),
     cancelDialog("cn_"),
+    pageUp("pg+"),
+    pageDown("pg-"),
     ;
 
     public final String id;

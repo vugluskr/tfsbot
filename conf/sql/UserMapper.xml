@@ -15,6 +15,7 @@
                u.last_dialog,
                u.last_message,
                u.mode,
+               u.ls_offset,
                ua.alias,
                ua.cmd
         from users u
@@ -31,6 +32,7 @@
         <result property="mode" column="mode"/>
         <result property="lastDialogId" column="last_dialog"/>
         <result property="lastMessageId" column="last_message"/>
+        <result property="offset" column="ls_offset"/>
 
         <collection property="aliases" notNullColumn="alias" resultMap="AliasMap"/>
     </resultMap>
@@ -43,7 +45,14 @@
     <update id="updatePwd">
         update users
         set dir_id = #{dirId} ,
-            pwd    = #{pwd}
+            pwd    = #{pwd} ,
+            ls_offset = 0
+        where id = #{id}
+    </update>
+
+    <update id="updateOffset">
+        update users
+        set ls_offset = #{offset}
         where id = #{id}
     </update>
 

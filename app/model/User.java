@@ -15,6 +15,7 @@ public class User {
     private String nick;
     private int options;
     private int mode;
+    private int offset;
     private long lastMessageId;
     private long lastDialogId;
 
@@ -79,6 +80,8 @@ public class User {
     }
 
     public void setLastMessageId(final long lastMessageId) {
+        if (lastMessageId != this.lastMessageId)
+            setOffset(0);
         this.lastMessageId = lastMessageId;
     }
 
@@ -96,5 +99,13 @@ public class User {
 
     public boolean isAtHome() {
         return dirId == 1;
+    }
+
+    public int getOffset() {
+        return offset;
+    }
+
+    public void setOffset(final int offset) {
+        this.offset = offset;
     }
 }

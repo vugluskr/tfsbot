@@ -14,6 +14,8 @@ public interface UserMapper {
 
     void insertUser(User user);
 
+    void updateOffset(User user);
+
     void updatePwd(User user);
 
     void insertAlias(@Param("alias") UserAlias alias, @Param("userId") long userId);

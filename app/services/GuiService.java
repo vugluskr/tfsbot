@@ -2,6 +2,7 @@ package services;
 
 import model.TFile;
 import model.User;
+import model.telegram.ContentType;
 import model.telegram.Request;
 import model.telegram.api.InlineButton;
 import model.telegram.api.InlineKeyboard;
@@ -14,12 +15,12 @@ import utils.Uni;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static utils.CallCmd.fullLs;
+import static utils.CallCmd.pageUp;
+import static utils.TextUtils.escapeMd;
 import static utils.TextUtils.isEmpty;
 
 /**
@@ -52,8 +53,11 @@ public class GuiService {
                 updateOpts.set(true);
             }
 
-            if (request.file != null)
+            if (request.file != null) {
                 fsService.upload(new TFile(request.file), user);
+                doLs(user.getDirId(), user);
+                return;
+            }
 
             if (UOpts.WaitFolderName.is(user)) {
                 UOpts.WaitFolderName.clear(user);
@@ -62,7 +66,7 @@ public class GuiService {
                 if (!isEmpty(request.text)) {
                     if (fsService.findHere(request.text, user) == null) {
                         fsService.mkdir(request.text, user.getDirId(), user.getId());
-                        doLs(user.getDirId(), user, false);
+                        doLs(user.getDirId(), user);
                     } else
                         tgApi.sendPlainText("cannot create directory ‘" + request.text + "’: File exists", user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
@@ -74,31 +78,30 @@ public class GuiService {
             }
 
             if (request.isCallback() && request.callbackCmd != null) {
-                final StringBuilder callAnswer = new StringBuilder();
+                String callAnswer = "";
 
                 switch (request.callbackCmd) {
                     case mkDir:
                         UOpts.WaitFolderName.set(user);
                         updateOpts.set(true);
 
-                        tgApi.ask("New folder name:", user.getId(), dialogId -> {
+                        tgApi.ask("Type new folder name:", user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
                         break;
-                    case fullLs:
                     case ls:
-                        doLs(request.callbackId, user, request.callbackCmd == fullLs);
+                        doLs(request.callbackId, user);
                         break;
                     case cd:
                         final TFile dir = fsService.get(request.callbackId, user);
                         if (dir != null) {
-                            callAnswer.append("cd ").append(dir.getPath());
+                            callAnswer = "cd " + dir.getPath();
 
                             user.setDirId(request.callbackId);
                             user.setPwd(dir.getPath());
                             userService.updatePwd(user);
-                            doLs(request.callbackId, user, false);
+                            doLs(request.callbackId, user);
                         }
                         break;
                     case get:
@@ -113,16 +116,18 @@ public class GuiService {
                                 user.setLastDialogId(dialogId);
                                 userService.updateOpts(user);
                             });
+                    case pageUp:
+                    case pageDown:
+                        user.setOffset(user.getOffset() + (request.callbackCmd == pageUp ? 10 : -10));
+                        callAnswer = "page #" + ((user.getOffset() / 10) + 1);
+                        doLs(user.getDirId(), user);
+                        userService.updateOffset(user);
+                        break;
                 }
 
-                tgApi.sendCallbackAnswer(callAnswer.toString(), request.callbackReplyId);
-            } else {
-                if (user.getLastMessageId() > 0) {
-                    user.setLastMessageId(0);
-                    updateOpts.set(true);
-                }
-                doLs(user.getDirId(), user, false);
-            }
+                tgApi.sendCallbackAnswer(callAnswer, request.callbackReplyId);
+            } else
+                doLs(user.getDirId(), user);
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
         } finally {
@@ -140,7 +145,9 @@ public class GuiService {
         });
     }
 
-    private InlineKeyboard makeLsScreen(final TFile current, final Collection<TFile> listing, final boolean full) {
+    private void doLs(final long id, final User user) {
+        final TFile current = fsService.get(id, user);
+        final TextRef ref = new TextRef(user.getPwd(), user.getId());
         final List<List<InlineButton>> kbd = new ArrayList<>();
         final List<InlineButton> headRow = new ArrayList<>();
         headRow.add(new InlineButton(Uni.home, CallCmd.cd.of(1L)));
@@ -150,27 +157,53 @@ public class GuiService {
         headRow.add(new InlineButton(Uni.gear, CallCmd.editMode)); // edit
         kbd.add(headRow);
 
-        listing.stream()
-                .sorted((o1, o2) -> {
-                    final int res = Boolean.compare(o2.isDir(), o1.isDir());
-                    return res != 0 ? res : o1.getName().compareTo(o2.getName());
-                })
-                .limit(full ? listing.size() : 10)
-                .forEach(f -> {
-                    final List<InlineButton> row = new ArrayList<>(2);
-                    row.add(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId())));
-                    kbd.add(row);
-                });
+        final List<TFile> entries = fsService.list(id, user);
 
-        if (!full && listing.size() > 10)
-            kbd.add(Collections.singletonList(new InlineButton("\u1801 (+" + (listing.size() - 10) + ")", CallCmd.fullLs.of(current.getId()))));
+        if (entries.isEmpty()) {
+            ref.setText(escapeMd(user.getPwd()) + "\n\n_" + escapeMd("No content here yet. Send me some files.") + "_");
+            ref.setMd2();
+        } else {
+            if (entries.stream().anyMatch(e -> e.getType() == ContentType.LABEL)) {
+                final StringBuilder labels = new StringBuilder(escapeMd(user.getPwd()));
+                labels.append("\n\n");
 
-        return new InlineKeyboard(kbd);
-    }
+                entries.stream().filter(e -> e.getType() == ContentType.LABEL)
+                        .forEach(e -> labels.append('`').append(escapeMd(e.getName())).append("`\n"));
 
-    private void doLs(final long id, final User user, final boolean full) {
-        final TFile file = fsService.get(id, user);
+                ref.setText(labels.toString());
+                ref.setMd2();
+            }
 
-        sendScreen(new TextRef(user.getPwd(), user.getId()).withKeyboard(makeLsScreen(file, fsService.list(id, user), full)), user);
+            final long count = entries.stream().filter(e -> e.getType() != ContentType.LABEL).count();
+
+            if (count > 0) {
+                entries.stream().filter(e -> e.getType() != ContentType.LABEL)
+                        .sorted((o1, o2) -> {
+                            final int res = Boolean.compare(o2.isDir(), o1.isDir());
+                            return res != 0 ? res : o1.getName().compareTo(o2.getName());
+                        })
+                        .skip(user.getOffset())
+                        .limit(10)
+                        .forEach(f -> {
+                            final List<InlineButton> row = new ArrayList<>(2);
+                            row.add(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId())));
+                            kbd.add(row);
+                        });
+                if (count > 10) {
+                    final List<InlineButton> pageRow = new ArrayList<>();
+
+                    if (user.getOffset() > 0)
+                        pageRow.add(new InlineButton(Uni.leftArrow, CallCmd.pageDown));
+                    if (user.getOffset() + 10 < count)
+                        pageRow.add(new InlineButton(Uni.rightArrow, CallCmd.pageDown));
+
+                    kbd.add(pageRow);
+                }
+            }
+        }
+
+        ref.setReplyMarkup(new InlineKeyboard(kbd));
+
+        sendScreen(ref, user);
     }
 }
