@@ -27,11 +27,18 @@ public class TgApiFake implements TgApi {
     public volatile Consumer<TextRef> msgSendListener = null;
 
     @Override
-    public void sendFile(final TFile file, final long chatId) {
+    public CompletionStage<ApiMessageReply> sendFile(final TFile file, final long chatId) {
         logger.info("Send file to chat '" + chatId + "': " + file);
 
         if (fileSendListener != null)
             fileSendListener.accept(file, chatId);
+
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public CompletionStage<ApiMessageReply> sendFile(final TFile file, final String caption, final ReplyMarkup replyMarkup, final long chatId) {
+        return null;
     }
 
     @Override
