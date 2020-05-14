@@ -37,4 +37,17 @@ public class Request {
     public boolean isCallback() {
         return callback != null;
     }
+
+    @Override
+    public String toString() {
+        return "Request{" +
+                "id=" + id +
+                ", text='" + text + '\'' +
+                ", callback='" + callback + '\'' +
+                ", callbackId=" + callbackId +
+                ", callbackReplyId=" + callbackReplyId +
+                ", file=" + file +
+                ", callbackCmd=" + callbackCmd +
+                '}';
+    }
 }

@@ -42,6 +42,7 @@ public class GuiService {
 
         try {
             final Request request = new Request(input);
+            logger.debug("Request:\n" + request);
             if (request.id > 0)
                 tgApi.deleteMessage(request.id, user.getId());
 
