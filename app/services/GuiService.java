@@ -10,18 +10,17 @@ import model.telegram.api.TextRef;
 import model.telegram.api.UpdateRef;
 import play.Logger;
 import utils.CallCmd;
+import utils.TextUtils;
 import utils.UOpts;
 import utils.Uni;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import static utils.CallCmd.pageUp;
-import static utils.TextUtils.escapeMd;
-import static utils.TextUtils.isEmpty;
+import static utils.TextUtils.*;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -138,8 +137,16 @@ public class GuiService {
                         doLs(user.getDirId(), user);
                         break;
                     case rm:
-                        fsService.rm(request.callbackId, user);
-                        callAnswer = "Entry deleted";
+                        if (UOpts.GearMode.is(user)) {
+                            final Set<Long> ids = Arrays.stream(user.getSelection().split(",")).map(TextUtils::getLong).filter(l -> l > 0).collect(Collectors.toSet());
+
+                            fsService.rm(ids, user);
+                            user.setSelection(",");
+                            callAnswer = ids.size() + " entry(s) deleted";
+                        } else {
+                            fsService.rm(request.callbackId, user);
+                            callAnswer = "Entry deleted";
+                        }
                         doLs(user.getDirId(), user);
                         break;
                     case mv:
@@ -150,10 +157,10 @@ public class GuiService {
                     case select:
                         if (user.getSelection().contains("," + request.callbackId + ",")) {
                             user.setSelection(user.getSelection().replace("," + request.callbackId + ",", ","));
-                            tgApi.sendCallbackAnswer("selected", request.callbackReplyId, false, 0);
+                            tgApi.sendCallbackAnswer("deselected", request.callbackReplyId, false, 0);
                         } else {
                             user.setSelection(user.getSelection() + request.callbackId + ",");
-                            tgApi.sendCallbackAnswer("deselected", request.callbackReplyId, false, 0);
+                            tgApi.sendCallbackAnswer("selected", request.callbackReplyId, false, 0);
                         }
                         doGearLs(user.getDirId(), user);
                         updateOpts.set(true);
@@ -222,8 +229,9 @@ public class GuiService {
         }
 
         if (user.getSelection().length() > 2) {
-            pageRow.add(new InlineButton(Uni.move, CallCmd.mv));
-            pageRow.add(new InlineButton(Uni.drop, CallCmd.rm));
+            final long size = Arrays.stream(user.getSelection().split(",")).filter(s -> getLong(s) > 0).count();
+            pageRow.add(new InlineButton(Uni.move + " ("+size+")", CallCmd.mv));
+            pageRow.add(new InlineButton(Uni.drop + " ("+size+")", CallCmd.rm));
         }
 
         if (!pageRow.isEmpty())
