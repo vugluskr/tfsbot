@@ -195,7 +195,7 @@ public class GuiService {
                     if (user.getOffset() > 0)
                         pageRow.add(new InlineButton(Uni.leftArrow, CallCmd.pageDown));
                     if (user.getOffset() + 10 < count)
-                        pageRow.add(new InlineButton(Uni.rightArrow, CallCmd.pageDown));
+                        pageRow.add(new InlineButton(Uni.rightArrow, pageUp));
 
                     kbd.add(pageRow);
                 }
