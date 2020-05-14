@@ -20,7 +20,7 @@ public class Request {
     public final CallCmd callbackCmd;
 
     public Request(final UpdateRef input) {
-        id = input.getMessage() != null ? input.getMessage().getMessageId() : input.getEditedMessage().getMessageId();
+        id = input.getMessage() != null ? input.getMessage().getMessageId() : input.getEditedMessage() != null ? input.getEditedMessage().getMessageId() : 0;
         text = input.getMessage() != null ? input.getMessage().getText() : input.getEditedMessage() != null ? input.getEditedMessage().getText() : null;
         callback = input.getCallback() != null ? input.getCallback().getData() : null;
         callbackReplyId = callback == null ? 0 : input.getCallback().getId();
