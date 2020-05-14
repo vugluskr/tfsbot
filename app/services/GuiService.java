@@ -5,6 +5,7 @@ import model.User;
 import model.telegram.api.*;
 import play.Logger;
 import utils.TextUtils;
+import utils.Uni;
 import utils.UserMode;
 
 import javax.inject.Inject;
@@ -23,7 +24,6 @@ import static utils.TextUtils.isEmpty;
  */
 public class GuiService {
     private static final Logger.ALogger logger = Logger.of(GuiService.class);
-    private static final String cancel = "\uD83D\uDDD9";
 
     @Inject
     private TgApi tgApi;
@@ -82,7 +82,8 @@ public class GuiService {
 
                                     user.setLastDialogId(apiMessageReply.getResult().getMessageId());
                                     userService.updateOpts(user);
-                                }));
+                                }).thenAccept(aVoid -> tgApi.updateMessage(new UpdateMessage(user.getId(), user.getLastDialogId()).withReply(InlineKeyboard.singleton(new InlineButton(Uni.cancel,
+                                        c.cancelDialog))))));
                                 break;
                             case c.fullLs:
                                 answer.setText("full listing");
@@ -104,8 +105,10 @@ public class GuiService {
                                 if (data != null)
                                     CompletableFuture.runAsync(() -> tgApi.sendFile(data, user.getId()));
                         }
-                    } else
+                    } else {
+                        user.setLastMessageId(0);
                         doLs(user.getDirId(), user, false);
+                    }
             }
 
             if (answer.getCallbackId() > 0)
@@ -189,5 +192,6 @@ public class GuiService {
         String fullLs = "mr_";
         String search = "sr";
         String editMode = "ed";
+        String cancelDialog = "cn";
     }
 }

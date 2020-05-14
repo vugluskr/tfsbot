@@ -2,6 +2,7 @@ package model.telegram.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -18,6 +19,10 @@ public class InlineKeyboard implements ReplyMarkup {
 
     public InlineKeyboard(final List<List<InlineButton>> keyboard) {
         this.keyboard = keyboard;
+    }
+
+    public static InlineKeyboard singleton(final InlineButton button) {
+        return new InlineKeyboard(Collections.singletonList(Collections.singletonList(button)));
     }
 
     public List<List<InlineButton>> getKeyboard() {

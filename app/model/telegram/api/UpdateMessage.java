@@ -25,6 +25,14 @@ public class UpdateMessage {
     @JsonProperty("reply_markup")
     private ReplyMarkup replyMarkup;
 
+    public UpdateMessage() {
+    }
+
+    public UpdateMessage(final long chatId, final long messageId) {
+        this.chatId = chatId;
+        this.messageId = messageId;
+    }
+
     public long getChatId() {
         return chatId;
     }
@@ -79,5 +87,10 @@ public class UpdateMessage {
 
     public void setReplyMarkup(final ReplyMarkup replyMarkup) {
         this.replyMarkup = replyMarkup;
+    }
+
+    public UpdateMessage withReply(final ReplyMarkup reply) {
+        setReplyMarkup(reply);
+        return this;
     }
 }
