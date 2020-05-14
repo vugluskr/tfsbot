@@ -2,7 +2,6 @@ package services;
 
 import model.TFile;
 import model.User;
-import model.telegram.ContentType;
 import model.telegram.api.*;
 import play.Logger;
 import utils.TextUtils;
@@ -120,6 +119,7 @@ public class GuiService {
     }
 
     private void sendMedia(final TFile file, final User user) {
+/*
         if (user.getLastMessageId() > 0 && file.getType() != ContentType.DIR && file.getType() != ContentType.LABEL && file.getType() != ContentType.STICKER) {
             final EditMedia msg = new EditMedia();
             msg.setChatId(user.getId());
@@ -142,7 +142,18 @@ public class GuiService {
                     }))
             ;
         } else
-            CompletableFuture.runAsync(() -> tgApi.sendFile(file, user.getId()));
+*/
+            CompletableFuture.runAsync(() -> tgApi.sendFile(file, file.getPath(), new InlineKeyboard(Collections.singletonList(new ArrayList<InlineButton>(3) {{
+                add(new InlineButton(Uni.rename, c.mv + file.getId()));
+                add(new InlineButton(Uni.drop, c.rm + file.getId()));
+                add(new InlineButton(Uni.cancel, c.cancelDialog));
+            }})), user.getId()).thenAccept(apiMessageReply -> {
+                if (apiMessageReply == null || !apiMessageReply.isOk())
+                    return;
+
+                user.setLastDialogId(apiMessageReply.getResult().getMessageId());
+                userService.updateOpts(user);
+            }));
     }
 
     private void sendScreen(final TextRef data, final User user) {

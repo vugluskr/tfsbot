@@ -34,17 +34,29 @@ public class TgApiReal implements TgApi {
     }
 
     @Override
-    public void sendFile(final TFile file, final long chatId) {
+    public CompletionStage<ApiMessageReply> sendFile(final TFile file, final long chatId) {
+        return sendFile(file, null, null, chatId);
+    }
+
+    @Override
+    public CompletionStage<ApiMessageReply> sendFile(final TFile file, final String caption, final ReplyMarkup replyMarkup, final long chatId) {
         if (file == null)
-            return;
+            return CompletableFuture.completedFuture(null);
 
         final ObjectNode node = Json.newObject();
         node.put("chat_id", chatId);
         node.put(file.getType().getParamName(), file.getRefId());
+        if (!isEmpty(caption))
+            node.put("caption", caption);
+        if (replyMarkup != null)
+            node.set("reply_markup", Json.toJson(replyMarkup));
 
-        ws.url(apiUrl + file.getType().getUrlPath())
+        return ws.url(apiUrl + file.getType().getUrlPath())
                 .post(node)
-                .thenAccept(wsr -> logger.debug("API call: send" + file.getType().getUrlPath() + "\n" + node + "\nResponse: " + wsr.getBody()));
+                .thenApply(wsr -> {
+                    logger.debug("API call: send" + file.getType().getUrlPath() + "\n" + node + "\nResponse: " + wsr.getBody());
+                    return Json.fromJson(wsr.asJson(), ApiMessageReply.class);
+                });
     }
 
     @Override
@@ -90,7 +102,7 @@ public class TgApiReal implements TgApi {
                 .post(node)
                 .thenApply(wsr -> {
                     logger.debug("API call: deleteMessage\n" + node + "\nResponse: " + wsr.getBody());
-                    
+
                     return null;
                 });
     }

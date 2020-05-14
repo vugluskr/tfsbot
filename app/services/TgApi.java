@@ -15,7 +15,9 @@ import java.util.concurrent.CompletionStage;
  */
 @ImplementedBy(TgApiReal.class)
 public interface TgApi {
-    void sendFile(TFile file, long chatId);
+    CompletionStage<ApiMessageReply> sendFile(TFile file, long chatId);
+
+    CompletionStage<ApiMessageReply> sendFile(TFile file, String caption, ReplyMarkup replyMarkup, long chatId);
 
     CompletionStage<ApiMessageReply> sendMessage(TextRef text);
 
