@@ -23,7 +23,7 @@ public class EditMedia {
     @JsonProperty("inline_message_id")
     private String inlineMessageId;
     @JsonProperty("media")
-    private String fileRefId;
+    private InputMedia media;
     @JsonProperty("reply_markup")
     private ReplyMarkup replyMarkup;
 
@@ -51,19 +51,19 @@ public class EditMedia {
         this.inlineMessageId = inlineMessageId;
     }
 
-    public String getFileRefId() {
-        return fileRefId;
-    }
-
-    public void setFileRefId(final String fileRefId) {
-        this.fileRefId = fileRefId;
-    }
-
     public ReplyMarkup getReplyMarkup() {
         return replyMarkup;
     }
 
     public void setReplyMarkup(final ReplyMarkup replyMarkup) {
         this.replyMarkup = replyMarkup;
+    }
+
+    public InputMedia getMedia() {
+        return media;
+    }
+
+    public void setMedia(final InputMedia media) {
+        this.media = media;
     }
 }

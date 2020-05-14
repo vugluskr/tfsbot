@@ -124,7 +124,7 @@ public class GuiService {
             final EditMedia msg = new EditMedia();
             msg.setChatId(user.getId());
             msg.setMessageId(user.getLastMessageId());
-            msg.setFileRefId(file.getRefId());
+            msg.setMedia(new InputMedia(file.getType().name().toLowerCase(), file.getRefId(), file.getPath()));
             msg.setReplyMarkup(new InlineKeyboard(Collections.singletonList(new ArrayList<InlineButton>(3) {{
                 add(new InlineButton(Uni.leftArrow, c.cd + file.getParentId()));
                 add(new InlineButton(Uni.rename, c.mv + file.getId()));
@@ -138,8 +138,7 @@ public class GuiService {
                             userService.updateOpts(user);
 
                             sendMedia(file, user);
-                        } else
-                            CompletableFuture.runAsync(() -> tgApi.editCaption(new EditCaption(user.getId(), user.getLastMessageId(), file.getPath())));
+                        }
                     }))
             ;
         } else
