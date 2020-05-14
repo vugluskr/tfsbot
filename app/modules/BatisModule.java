@@ -11,6 +11,9 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -27,6 +30,7 @@ public class BatisModule extends org.mybatis.guice.MyBatisModule {
                 to(true);
         bindDataSourceProviderType(PlayDataSourceProvider.class);
         bindTransactionFactoryType(JdbcTransactionFactory.class);
+        Executors.newScheduledThreadPool(3);
         addMapperClasses(FsMapper.class.getPackage().getName());
     }
 

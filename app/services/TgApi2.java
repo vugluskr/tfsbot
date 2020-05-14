@@ -1,5 +1,6 @@
 package services;
 
+import akka.actor.ActorSystem;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
 import com.typesafe.config.Config;
@@ -11,10 +12,11 @@ import model.telegram.api.ReplyMarkup;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
+import scala.concurrent.ExecutionContext;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import static utils.TextUtils.isEmpty;
@@ -30,12 +32,14 @@ public class TgApi2 {
 
     private final String apiUrl;
     private final WSClient ws;
-    private final ScheduledExecutorService executor;
+    private final ActorSystem actorSystem;
+    private final ExecutionContext ec;
 
     @Inject
-    public TgApi2(final Config config, final WSClient ws, final ScheduledExecutorService executor) {
+    public TgApi2(final Config config, final WSClient ws, final ActorSystem actorSystem, final ExecutionContext ec) {
         this.ws = ws;
-        this.executor = executor;
+        this.actorSystem = actorSystem;
+        this.ec = ec;
         apiUrl = config.getString("service.bot.api_url");
     }
 
@@ -51,7 +55,7 @@ public class TgApi2 {
             if (replyMarkup != null)
                 node.set("reply_markup", Json.toJson(replyMarkup));
 
-            executor.schedule(() ->
+            actorSystem.scheduler().scheduleOnce(Duration.of(user.getDelay(), ChronoUnit.MILLIS), () ->
                     ws.url(apiUrl + "editMessageText")
                             .post(node)
                             .thenApply(wsr -> {
@@ -65,15 +69,15 @@ public class TgApi2 {
                                     sendMessage(text, format, user, replyMarkup, msgIdConsumer);
                                 else
                                     msgIdConsumer.accept(msgId);
-                            }), user.getDelay(), TimeUnit.MILLISECONDS);
+                            }), ec);
         } else
             sendMessage(text, format, user, replyMarkup, msgIdConsumer);
     }
 
     public void deleteMessage(final long messageId, final User user) {
-        executor.schedule(() -> ws.url(apiUrl + "deleteMessage")
+        actorSystem.scheduler().scheduleOnce(Duration.of(user.getDelay(), ChronoUnit.MILLIS), () -> ws.url(apiUrl + "deleteMessage")
                 .setContentType(jsonType)
-                .post("{\"chat_id\":" + user.getId() + ",\"message_id\":" + messageId + "}"), user.getDelay(), TimeUnit.MILLISECONDS);
+                .post("{\"chat_id\":" + user.getId() + ",\"message_id\":" + messageId + "}"), ec);
     }
 
     public void ask(final String question, final User user, final Consumer<Long> msgIdConsumer) {
@@ -93,10 +97,10 @@ public class TgApi2 {
         if (replyMarkup != null)
             node.set("reply_markup", Json.toJson(replyMarkup));
 
-        executor.schedule(() -> ws.url(apiUrl + "sendMessage")
+        actorSystem.scheduler().scheduleOnce(Duration.of(user.getDelay(), ChronoUnit.MILLIS), () -> ws.url(apiUrl + "sendMessage")
                 .post(node)
                 .thenApply(wsr -> wsr.asJson().get("result").get("message_id").asLong())
-                .thenAccept(msgIdConsumer), user.getDelay(), TimeUnit.MILLISECONDS);
+                .thenAccept(msgIdConsumer), ec);
     }
 
     public void sendCallbackAnswer(final String text, final long callbackId) {
@@ -125,9 +129,9 @@ public class TgApi2 {
         if (replyMarkup != null)
             node.set("reply_markup", Json.toJson(replyMarkup));
 
-        executor.schedule(() -> ws.url(apiUrl + media.getType().getUrlPath())
+        actorSystem.scheduler().scheduleOnce(Duration.of(user.getDelay(), ChronoUnit.MILLIS), () -> ws.url(apiUrl + media.getType().getUrlPath())
                 .post(node)
                 .thenApply(wsr -> wsr.asJson().get("result").get("message_id").asLong())
-                .thenAccept(msgIdConsumer), user.getDelay(), TimeUnit.MILLISECONDS);
+                .thenAccept(msgIdConsumer), ec);
     }
 }
