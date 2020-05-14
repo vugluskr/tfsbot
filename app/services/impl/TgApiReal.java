@@ -106,4 +106,36 @@ public class TgApiReal implements TgApi {
                 .post(node)
                 .thenAccept(wsr -> logger.debug("API call: answerCallbackQuery\n" + node + "\nResponse: " + wsr.getBody()));
     }
+
+    @Override
+    public CompletionStage<ApiMessageReply> sendEditMedia(final EditMedia media) {
+        if (isEmpty(media) || media.getMessageId() <= 0)
+            return CompletableFuture.completedFuture(null);
+
+        final JsonNode node = Json.toJson(media);
+
+        return ws.url(apiUrl + "editMessageMedia")
+                .post(node)
+                .thenApply(wsr -> {
+                    logger.debug("API call: editMessageMedia\n" + node + "\nResponse: " + wsr.getBody());
+
+                    return Json.fromJson(wsr.asJson(), ApiMessageReply.class);
+                });
+    }
+
+    @Override
+    public CompletionStage<ApiMessageReply> editCaption(final EditCaption caption) {
+        if (isEmpty(caption) || caption.getMessageId() <= 0)
+            return CompletableFuture.completedFuture(null);
+
+        final JsonNode node = Json.toJson(caption);
+
+        return ws.url(apiUrl + "editMessageCaption")
+                .post(node)
+                .thenApply(wsr -> {
+                    logger.debug("API call: editMessageCaption\n" + node + "\nResponse: " + wsr.getBody());
+
+                    return Json.fromJson(wsr.asJson(), ApiMessageReply.class);
+                });
+    }
 }

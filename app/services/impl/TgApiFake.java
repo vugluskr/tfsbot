@@ -62,4 +62,14 @@ public class TgApiFake implements TgApi {
     public void sendCallbackAnswer(final CallbackAnswer callbackAnswer) {
 
     }
+
+    @Override
+    public CompletionStage<ApiMessageReply> sendEditMedia(final EditMedia media) {
+        return null;
+    }
+
+    @Override
+    public CompletionStage<ApiMessageReply> editCaption(final EditCaption caption) {
+        return null;
+    }
 }

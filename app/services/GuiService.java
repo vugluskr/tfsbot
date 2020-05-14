@@ -2,6 +2,7 @@ package services;
 
 import model.TFile;
 import model.User;
+import model.telegram.ContentType;
 import model.telegram.api.*;
 import play.Logger;
 import utils.TextUtils;
@@ -103,7 +104,7 @@ public class GuiService {
                             case c.get:
                                 final TFile data = fsService.get(id, user);
                                 if (data != null)
-                                    CompletableFuture.runAsync(() -> tgApi.sendFile(data, user.getId()));
+                                    sendMedia(data, user);
                         }
                     } else {
                         user.setLastMessageId(0);
@@ -116,6 +117,33 @@ public class GuiService {
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
         }
+    }
+
+    private void sendMedia(final TFile file, final User user) {
+        if (user.getLastMessageId() > 0 && file.getType() != ContentType.DIR && file.getType() != ContentType.LABEL && file.getType() != ContentType.STICKER) {
+            final EditMedia msg = new EditMedia();
+            msg.setChatId(user.getId());
+            msg.setMessageId(user.getLastMessageId());
+            msg.setFileRefId(file.getRefId());
+            msg.setReplyMarkup(new InlineKeyboard(Collections.singletonList(new ArrayList<InlineButton>(3) {{
+                add(new InlineButton(Uni.leftArrow, c.cd + file.getParentId()));
+                add(new InlineButton(Uni.rename, c.mv + file.getId()));
+                add(new InlineButton(Uni.drop, c.rm + file.getId()));
+            }})));
+
+            CompletableFuture.runAsync(() -> tgApi.sendEditMedia(msg)
+                    .thenAccept(reply -> {
+                        if (reply == null || !reply.isOk()) {
+                            user.setLastMessageId(0);
+                            userService.updateOpts(user);
+
+                            sendMedia(file, user);
+                        } else
+                            CompletableFuture.runAsync(() -> tgApi.editCaption(new EditCaption(user.getId(), user.getLastMessageId(), file.getPath())));
+                    }))
+            ;
+        } else
+            CompletableFuture.runAsync(() -> tgApi.sendFile(file, user.getId()));
     }
 
     private void sendScreen(final TextRef data, final User user) {
@@ -148,11 +176,11 @@ public class GuiService {
     private InlineKeyboard makeLsScreen(final TFile current, final Collection<TFile> listing, final boolean full) {
         final List<List<InlineButton>> kbd = new ArrayList<>();
         final List<InlineButton> headRow = new ArrayList<>();
-        headRow.add(new InlineButton("\u2302", c.cd + "1"));
-        if (current.getParentId() > 1) headRow.add(new InlineButton("\u2b60", c.cd + current.getParentId()));
-        headRow.add(new InlineButton("\u2315", c.search)); // search
-        headRow.add(new InlineButton("\u2380", c.mkDir));
-        headRow.add(new InlineButton("\u2699", c.editMode)); // edit
+        headRow.add(new InlineButton(Uni.home, c.cd + "1"));
+        if (current.getParentId() > 1) headRow.add(new InlineButton(Uni.leftArrow, c.cd + current.getParentId()));
+        headRow.add(new InlineButton(Uni.search, c.search)); // search
+        headRow.add(new InlineButton(Uni.insert, c.mkDir));
+        headRow.add(new InlineButton(Uni.gear, c.editMode)); // edit
         kbd.add(headRow);
 
         listing.stream()
@@ -163,10 +191,7 @@ public class GuiService {
                 .limit(full ? listing.size() : 10)
                 .forEach(f -> {
                     final List<InlineButton> row = new ArrayList<>(2);
-//            row.add(new InlineButton("\u238a", c.rm + f.getId()));
-//            row.add(new InlineButton("\u2702", c.mv + f.getId()));
-//            row.add(new InlineButton("\u2380", c.mv + f.getId()));
-                    row.add(new InlineButton((f.isDir() ? "\uD83D\uDCC2 " : "") + f.getName(), (f.isDir() ? c.cd : c.get) + f.getId()));
+                    row.add(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? c.cd : c.get) + f.getId()));
                     kbd.add(row);
                 });
 

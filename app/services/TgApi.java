@@ -5,6 +5,7 @@ import model.TFile;
 import model.telegram.api.*;
 import services.impl.TgApiReal;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -23,4 +24,8 @@ public interface TgApi {
     CompletionStage<Void> deleteMessage(DeleteMessage deleteMessage);
 
     void sendCallbackAnswer(CallbackAnswer callbackAnswer);
+
+    CompletionStage<ApiMessageReply> sendEditMedia(EditMedia media);
+
+    CompletionStage<ApiMessageReply> editCaption(EditCaption caption);
 }
