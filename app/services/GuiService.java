@@ -73,7 +73,7 @@ public class GuiService {
                 }
             }
 
-            if (request.isCallback()) {
+            if (request.isCallback() && request.callbackCmd != null) {
                 final StringBuilder callAnswer = new StringBuilder();
 
                 switch (request.callbackCmd) {
