@@ -135,7 +135,6 @@ public class GuiService {
 
                 switch (request.callbackCmd) {
                     // todo prefs
-                    // todo localization
                     case search:
                         UOpts.WaitSearchQuery.set(user);
                         updateOpts.set(true);
@@ -170,6 +169,11 @@ public class GuiService {
                     case cd:
                         final TFile dir = fsService.get(request.callbackId, user);
                         if (dir != null) {
+                            if (user.getOffset() > 0) {
+                                user.setOffset(0);
+                                updateOpts.set(true);
+                            }
+
                             callAnswer = v(LangMap.Names.CD, user, dir.getPath());
                             user.setDirId(request.callbackId);
                             user.setPwd(dir.getPath());
@@ -181,7 +185,7 @@ public class GuiService {
                         final TFile file = fsService.get(request.callbackId, user);
                         if (file != null)
                             tgApi.sendMedia(file, file.getPath(), new InlineKeyboard(Collections.singletonList(new ArrayList<InlineButton>(3) {{
-                                add(new InlineButton(Uni.leftArrow, CallCmd.cd.of(file.getParentId())));
+                                add(new InlineButton(Uni.rew, CallCmd.cd.of(file.getParentId())));
                                 add(new InlineButton(Uni.rename, CallCmd.rename.of(file.getId())));
                                 add(new InlineButton(Uni.move, CallCmd.mv.of(file.getId())));
                                 add(new InlineButton(Uni.drop, CallCmd.rm.of(file.getId())));
@@ -298,7 +302,7 @@ public class GuiService {
         final TFile current = fsService.get(id, user);
         final TextRef ref = initLsRef(current, user, false);
         ref.headRow(new InlineButton(Uni.checkAll, CallCmd.search));
-        ref.headRow(new InlineButton(Uni.back, CallCmd.normalMode));
+        ref.headRow(new InlineButton(Uni.cancel, CallCmd.normalMode));
 
         final List<TFile> entries = fsService.list(id, user);
         if (isEmpty(user.getSelection()))
@@ -311,18 +315,16 @@ public class GuiService {
                 })
                 .skip(user.getOffset())
                 .limit(10)
-//                .forEach(f -> ref.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId())),
-//                        new InlineButton(user.getSelection().contains("," + f.getId() + ",") ? Uni.checked : Uni.unchecked, CallCmd.select.of(f.getId()))));
-        .forEach(f -> ref.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName() + (user.getSelection().contains("," + f.getId() + ",") ? Uni.checked : ""),
-                CallCmd.select.of(f.getId()))));
+                .forEach(f -> ref.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName() + (user.getSelection().contains("," + f.getId() + ",") ? " " + Uni.checked : ""),
+                        CallCmd.select.of(f.getId()))));
 
         final List<InlineButton> pageRow = new ArrayList<>();
 
         if (!entries.isEmpty()) {
             if (user.getOffset() > 0)
-                pageRow.add(new InlineButton(Uni.leftArrow, CallCmd.pageDown));
+                pageRow.add(new InlineButton(Uni.rew, CallCmd.pageDown));
             if (user.getOffset() + 10 < entries.size())
-                pageRow.add(new InlineButton(Uni.rightArrow, pageUp));
+                pageRow.add(new InlineButton(Uni.fwd, pageUp));
         }
 
         final long size = Arrays.stream(user.getSelection().split(",")).filter(s -> getLong(s) > 0).count();
@@ -343,16 +345,9 @@ public class GuiService {
     private void doMoveLs(final long id, final User user) {
         final TFile currentDir = fsService.get(user.getDirId(), user);
         final TextRef ref = initLsRef(currentDir, user, false);
-//        ref.headRow(new InlineButton(Uni.search, CallCmd.search));
-        ref.headRow(new InlineButton(Uni.back, UOpts.GearMode.is(user) ? CallCmd.editMode : CallCmd.normalMode));
+        ref.headRow(new InlineButton(Uni.cancel, UOpts.GearMode.is(user) ? CallCmd.editMode : CallCmd.normalMode));
 
-//        final Set<Long> subjects =
-//                UOpts.GearMode.is(user)
-//                        ? Arrays.stream(user.getSelection().split(",")).map(TextUtils::getLong).filter(s -> s > 0).collect(Collectors.toSet())
-//                        : Collections.singleton(id);
-
-//        if (!subjects.contains(id))
-        ref.row(new InlineButton(Uni.target, CallCmd.put));
+        ref.row(new InlineButton(Uni.put, CallCmd.put));
 
         casualListing(fsService.listFolders(id, user), ref, user);
 
@@ -374,7 +369,7 @@ public class GuiService {
         final TFile current = fsService.get(id, user);
         final TextRef ref = initLsRef(current, user, true);
         ref.headRow(new InlineButton(Uni.search, CallCmd.search)); // search
-        ref.headRow(new InlineButton(Uni.insert, CallCmd.mkDir));
+        ref.headRow(new InlineButton(Uni.mkdir, CallCmd.mkDir));
         ref.headRow(new InlineButton(Uni.gear, CallCmd.editMode)); // edit
 
         casualListing(fsService.list(id, user), ref, user);
@@ -386,7 +381,7 @@ public class GuiService {
         final TFile current = fsService.get(user.getDirId(), user);
         final TextRef ref = initLsRef(current, user, false);
         ref.setText(v(LangMap.Names.SEARCHED, user, query, user.getPwd()));
-        ref.headRow(new InlineButton(Uni.back, CallCmd.cd.of(1)));
+        ref.headRow(new InlineButton(Uni.cancel, CallCmd.cd.of(1)));
 
         String remove = current.getPath() + "/";
         entries.forEach(r -> r.setName(r.getPath().replace(remove, "")));
@@ -423,14 +418,14 @@ public class GuiService {
                         })
                         .skip(user.getOffset())
                         .limit(10)
-                        .forEach(f -> ref.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId()))));
+                        .forEach(f -> ref.row(new InlineButton((f.isDir() ? Uni.folder + "  " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId()))));
                 if (count > 10) {
                     final List<InlineButton> pageRow = new ArrayList<>();
 
                     if (user.getOffset() > 0)
-                        pageRow.add(new InlineButton(Uni.leftArrow, CallCmd.pageDown));
+                        pageRow.add(new InlineButton(Uni.rew, CallCmd.pageDown));
                     if (user.getOffset() + 10 < count)
-                        pageRow.add(new InlineButton(Uni.rightArrow, pageUp));
+                        pageRow.add(new InlineButton(Uni.fwd, pageUp));
 
                     ref.row(pageRow);
                 }

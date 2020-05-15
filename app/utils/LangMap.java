@@ -38,27 +38,27 @@ public class LangMap {
         init(Names.ALS_HELP, "alias <als>=<cmd>", "alias <псевдоним>=<команда>");
         init(Names.ALS_HELP2, "Alias any command", "Создать псевдоним для любой команды");
 
-        init(Names.CANT_MKDIR, "cannot create directory ‘{}’: File exists", "Невозможно создать директорию '{}': файл с таким именем уже существует");
-        init(Names.CANT_RN_TO, "cannot rename to ‘{}’: File exists", "Невозможно переименовать в '{}': файл с таким именем уже существует");
-        init(Names.CANT_MKLBL, "cannot create label ‘{}’: File exists", "Невозможно создать заметку '{}': файл уже существует");
-        init(Names.NO_RESULTS, "Nothing found for ‘{}’", "Ничего не найдено по запросу '{}'");
+        init(Names.CANT_MKDIR, "cannot create directory ‘%s’: File exists", "Невозможно создать директорию '%s': файл с таким именем уже существует");
+        init(Names.CANT_RN_TO, "cannot rename to ‘%s’: File exists", "Невозможно переименовать в '%s': файл с таким именем уже существует");
+        init(Names.CANT_MKLBL, "cannot create label ‘%s’: File exists", "Невозможно создать заметку '%s': файл уже существует");
+        init(Names.NO_RESULTS, "Nothing found for ‘%s’", "Ничего не найдено по запросу '%s'");
         init(Names.TYPE_QUERY, "Type query:", "Запрос:");
-        init(Names.TYPE_RENAME, "Type new name for '{}':", "Новое название для '{}':");
+        init(Names.TYPE_RENAME, "Type new name for '%s':", "Новое название для '%s':");
         init(Names.TYPE_FOLDER, "Type new folder name:", "Название новой директории:");
-        init(Names.CD, "cd {}", "переход в {}");
-        init(Names.PAGE, "page #{}", "страница #'{}'");
+        init(Names.CD, "cd %s", "переход в %s");
+        init(Names.PAGE, "page #%s", "страница #'%s'");
         init(Names.NORMAL_MODE, "Normal mode", "Нормальный режим");
-        init(Names.EDIT_MODE, "Edit mode. Select entries to move or delete. Hit '" + Uni.back + "' to cancel.", "Режим редактирования. Можно отметить файлы и/или директории для " +
-                "их удаления или переноса. Кликнуть '" + Uni.back + "' для возврата в нормальный режим.");
-        init(Names.DELETED_MANY, "{} entry(s) deleted", "{} файл(ов) удалено");
+        init(Names.EDIT_MODE, "Edit mode. Select entries to move or delete. Hit '" + Uni.cancel + "' to cancel.", "Режим редактирования. Можно отметить файлы и/или директории для " +
+                "их удаления или переноса. Кликнуть '" + Uni.cancel + "' для возврата в нормальный режим.");
+        init(Names.DELETED_MANY, "%s entry(s) deleted", "%s файл(ов) удалено");
         init(Names.DELETED, "Entry deleted", "Файл удалён");
-        init(Names.MOVE_DEST, "Choose destination folder. Hit '" + Uni.back + "' to cancel moving. Hit '" + Uni.target + "' to put files in current dir.", "Необходимо выбрать " +
-                "директорию для переноса. Клик на '"+Uni.back+"' для отмены переноса. Клик на '"+Uni.target+"' для размещения файлов в текущей директории.");
+        init(Names.MOVE_DEST, "Choose destination folder. Hit '" + Uni.cancel + "' to cancel moving. Hit '" + Uni.put + "' to put files in current dir.", "Необходимо выбрать " +
+                "директорию для переноса. Клик на '"+Uni.cancel +"' для отмены переноса. Клик на '"+Uni.put +"' для размещения файлов в текущей директории.");
         init(Names.DESELECTED, "deselected", "Отмена выбора");
         init(Names.SELECTED, "selected", "Файл выбран");
-        init(Names.MOVED, "Moved {} entry(s)", "Перенесено {} файл(ов)");
+        init(Names.MOVED, "Moved %s entry(s)", "Перенесено %s файл(ов)");
         init(Names.TYPE_LABEL, "Type label:", "Текст заметки:");
-        init(Names.SEARCHED, "searched '{}' at {}", "Поиск '{}' в {}");
+        init(Names.SEARCHED, "searched '%s' at %s", "Поиск '%s' в %s");
         init(Names.NO_CONTENT, "No content here yet. Send me some files.", "В этой директории пока ничего нет.");
         init(Names.LANG_SWITCHED, "Switched to English", "Используется русский язык");
     }
