@@ -75,6 +75,24 @@ public class GuiService {
 
                     return;
                 }
+            } else if (UOpts.WaitFileName.is(user)) {
+                UOpts.WaitFolderName.clear(user);
+                updateOpts.set(true);
+
+                if (!isEmpty(request.text)) {
+                    if (fsService.findHere(request.text, user) == null) {
+                        final TFile file = fsService.get(request.callbackId, user);
+                        file.setName(request.text);
+                        fsService.updateMeta(file, user);
+                        doLs(user.getDirId(), user);
+                    } else
+                        tgApi.sendPlainText("cannot rename to ‘" + request.text + "’: File exists", user.getId(), dialogId -> {
+                            user.setLastDialogId(dialogId);
+                            userService.updateOpts(user);
+                        });
+
+                    return;
+                }
             }
 
             if (request.isCallback() && request.callbackCmd != null) {
@@ -83,6 +101,20 @@ public class GuiService {
                 boolean answerAlert = false;
 
                 switch (request.callbackCmd) {
+                    // todo create label
+                    // todo search
+                    // todo prefs
+                    // todo localization
+                    case rename:
+                        UOpts.WaitFileName.set(user);
+                        user.setSelection(String.valueOf(request.callbackId));
+                        updateOpts.set(true);
+
+                        tgApi.ask("Type new name for '"+fsService.get(request.callbackId, user).getName()+"':", user.getId(), dialogId -> {
+                            user.setLastDialogId(dialogId);
+                            userService.updateOpts(user);
+                        });
+                        break;
                     case mkDir:
                         UOpts.WaitFolderName.set(user);
                         updateOpts.set(true);
@@ -186,7 +218,7 @@ public class GuiService {
                         selection.stream().filter(f -> !f.isDir() || !predictors.contains(f.getId())).peek(e -> counter.incrementAndGet()).forEach(f -> f.setParentId(user.getDirId()));
                         fsService.updateMetas(selection, user);
                         callAnswer = "Moved " + counter.get() + " entry(s)";
-
+                        doLs(user.getDirId(), user);
                         break;
                 }
 
