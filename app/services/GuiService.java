@@ -212,6 +212,7 @@ public class GuiService {
                     case editMode:
                         callAnswer = "Edit mode. Select entries to move or delete. Hit '" + Uni.back + "' to cancel.";
                         UOpts.GearMode.set(user);
+                        UOpts.MovingFile.clear(user);
                         user.setSelection(",");
                         user.setOffset(0);
                         updateOpts.set(true);
