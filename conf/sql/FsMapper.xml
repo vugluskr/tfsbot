@@ -252,7 +252,7 @@
         select
         <include refid="struct"/>
         where
-              f.name like #{query}
+              lower(f.name) like #{query}
               and f.id in (
             WITH RECURSIVE tree AS
                                (

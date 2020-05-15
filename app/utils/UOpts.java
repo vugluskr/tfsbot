@@ -8,10 +8,17 @@ import model.User;
  * tfs ☭ sweat and blood
  */
 public enum  UOpts {
-    Gui, WaitFolderName, MovingFile, GearMode, WaitFileName, WaitLabelText, WaitSearchQuery;
+    Gui, WaitFolderName, MovingFile, GearMode, WaitFileName, WaitLabelText, WaitSearchQuery, Russian;
 
     public final int bitmask() {
         return 1 << ordinal();
+    }
+
+    public final void reverse(final User u) {
+        if (is(u))
+            clear(u);
+        else
+            set(u);
     }
 
     public final boolean is(final User u) {

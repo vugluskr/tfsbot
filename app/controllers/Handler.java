@@ -2,6 +2,7 @@ package controllers;
 
 import model.TFile;
 import model.User;
+import model.telegram.Request;
 import model.telegram.api.MessageRef;
 import model.telegram.api.TeleFile;
 import model.telegram.api.UpdateRef;
@@ -17,6 +18,8 @@ import services.UserService;
 import utils.UOpts;
 
 import javax.inject.Inject;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
@@ -29,6 +32,23 @@ import static utils.TextUtils.notNull;
  */
 public class Handler extends Controller {
     private static final Logger.ALogger logger = Logger.of(Handler.class);
+    private static final Set<String> absLang = new HashSet<>(), absGui = new HashSet<>(), absPrefs = new HashSet<>();
+    static {
+        absLang.add("lang");
+        absLang.add("Lang");
+        absLang.add("/lang");
+        absLang.add("/Lang");
+
+        absGui.add("gui");
+        absGui.add("Gui");
+        absGui.add("/gui");
+        absGui.add("/Gui");
+
+        absPrefs.add("prefs");
+        absPrefs.add("Prefs");
+        absPrefs.add("/prefs");
+        absPrefs.add("/Prefs");
+    }
 
     @Inject
     private CmdService cmdService;
@@ -56,6 +76,23 @@ public class Handler extends Controller {
 
         logger.debug("INCOMING MESSAGE:\n" + request.body().asJson());
         final User user = userService.getContact(input);
+        final Request tgReq = new Request(input);
+
+        final String c = notNull(tgReq.text);
+
+        if (!c.isEmpty()) {
+            final int o = user.getOptions();
+            if (absGui.contains(c)) UOpts.Gui.reverse(user);
+            else if (absLang.contains(c)) UOpts.Russian.reverse(user);
+            else if (absPrefs.contains(c)) {
+                CompletableFuture.runAsync(() -> guiService.doPrefs(user));
+                return ok();
+            }
+
+            if (o != user.getOptions())
+                userService.updateOpts(user);
+//            else if (absPrefs.contains(c))
+        }
 
         if (UOpts.Gui.is(user)) {
             final UpdateRef finalInput = input;

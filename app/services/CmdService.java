@@ -5,6 +5,7 @@ import model.User;
 import model.UserAlias;
 import model.telegram.ContentType;
 import model.telegram.api.TextRef;
+import utils.LangMap;
 import utils.MdPadTable;
 import utils.UOpts;
 
@@ -25,6 +26,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static utils.LangMap.ven;
+import static utils.LangMap.vru;
 import static utils.TextUtils.*;
 
 /**
@@ -43,30 +46,52 @@ public class CmdService {
     @Inject
     private TgApi tgApi;
 
-    private final String help;
+    private final String helpEn, helpRu;
 
     public CmdService() {
-        final MdPadTable helpTab = new MdPadTable("Commands list", new String[]{"Command", "Description"});
-        helpTab.add("cd <dir>");
-        helpTab.add("Change directory");
-        helpTab.add("get <file>");
-        helpTab.add("Get previously stored file");
-        helpTab.add("ls");
-        helpTab.add("Listing of current directory");
-        helpTab.add("mkdir <name>");
-        helpTab.add("Make directory");
-        helpTab.add("mv <src> <trg>");
-        helpTab.add("Move source to target");
-        helpTab.add("pwd");
-        helpTab.add("Current directory full path");
-        helpTab.add("rm <name>");
-        helpTab.add("Remove file or dir (recursively)");
-        helpTab.add("label <text>");
-        helpTab.add("Add label to current dir");
-        helpTab.add("alias <als>=<cmd>");
-        helpTab.add("Alias any command");
+        MdPadTable helpTab = new MdPadTable(ven(LangMap.Names.CMD_LIST), new String[]{ven(LangMap.Names.CMD), ven(LangMap.Names.DESC)});
+        helpTab.add(ven(LangMap.Names.CD_HELP));
+        helpTab.add(ven(LangMap.Names.CD_HELP2));
+        helpTab.add(ven(LangMap.Names.GET_HELP));
+        helpTab.add(ven(LangMap.Names.GET_HELP2));
+        helpTab.add(ven(LangMap.Names.LS_HELP));
+        helpTab.add(ven(LangMap.Names.LS_HELP2));
+        helpTab.add(ven(LangMap.Names.MKD_HELP));
+        helpTab.add(ven(LangMap.Names.MKD_HELP2));
+        helpTab.add(ven(LangMap.Names.MV_HELP));
+        helpTab.add(ven(LangMap.Names.MV_HELP2));
+        helpTab.add(ven(LangMap.Names.PWD_HELP));
+        helpTab.add(ven(LangMap.Names.PWD_HELP2));
+        helpTab.add(ven(LangMap.Names.RM_HELP));
+        helpTab.add(ven(LangMap.Names.RM_HELP2));
+        helpTab.add(ven(LangMap.Names.LBL_HELP));
+        helpTab.add(ven(LangMap.Names.LBL_HELP2));
+        helpTab.add(ven(LangMap.Names.ALS_HELP));
+        helpTab.add(ven(LangMap.Names.ALS_HELP2));
         helpTab.setLastColUnformatted(true);
-        help = helpTab.toString();
+        helpEn = helpTab.toString();
+
+        helpTab = new MdPadTable(vru(LangMap.Names.CMD_LIST), new String[]{vru(LangMap.Names.CMD), vru(LangMap.Names.DESC)});
+        helpTab.add(vru(LangMap.Names.CD_HELP));
+        helpTab.add(vru(LangMap.Names.CD_HELP2));
+        helpTab.add(vru(LangMap.Names.GET_HELP));
+        helpTab.add(vru(LangMap.Names.GET_HELP2));
+        helpTab.add(vru(LangMap.Names.LS_HELP));
+        helpTab.add(vru(LangMap.Names.LS_HELP2));
+        helpTab.add(vru(LangMap.Names.MKD_HELP));
+        helpTab.add(vru(LangMap.Names.MKD_HELP2));
+        helpTab.add(vru(LangMap.Names.MV_HELP));
+        helpTab.add(vru(LangMap.Names.MV_HELP2));
+        helpTab.add(vru(LangMap.Names.PWD_HELP));
+        helpTab.add(vru(LangMap.Names.PWD_HELP2));
+        helpTab.add(vru(LangMap.Names.RM_HELP));
+        helpTab.add(vru(LangMap.Names.RM_HELP2));
+        helpTab.add(vru(LangMap.Names.LBL_HELP));
+        helpTab.add(vru(LangMap.Names.LBL_HELP2));
+        helpTab.add(vru(LangMap.Names.ALS_HELP));
+        helpTab.add(vru(LangMap.Names.ALS_HELP2));
+        helpTab.setLastColUnformatted(true);
+        helpRu = helpTab.toString();
     }
 
     public void handleCmd(final String cmd, final User user) {
@@ -83,7 +108,7 @@ public class CmdService {
             case "help":
             case "?":
             case "/?":
-                tgApi.sendMessage(new TextRef(help, user.getId()).setMd2());
+                tgApi.sendMessage(new TextRef(UOpts.Russian.is(user) ? helpRu : helpEn, user.getId()).setMd2());
                 return;
             case "./":
             case "./.":

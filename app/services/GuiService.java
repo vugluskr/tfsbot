@@ -9,10 +9,7 @@ import model.telegram.api.InlineKeyboard;
 import model.telegram.api.TextRef;
 import model.telegram.api.UpdateRef;
 import play.Logger;
-import utils.CallCmd;
-import utils.TextUtils;
-import utils.UOpts;
-import utils.Uni;
+import utils.*;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -21,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static utils.CallCmd.pageUp;
+import static utils.LangMap.v;
 import static utils.TextUtils.*;
 
 /**
@@ -68,7 +66,7 @@ public class GuiService {
                         fsService.mkdir(request.text, user.getDirId(), user.getId());
                         doLs(user.getDirId(), user);
                     } else
-                        tgApi.sendPlainText("cannot create directory ‘" + request.text + "’: File exists", user.getId(), dialogId -> {
+                        tgApi.sendPlainText(v(LangMap.Names.CANT_MKDIR, user, request.text), user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -87,7 +85,7 @@ public class GuiService {
                         doLs(user.getDirId(), user);
                         user.setSelection("");
                     } else
-                        tgApi.sendPlainText("cannot rename to ‘" + request.text + "’: File exists", user.getId(), dialogId -> {
+                        tgApi.sendPlainText(v(LangMap.Names.CANT_RN_TO, user, request.text), user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -104,7 +102,7 @@ public class GuiService {
                         fsService.upload(file, user);
                         doLs(user.getDirId(), user);
                     } else
-                        tgApi.sendPlainText("cannot create label ‘" + request.text + "’: File exists", user.getId(), dialogId -> {
+                        tgApi.sendPlainText(v(LangMap.Names.CANT_MKLBL, user, request.text), user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -116,12 +114,12 @@ public class GuiService {
                 updateOpts.set(true);
 
                 if (!isEmpty(request.text)) {
-                    final List<TFile> results = fsService.findChildsByName(request.text, user);
+                    final List<TFile> results = fsService.findChildsByName(request.text.toLowerCase(), user);
                     if (!isEmpty(results)) {
                         user.setSelection(results.stream().map(f -> String.valueOf(f.getId())).collect(Collectors.joining(",")));
                         doSearchLs(request.text, results, user);
                     } else
-                        tgApi.sendPlainText("Nothing found for ‘" + request.text + "’", user.getId(), dialogId -> {
+                        tgApi.sendPlainText(v(LangMap.Names.NO_RESULTS, user, request.text), user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -136,14 +134,13 @@ public class GuiService {
                 boolean answerAlert = false;
 
                 switch (request.callbackCmd) {
-                    // todo search
                     // todo prefs
                     // todo localization
                     case search:
                         UOpts.WaitSearchQuery.set(user);
                         updateOpts.set(true);
 
-                        tgApi.ask("Type query:", user.getId(), dialogId -> {
+                        tgApi.ask(v(LangMap.Names.TYPE_QUERY, user), user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -153,7 +150,7 @@ public class GuiService {
                         user.setSelection(String.valueOf(request.callbackId));
                         updateOpts.set(true);
 
-                        tgApi.ask("Type new name for '" + fsService.get(request.callbackId, user).getName() + "':", user.getId(), dialogId -> {
+                        tgApi.ask(v(LangMap.Names.TYPE_RENAME, user, fsService.get(request.callbackId, user).getName()), user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -162,7 +159,7 @@ public class GuiService {
                         UOpts.WaitFolderName.set(user);
                         updateOpts.set(true);
 
-                        tgApi.ask("Type new folder name:", user.getId(), dialogId -> {
+                        tgApi.ask(v(LangMap.Names.TYPE_FOLDER, user), user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -173,7 +170,7 @@ public class GuiService {
                     case cd:
                         final TFile dir = fsService.get(request.callbackId, user);
                         if (dir != null) {
-                            callAnswer = "cd " + dir.getPath();
+                            callAnswer = v(LangMap.Names.CD, user, dir.getPath());
                             user.setDirId(request.callbackId);
                             user.setPwd(dir.getPath());
                             userService.updatePwd(user);
@@ -196,13 +193,13 @@ public class GuiService {
                     case pageUp:
                     case pageDown:
                         user.setOffset(Math.max(0, user.getOffset() + (request.callbackCmd == pageUp ? 10 : -10)));
-                        callAnswer = "page #" + ((user.getOffset() / 10) + 1);
+                        callAnswer = v(LangMap.Names.PAGE, user, (user.getOffset() / 10) + 1);
                         answerCache = 0;
                         doLs(user.getDirId(), user);
                         userService.updateOffset(user);
                         break;
                     case normalMode:
-                        callAnswer = "Normal mode";
+                        callAnswer = v(LangMap.Names.NORMAL_MODE, user);
                         UOpts.GearMode.clear(user);
                         UOpts.MovingFile.clear(user);
                         user.setOffset(0);
@@ -210,7 +207,7 @@ public class GuiService {
                         doLs(user.getDirId(), user);
                         break;
                     case editMode:
-                        callAnswer = "Edit mode. Select entries to move or delete. Hit '" + Uni.back + "' to cancel.";
+                        callAnswer = v(LangMap.Names.EDIT_MODE, user);
                         UOpts.GearMode.set(user);
                         UOpts.MovingFile.clear(user);
                         user.setSelection(",");
@@ -224,17 +221,17 @@ public class GuiService {
 
                             fsService.rm(ids, user);
                             user.setSelection(",");
-                            callAnswer = ids.size() + " entry(s) deleted";
+                            callAnswer = v(LangMap.Names.DELETED_MANY, user, ids.size());
                         } else {
                             fsService.rm(request.callbackId, user);
-                            callAnswer = "Entry deleted";
+                            callAnswer = v(LangMap.Names.DELETED, user);
                         }
                         user.setOffset(0);
                         updateOpts.set(true);
                         doLs(user.getDirId(), user);
                         break;
                     case mv:
-                        callAnswer = "Choose destination folder. Hit '" + Uni.back + "' to cancel moving. Hit '" + Uni.target + "' to put files in current dir.";
+                        callAnswer = v(LangMap.Names.MOVE_DEST, user);
                         UOpts.MovingFile.set(user);
                         if (!UOpts.GearMode.is(user))
                             user.setSelection(String.valueOf(request.callbackId));
@@ -244,10 +241,10 @@ public class GuiService {
                     case select:
                         if (user.getSelection().contains("," + request.callbackId + ",")) {
                             user.setSelection(user.getSelection().replace("," + request.callbackId + ",", ","));
-                            tgApi.sendCallbackAnswer("deselected", request.callbackReplyId, false, 0);
+                            callAnswer = v(LangMap.Names.DESELECTED, user);
                         } else {
                             user.setSelection(user.getSelection() + request.callbackId + ",");
-                            tgApi.sendCallbackAnswer("selected", request.callbackReplyId, false, 0);
+                            callAnswer = v(LangMap.Names.SELECTED, user);
                         }
                         doGearLs(user.getDirId(), user);
                         updateOpts.set(true);
@@ -263,14 +260,14 @@ public class GuiService {
                         final AtomicInteger counter = new AtomicInteger(0);
                         selection.stream().filter(f -> !f.isDir() || !predictors.contains(f.getId())).peek(e -> counter.incrementAndGet()).forEach(f -> f.setParentId(user.getDirId()));
                         fsService.updateMetas(selection, user);
-                        callAnswer = "Moved " + counter.get() + " entry(s)";
+                        callAnswer = v(LangMap.Names.MOVED, user, counter.get());
                         doLs(user.getDirId(), user);
                         break;
                     case label:
                         UOpts.WaitLabelText.set(user);
                         updateOpts.set(true);
 
-                        tgApi.ask("Type label:", user.getId(), dialogId -> {
+                        tgApi.ask(v(LangMap.Names.TYPE_LABEL, user), user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -300,7 +297,7 @@ public class GuiService {
     private void doGearLs(final long id, final User user) {
         final TFile current = fsService.get(id, user);
         final TextRef ref = initLsRef(current, user, false);
-//        ref.headRow(new InlineButton(Uni.search, CallCmd.search));
+        ref.headRow(new InlineButton(Uni.checkAll, CallCmd.search));
         ref.headRow(new InlineButton(Uni.back, CallCmd.normalMode));
 
         final List<TFile> entries = fsService.list(id, user);
@@ -314,8 +311,10 @@ public class GuiService {
                 })
                 .skip(user.getOffset())
                 .limit(10)
-                .forEach(f -> ref.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId())),
-                        new InlineButton(user.getSelection().contains("," + f.getId() + ",") ? Uni.checked : Uni.unchecked, CallCmd.select.of(f.getId()))));
+//                .forEach(f -> ref.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId())),
+//                        new InlineButton(user.getSelection().contains("," + f.getId() + ",") ? Uni.checked : Uni.unchecked, CallCmd.select.of(f.getId()))));
+        .forEach(f -> ref.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName() + (user.getSelection().contains("," + f.getId() + ",") ? Uni.checked : ""),
+                CallCmd.select.of(f.getId()))));
 
         final List<InlineButton> pageRow = new ArrayList<>();
 
@@ -329,7 +328,7 @@ public class GuiService {
         final long size = Arrays.stream(user.getSelection().split(",")).filter(s -> getLong(s) > 0).count();
         if (size > 0) {
             if (size == 1)
-                pageRow.add(new InlineButton(Uni.rename + " (" + size + ")", CallCmd.rename));
+                pageRow.add(new InlineButton(Uni.rename + " (" + size + ")", CallCmd.rename.of(getLong(user.getSelection()))));
             pageRow.add(new InlineButton(Uni.move + " (" + size + ")", CallCmd.mv));
             pageRow.add(new InlineButton(Uni.drop + " (" + size + ")", CallCmd.rm));
         }
@@ -386,7 +385,7 @@ public class GuiService {
     private void doSearchLs(final String query, final List<TFile> entries, final User user) {
         final TFile current = fsService.get(user.getDirId(), user);
         final TextRef ref = initLsRef(current, user, false);
-        ref.setText("searched '" + query + "' at " + user.getPwd());
+        ref.setText(v(LangMap.Names.SEARCHED, user, query, user.getPwd()));
         ref.headRow(new InlineButton(Uni.back, CallCmd.cd.of(1)));
 
         String remove = current.getPath() + "/";
@@ -399,7 +398,7 @@ public class GuiService {
     private void casualListing(final List<TFile> entries, final TextRef ref, final User user) {
         if (entries.isEmpty()) {
             if (!UOpts.MovingFile.is(user)) {
-                ref.setText(escapeMd(user.getPwd()) + "\n\n_" + escapeMd("No content here yet. Send me some files.") + "_");
+                ref.setText(escapeMd(user.getPwd()) + "\n\n_" + escapeMd(v(LangMap.Names.NO_CONTENT, user)) + "_");
                 ref.setMd2();
             }
         } else {
@@ -441,11 +440,15 @@ public class GuiService {
 
     private TextRef initLsRef(final TFile current, final User user, final boolean withLabel) {
         final TextRef ref = new TextRef(user.getPwd(), user.getId());
-        ref.headRow(new InlineButton(Uni.home, CallCmd.cd.of(1L)));
-        if (current.getParentId() > 1) ref.headRow(new InlineButton(Uni.leftArrow, CallCmd.cd.of(current.getParentId())));
+//        ref.headRow(new InlineButton(Uni.home, CallCmd.cd.of(1L)));
+        if (current.getParentId() > 0) ref.headRow(new InlineButton(Uni.home, CallCmd.cd.of(current.getParentId())));
         if (withLabel)
             ref.headRow(new InlineButton(Uni.label, CallCmd.label.of(current.getId())));
 
         return ref;
+    }
+
+    public void doPrefs(final User user) {
+
     }
 }
