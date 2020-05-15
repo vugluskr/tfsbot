@@ -72,8 +72,6 @@ public class GuiService {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
-
-                    return;
                 }
             } else if (UOpts.WaitFileName.is(user)) {
                 UOpts.WaitFolderName.clear(user);
@@ -81,21 +79,18 @@ public class GuiService {
 
                 if (!isEmpty(request.text)) {
                     if (fsService.findHere(request.text, user) == null) {
-                        final TFile file = fsService.get(request.callbackId, user);
+                        final TFile file = fsService.get(getLong(user.getSelection()), user);
                         file.setName(request.text);
                         fsService.updateMeta(file, user);
                         doLs(user.getDirId(), user);
+                        user.setSelection("");
                     } else
                         tgApi.sendPlainText("cannot rename to ‘" + request.text + "’: File exists", user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
-
-                    return;
                 }
-            }
-
-            if (request.isCallback() && request.callbackCmd != null) {
+            } else if (request.isCallback() && request.callbackCmd != null) {
                 String callAnswer = "";
                 int answerCache = 0;
                 boolean answerAlert = false;
