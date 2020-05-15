@@ -7,10 +7,7 @@ import play.Logger;
 import sql.FsMapper;
 
 import javax.inject.Inject;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static utils.TextUtils.isEmpty;
@@ -125,5 +122,17 @@ public class FsService {
             f.setIndate(System.currentTimeMillis());
             mapper.updateEntry(f.getName(), f.getIndate(), f.getParentId(), f.getId(), user.getId());
         });
+    }
+
+    public List<TFile> listFolders(final long dirId, final User user) {
+        return mapper.listTypeEntries(dirId, ContentType.DIR.name(), user.getId());
+    }
+
+    public List<TFile> getByIds(final Set<Long> ids, final User user) {
+        return isEmpty(ids) ? Collections.emptyList() : mapper.getByIds(ids, user.getId());
+    }
+
+    public List<TFile> getPredictors(final long dirId, final User user) {
+        return mapper.getPredictors(dirId, user.getId());
     }
 }

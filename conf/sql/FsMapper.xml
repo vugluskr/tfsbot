@@ -214,9 +214,37 @@
 
     <insert id="mkDirs">
         insert into fs_struct_${owner} (parent_id, indate, name, type)
-        values
+            values
         <foreach collection="dirs" item="dir" separator=",">
                 (#{dir.parentId} ,#{dir.indate} ,#{dir.name} ,#{dir.type.name} )
         </foreach>
     </insert>
+
+    <select id="listTypeEntries" resultType="model.TFile">
+        select
+        <include refid="struct"/>
+        where f.parent_id = #{parentId} and type = #{type} order by f.name, f.indate
+    </select>
+
+    <select id="getByIds" resultType="model.TFile">
+        select
+        <include refid="struct"/>
+        where f.id in
+        <foreach collection="ids" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+        order by f.name, f.indate
+    </select>
+
+    <select id="getPredictors" resultType="model.TFile">
+        with recursive a as (select head.id, head.parent_id
+                             from fs_struct_${owner} head
+                             where head.id = #{id}
+                             union all
+                             select tail.id, tail.parent_id
+                             from fs_struct_${owner} tail
+                                      join a on tail.id = a.parent_id)
+        select a.id, a.parent_id as "parentId"
+        from a
+    </select>
 </mapper>

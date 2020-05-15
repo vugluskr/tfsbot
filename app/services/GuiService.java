@@ -17,6 +17,7 @@ import utils.Uni;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static utils.CallCmd.pageUp;
@@ -78,6 +79,8 @@ public class GuiService {
 
             if (request.isCallback() && request.callbackCmd != null) {
                 String callAnswer = "";
+                int answerCache = 0;
+                boolean answerAlert = false;
 
                 switch (request.callbackCmd) {
                     case mkDir:
@@ -96,7 +99,6 @@ public class GuiService {
                         final TFile dir = fsService.get(request.callbackId, user);
                         if (dir != null) {
                             callAnswer = "cd " + dir.getPath();
-
                             user.setDirId(request.callbackId);
                             user.setPwd(dir.getPath());
                             userService.updatePwd(user);
@@ -120,16 +122,19 @@ public class GuiService {
                     case pageDown:
                         user.setOffset(Math.max(0, user.getOffset() + (request.callbackCmd == pageUp ? 10 : -10)));
                         callAnswer = "page #" + ((user.getOffset() / 10) + 1);
+                        answerCache = 0;
                         doLs(user.getDirId(), user);
                         userService.updateOffset(user);
                         break;
                     case normalMode:
+                        callAnswer = "Normal mode";
                         UOpts.GearMode.clear(user);
                         user.setOffset(0);
                         updateOpts.set(true);
                         doLs(user.getDirId(), user);
                         break;
                     case editMode:
+                        callAnswer = "Edit mode. Select entries to move or delete. Hit '" + Uni.back + "' to cancel.";
                         UOpts.GearMode.set(user);
                         user.setSelection(",");
                         user.setOffset(0);
@@ -142,6 +147,7 @@ public class GuiService {
 
                             fsService.rm(ids, user);
                             user.setSelection(",");
+                            updateOpts.set(true);
                             callAnswer = ids.size() + " entry(s) deleted";
                         } else {
                             fsService.rm(request.callbackId, user);
@@ -150,8 +156,11 @@ public class GuiService {
                         doLs(user.getDirId(), user);
                         break;
                     case mv:
-                        callAnswer = "Choose destination";
+                        callAnswer = "Choose destination folder. Hit '" + Uni.back + "' to cancel moving. Hit '" + Uni.target + "' to put files in current dir.";
                         UOpts.MovingFile.set(user);
+                        if (!UOpts.GearMode.is(user))
+                            user.setSelection(String.valueOf(request.callbackId));
+                        updateOpts.set(true);
                         doLs(request.callbackId, user);
                         break;
                     case select:
@@ -165,9 +174,23 @@ public class GuiService {
                         doGearLs(user.getDirId(), user);
                         updateOpts.set(true);
                         break;
+                    case put:
+                        final Set<Long> ids = Arrays.stream(user.getSelection().split(",")).map(TextUtils::getLong).filter(l -> l > 0).collect(Collectors.toSet());
+                        UOpts.MovingFile.clear(user);
+                        user.setSelection("");
+                        updateOpts.set(true);
+
+                        final List<TFile> selection = fsService.getByIds(ids, user);
+                        final Set<Long> predictors = fsService.getPredictors(user.getDirId(), user).stream().map(TFile::getId).collect(Collectors.toSet());
+                        final AtomicInteger counter = new AtomicInteger(0);
+                        selection.stream().filter(f -> !f.isDir() || !predictors.contains(f.getId())).peek(e -> counter.incrementAndGet()).forEach(f -> f.setParentId(user.getDirId()));
+                        fsService.updateMetas(selection, user);
+                        callAnswer = "Moved " + counter.get() + " entry(s)";
+
+                        break;
                 }
 
-                tgApi.sendCallbackAnswer(callAnswer, request.callbackReplyId);
+                tgApi.sendCallbackAnswer(callAnswer, request.callbackReplyId, answerAlert, answerCache);
             } else
                 doLs(user.getDirId(), user);
         } catch (final Exception e) {
@@ -189,17 +212,9 @@ public class GuiService {
 
     private void doGearLs(final long id, final User user) {
         final TFile current = fsService.get(id, user);
-        final TextRef ref = new TextRef(user.getPwd(), user.getId());
-        final List<List<InlineButton>> kbd = new ArrayList<>();
-        final List<InlineButton> headRow = new ArrayList<>();
-        headRow.add(new InlineButton(Uni.home, CallCmd.cd.of(1L)));
-        if (current.getParentId() > 1) headRow.add(new InlineButton(Uni.leftArrow, CallCmd.cd.of(current.getParentId())));
-        headRow.add(new InlineButton(Uni.search, CallCmd.search));
-        headRow.add(new InlineButton(Uni.back, CallCmd.normalMode));
-        kbd.add(headRow);
-
-        ref.setText(escapeMd(user.getPwd()) + "\n\n_" + escapeMd("Select entries to move or delete. Hit '" + Uni.back + "' to return to normal mode.") + "_");
-        ref.setMd2();
+        final TextRef ref = initLsRef(current, user);
+        ref.headRow(new InlineButton(Uni.search, CallCmd.search));
+        ref.headRow(new InlineButton(Uni.back, CallCmd.normalMode));
 
         final List<TFile> entries = fsService.list(id, user);
         if (isEmpty(user.getSelection()))
@@ -212,12 +227,8 @@ public class GuiService {
                 })
                 .skip(user.getOffset())
                 .limit(10)
-                .forEach(f -> {
-                    final List<InlineButton> row = new ArrayList<>(2);
-                    row.add(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId())));
-                    row.add(new InlineButton(user.getSelection().contains("," + f.getId() + ",") ? Uni.checked : Uni.unchecked, CallCmd.select.of(f.getId())));
-                    kbd.add(row);
-                });
+                .forEach(f -> ref.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId())),
+                        new InlineButton(user.getSelection().contains("," + f.getId() + ",") ? Uni.checked : Uni.unchecked, CallCmd.select.of(f.getId()))));
 
         final List<InlineButton> pageRow = new ArrayList<>();
 
@@ -230,49 +241,65 @@ public class GuiService {
 
         if (user.getSelection().length() > 2) {
             final long size = Arrays.stream(user.getSelection().split(",")).filter(s -> getLong(s) > 0).count();
-            pageRow.add(new InlineButton(Uni.move + " ("+size+")", CallCmd.mv));
-            pageRow.add(new InlineButton(Uni.drop + " ("+size+")", CallCmd.rm));
+            pageRow.add(new InlineButton(Uni.move + " (" + size + ")", CallCmd.mv));
+            pageRow.add(new InlineButton(Uni.drop + " (" + size + ")", CallCmd.rm));
         }
 
         if (!pageRow.isEmpty())
-            kbd.add(pageRow);
-
-        ref.setReplyMarkup(new InlineKeyboard(kbd));
+            ref.row(pageRow);
 
         sendScreen(ref, user);
 
     }
 
     private void doMoveLs(final long id, final User user) {
-        final TFile movedEntry = fsService.get(id, user);
+        final TFile currentDir = fsService.get(user.getDirId(), user);
+        final TextRef ref = initLsRef(currentDir, user);
+        ref.headRow(new InlineButton(Uni.search, CallCmd.search));
+        ref.headRow(new InlineButton(Uni.back, UOpts.GearMode.is(user) ? CallCmd.editMode : CallCmd.normalMode));
 
+        final Set<Long> subjects =
+                UOpts.GearMode.is(user)
+                        ? Arrays.stream(user.getSelection().split(",")).map(TextUtils::getLong).filter(s -> s > 0).collect(Collectors.toSet())
+                        : Collections.singleton(id);
+
+        if (!subjects.contains(id))
+            ref.row(new InlineButton(Uni.target, CallCmd.put));
+
+        casualListing(fsService.listFolders(id, user), ref, user);
+
+        sendScreen(ref, user);
     }
 
     private void doLs(final long id, final User user) {
         if (UOpts.GearMode.is(user)) {
-            doGearLs(id, user);
+            if (UOpts.MovingFile.is(user))
+                doMoveLs(id, user);
+            else
+                doGearLs(id, user);
             return;
         } else if (UOpts.MovingFile.is(user)) {
             doMoveLs(id, user);
             return;
         }
 
-         TFile current = fsService.get(id, user);
-        final TextRef ref = new TextRef(user.getPwd(), user.getId());
-        final List<List<InlineButton>> kbd = new ArrayList<>();
-        final List<InlineButton> headRow = new ArrayList<>();
-        headRow.add(new InlineButton(Uni.home, CallCmd.cd.of(1L)));
-        if (current.getParentId() > 1) headRow.add(new InlineButton(Uni.leftArrow, CallCmd.cd.of(current.getParentId())));
-        headRow.add(new InlineButton(Uni.search, CallCmd.search)); // search
-        headRow.add(new InlineButton(Uni.insert, CallCmd.mkDir));
-        headRow.add(new InlineButton(Uni.gear, CallCmd.editMode)); // edit
-        kbd.add(headRow);
+        final TFile current = fsService.get(id, user);
+        final TextRef ref = initLsRef(current, user);
+        ref.headRow(new InlineButton(Uni.search, CallCmd.search)); // search
+        ref.headRow(new InlineButton(Uni.insert, CallCmd.mkDir));
+        ref.headRow(new InlineButton(Uni.gear, CallCmd.editMode)); // edit
 
-        final List<TFile> entries = fsService.list(id, user);
+        casualListing(fsService.list(id, user), ref, user);
 
+        sendScreen(ref, user);
+    }
+
+    private void casualListing(final List<TFile> entries, final TextRef ref, final User user) {
         if (entries.isEmpty()) {
-            ref.setText(escapeMd(user.getPwd()) + "\n\n_" + escapeMd("No content here yet. Send me some files.") + "_");
-            ref.setMd2();
+            if (!UOpts.MovingFile.is(user)) {
+                ref.setText(escapeMd(user.getPwd()) + "\n\n_" + escapeMd("No content here yet. Send me some files.") + "_");
+                ref.setMd2();
+            }
         } else {
             if (entries.stream().anyMatch(e -> e.getType() == ContentType.LABEL)) {
                 final StringBuilder labels = new StringBuilder(escapeMd(user.getPwd()));
@@ -295,11 +322,7 @@ public class GuiService {
                         })
                         .skip(user.getOffset())
                         .limit(10)
-                        .forEach(f -> {
-                            final List<InlineButton> row = new ArrayList<>(2);
-                            row.add(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId())));
-                            kbd.add(row);
-                        });
+                        .forEach(f -> ref.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName(), (f.isDir() ? CallCmd.cd : CallCmd.get).of(f.getId()))));
                 if (count > 10) {
                     final List<InlineButton> pageRow = new ArrayList<>();
 
@@ -308,13 +331,17 @@ public class GuiService {
                     if (user.getOffset() + 10 < count)
                         pageRow.add(new InlineButton(Uni.rightArrow, pageUp));
 
-                    kbd.add(pageRow);
+                    ref.row(pageRow);
                 }
             }
         }
+    }
 
-        ref.setReplyMarkup(new InlineKeyboard(kbd));
+    private TextRef initLsRef(final TFile current, final User user) {
+        final TextRef ref = new TextRef(user.getPwd(), user.getId());
+        ref.headRow(new InlineButton(Uni.home, CallCmd.cd.of(1L)));
+        if (current.getParentId() > 1) ref.headRow(new InlineButton(Uni.leftArrow, CallCmd.cd.of(current.getParentId())));
 
-        sendScreen(ref, user);
+        return ref;
     }
 }

@@ -1,6 +1,14 @@
 package model.telegram.api;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static utils.TextUtils.isEmpty;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -76,6 +84,7 @@ public class TextRef {
     public void setParseMode(final String parseMode) {
         this.parseMode = parseMode;
     }
+
     public TextRef withKeyboard(final InlineKeyboard keyboard) {
         setReplyMarkup(keyboard);
         return this;
@@ -92,6 +101,32 @@ public class TextRef {
 
     public void setReplyMarkup(final ReplyMarkup replyMarkup) {
         this.replyMarkup = replyMarkup;
+    }
+
+    public void headRow(final InlineButton button) {
+        if (replyMarkup == null || !(replyMarkup instanceof InlineKeyboard)) {
+            replyMarkup = new InlineKeyboard();
+            ((InlineKeyboard) replyMarkup).setKeyboard(new ArrayList<>());
+            ((InlineKeyboard) replyMarkup).getKeyboard().add(new ArrayList<>());
+        }
+
+        ((InlineKeyboard) replyMarkup).getKeyboard().get(0).add(button);
+    }
+
+    public void row(final List<InlineButton> row) {
+        if (replyMarkup == null || !(replyMarkup instanceof InlineKeyboard)) {
+            replyMarkup = new InlineKeyboard();
+            ((InlineKeyboard) replyMarkup).setKeyboard(new ArrayList<>());
+        }
+
+        ((InlineKeyboard) replyMarkup).getKeyboard().add(row);
+    }
+
+    public void row(final InlineButton... buttons) {
+        if (isEmpty(buttons))
+            return;
+
+        row(Arrays.stream(buttons).collect(Collectors.toList()));
     }
 
     @Override

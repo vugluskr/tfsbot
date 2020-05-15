@@ -53,4 +53,10 @@ public interface FsMapper {
     void dropMultiOrphans(@Param("ids") Collection<Long> ids, @Param("owner") long owner);
 
     void mkDirs(@Param("dirs") Collection<TFile> dirs, @Param("owner") long owner);
+
+    List<TFile> listTypeEntries(@Param("parentId") long dirId, @Param("type") String type, @Param("owner") long owner);
+
+    List<TFile> getByIds(@Param("ids") Set<Long> ids, @Param("owner") long owner);
+
+    List<TFile> getPredictors(@Param("id") long id, @Param("owner") long owner);
 }

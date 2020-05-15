@@ -22,7 +22,8 @@ public enum CallCmd {
     pageUp("pg+"),
     pageDown("pg-"),
     normalMode("nm_"),
-    select("sl_");
+    select("sl_"),
+    put("pt");
 
     public final String id;
 
