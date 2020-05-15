@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static utils.CallCmd.pageDown;
 import static utils.CallCmd.pageUp;
 import static utils.LangMap.v;
 import static utils.TextUtils.*;
@@ -322,7 +323,7 @@ public class GuiService {
 
         if (!entries.isEmpty()) {
             if (user.getOffset() > 0)
-                pageRow.add(new InlineButton(Uni.rew, CallCmd.pageDown));
+                pageRow.add(new InlineButton(Uni.rew, pageDown));
             if (user.getOffset() + 10 < entries.size())
                 pageRow.add(new InlineButton(Uni.fwd, pageUp));
         }
@@ -423,7 +424,7 @@ public class GuiService {
                     final List<InlineButton> pageRow = new ArrayList<>();
 
                     if (user.getOffset() > 0)
-                        pageRow.add(new InlineButton(Uni.rew, CallCmd.pageDown));
+                        pageRow.add(new InlineButton(Uni.rew, pageDown));
                     if (user.getOffset() + 10 < count)
                         pageRow.add(new InlineButton(Uni.fwd, pageUp));
 

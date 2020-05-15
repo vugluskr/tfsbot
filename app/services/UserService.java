@@ -5,6 +5,7 @@ import model.UserAlias;
 import model.telegram.api.ContactRef;
 import model.telegram.api.UpdateRef;
 import sql.UserMapper;
+import utils.UOpts;
 
 import javax.inject.Inject;
 
@@ -40,6 +41,9 @@ public class UserService {
             user.setNick(notNull(cr.getUsername(), "u" + cr.getId()));
             user.setDirId(1);
             user.setPwd("/");
+            if (cr.getLanguageCode().contains("ru"))
+                UOpts.Russian.set(user);
+            UOpts.Gui.set(user);
 
             fsService.init(user.getId());
             mapper.insertUser(user);
