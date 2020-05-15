@@ -59,4 +59,6 @@ public interface FsMapper {
     List<TFile> getByIds(@Param("ids") Set<Long> ids, @Param("owner") long owner);
 
     List<TFile> getPredictors(@Param("id") long id, @Param("owner") long owner);
+
+    List<TFile> selectChildsByName(@Param("id") long id, @Param("query") String query, @Param("owner") long owner);
 }

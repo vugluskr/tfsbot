@@ -111,6 +111,23 @@ public class GuiService {
 
                     return;
                 }
+            } else if (UOpts.WaitSearchQuery.is(user)) {
+                UOpts.WaitSearchQuery.clear(user);
+                updateOpts.set(true);
+
+                if (!isEmpty(request.text)) {
+                    final List<TFile> results = fsService.findChildsByName(request.text, user);
+                    if (!isEmpty(results)) {
+                        user.setSelection(results.stream().map(f -> String.valueOf(f.getId())).collect(Collectors.joining(",")));
+                        doSearchLs(request.text, results, user);
+                    } else
+                        tgApi.sendPlainText("Nothing found for ‘" + request.text + "’", user.getId(), dialogId -> {
+                            user.setLastDialogId(dialogId);
+                            userService.updateOpts(user);
+                        });
+
+                    return;
+                }
             }
 
             if (request.isCallback() && request.callbackCmd != null) {
@@ -119,16 +136,24 @@ public class GuiService {
                 boolean answerAlert = false;
 
                 switch (request.callbackCmd) {
-                    // todo create label
                     // todo search
                     // todo prefs
                     // todo localization
+                    case search:
+                        UOpts.WaitSearchQuery.set(user);
+                        updateOpts.set(true);
+
+                        tgApi.ask("Type query:", user.getId(), dialogId -> {
+                            user.setLastDialogId(dialogId);
+                            userService.updateOpts(user);
+                        });
+                        break;
                     case rename:
                         UOpts.WaitFileName.set(user);
                         user.setSelection(String.valueOf(request.callbackId));
                         updateOpts.set(true);
 
-                        tgApi.ask("Type new name for '"+fsService.get(request.callbackId, user).getName()+"':", user.getId(), dialogId -> {
+                        tgApi.ask("Type new name for '" + fsService.get(request.callbackId, user).getName() + "':", user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -198,12 +223,13 @@ public class GuiService {
 
                             fsService.rm(ids, user);
                             user.setSelection(",");
-                            updateOpts.set(true);
                             callAnswer = ids.size() + " entry(s) deleted";
                         } else {
                             fsService.rm(request.callbackId, user);
                             callAnswer = "Entry deleted";
                         }
+                        user.setOffset(0);
+                        updateOpts.set(true);
                         doLs(user.getDirId(), user);
                         break;
                     case mv:
@@ -272,8 +298,8 @@ public class GuiService {
 
     private void doGearLs(final long id, final User user) {
         final TFile current = fsService.get(id, user);
-        final TextRef ref = initLsRef(current, user);
-        ref.headRow(new InlineButton(Uni.search, CallCmd.search));
+        final TextRef ref = initLsRef(current, user, false);
+//        ref.headRow(new InlineButton(Uni.search, CallCmd.search));
         ref.headRow(new InlineButton(Uni.back, CallCmd.normalMode));
 
         final List<TFile> entries = fsService.list(id, user);
@@ -316,17 +342,17 @@ public class GuiService {
 
     private void doMoveLs(final long id, final User user) {
         final TFile currentDir = fsService.get(user.getDirId(), user);
-        final TextRef ref = initLsRef(currentDir, user);
-        ref.headRow(new InlineButton(Uni.search, CallCmd.search));
+        final TextRef ref = initLsRef(currentDir, user, false);
+//        ref.headRow(new InlineButton(Uni.search, CallCmd.search));
         ref.headRow(new InlineButton(Uni.back, UOpts.GearMode.is(user) ? CallCmd.editMode : CallCmd.normalMode));
 
-        final Set<Long> subjects =
-                UOpts.GearMode.is(user)
-                        ? Arrays.stream(user.getSelection().split(",")).map(TextUtils::getLong).filter(s -> s > 0).collect(Collectors.toSet())
-                        : Collections.singleton(id);
+//        final Set<Long> subjects =
+//                UOpts.GearMode.is(user)
+//                        ? Arrays.stream(user.getSelection().split(",")).map(TextUtils::getLong).filter(s -> s > 0).collect(Collectors.toSet())
+//                        : Collections.singleton(id);
 
 //        if (!subjects.contains(id))
-            ref.row(new InlineButton(Uni.target, CallCmd.put));
+        ref.row(new InlineButton(Uni.target, CallCmd.put));
 
         casualListing(fsService.listFolders(id, user), ref, user);
 
@@ -346,12 +372,25 @@ public class GuiService {
         }
 
         final TFile current = fsService.get(id, user);
-        final TextRef ref = initLsRef(current, user);
+        final TextRef ref = initLsRef(current, user, true);
         ref.headRow(new InlineButton(Uni.search, CallCmd.search)); // search
         ref.headRow(new InlineButton(Uni.insert, CallCmd.mkDir));
         ref.headRow(new InlineButton(Uni.gear, CallCmd.editMode)); // edit
 
         casualListing(fsService.list(id, user), ref, user);
+
+        sendScreen(ref, user);
+    }
+
+    private void doSearchLs(final String query, final List<TFile> entries, final User user) {
+        final TFile current = fsService.get(user.getDirId(), user);
+        final TextRef ref = initLsRef(current, user, false);
+        ref.setText("searched '" + query + "' at " + user.getPwd());
+        ref.headRow(new InlineButton(Uni.back, CallCmd.cd.of(1)));
+
+        String remove = current.getPath() + "/";
+        entries.forEach(r -> r.setName(r.getPath().replace(remove, "")));
+        casualListing(entries, ref, user);
 
         sendScreen(ref, user);
     }
@@ -399,11 +438,12 @@ public class GuiService {
         }
     }
 
-    private TextRef initLsRef(final TFile current, final User user) {
+    private TextRef initLsRef(final TFile current, final User user, final boolean withLabel) {
         final TextRef ref = new TextRef(user.getPwd(), user.getId());
         ref.headRow(new InlineButton(Uni.home, CallCmd.cd.of(1L)));
         if (current.getParentId() > 1) ref.headRow(new InlineButton(Uni.leftArrow, CallCmd.cd.of(current.getParentId())));
-        ref.headRow(new InlineButton(Uni.label, CallCmd.label.of(current.getId())));
+        if (withLabel)
+            ref.headRow(new InlineButton(Uni.label, CallCmd.label.of(current.getId())));
 
         return ref;
     }

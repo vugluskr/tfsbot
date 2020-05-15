@@ -17,7 +17,7 @@ public interface Uni {
     String dots = "\u1801"; // ᠁
     String edit = "\u00B6"; // ¶
     String drop = "\uD83D\uDDD1"; // 🗑
-    String rename = "\u270E"; // ✎
+    String rename = "\uD83D\uDD89"; // 🖉
     String move = "\u21B7"; // ↷
 //    String back = "\u23CE"; // ⏎
     String back = cancel; // ⏎

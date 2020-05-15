@@ -247,4 +247,31 @@
         select a.id, a.parent_id as "parentId"
         from a
     </select>
+
+    <select id="selectChildsByName" resultType="model.TFile">
+        select
+        <include refid="struct"/>
+        where
+              f.name like #{query}
+              and f.id in (
+            WITH RECURSIVE tree AS
+                               (
+                                   SELECT id,
+                                          name,
+                                          parent_id,
+                                          ARRAY [name] AS fpath
+                                   FROM fs_struct_${owner}
+                                   WHERE parent_id = #{id}
+        UNION ALL SELECT si.id,
+                         si.name,
+                         si.parent_id,
+                         sp.fpath || si.name As fpath
+                  FROM fs_struct_${owner} As si
+                           JOIN
+                       tree AS sp
+                       ON (si.parent_id = sp.id)
+                      )
+            SELECT id
+            FROM tree)
+    </select>
 </mapper>

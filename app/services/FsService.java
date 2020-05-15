@@ -135,4 +135,8 @@ public class FsService {
     public List<TFile> getPredictors(final long dirId, final User user) {
         return mapper.getPredictors(dirId, user.getId());
     }
+
+    public List<TFile> findChildsByName(final String text, final User user) {
+        return mapper.selectChildsByName(user.getDirId(), "%" + text + "%", user.getId());
+    }
 }
