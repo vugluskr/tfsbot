@@ -72,6 +72,8 @@ public class GuiService {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
+
+                    return;
                 }
             } else if (UOpts.WaitFileName.is(user)) {
                 UOpts.WaitFolderName.clear(user);
@@ -89,8 +91,12 @@ public class GuiService {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
+
+                    return;
                 }
-            } else if (request.isCallback() && request.callbackCmd != null) {
+            }
+
+            if (request.isCallback() && request.callbackCmd != null) {
                 String callAnswer = "";
                 int answerCache = 0;
                 boolean answerAlert = false;
