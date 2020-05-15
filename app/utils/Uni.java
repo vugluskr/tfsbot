@@ -24,4 +24,5 @@ public interface Uni {
     String unchecked = "\u2610"; // ☐
     String checked = "\u2611"; // ☑
     String target = "\uD83D\uDF8B"; // 🞋
+    String label = "\uD83D\uDDC5"; // 🗅
 }

@@ -76,7 +76,7 @@ public class GuiService {
                     return;
                 }
             } else if (UOpts.WaitFileName.is(user)) {
-                UOpts.WaitFolderName.clear(user);
+                UOpts.WaitFileName.clear(user);
                 updateOpts.set(true);
 
                 if (!isEmpty(request.text)) {
@@ -88,6 +88,23 @@ public class GuiService {
                         user.setSelection("");
                     } else
                         tgApi.sendPlainText("cannot rename to ‘" + request.text + "’: File exists", user.getId(), dialogId -> {
+                            user.setLastDialogId(dialogId);
+                            userService.updateOpts(user);
+                        });
+
+                    return;
+                }
+            } else if (UOpts.WaitLabelText.is(user)) {
+                UOpts.WaitLabelText.clear(user);
+                updateOpts.set(true);
+
+                if (!isEmpty(request.text)) {
+                    if (fsService.findHere(request.text, user) == null) {
+                        final TFile file = new TFile(ContentType.LABEL, 0, "--", "--", request.text);
+                        fsService.upload(file, user);
+                        doLs(user.getDirId(), user);
+                    } else
+                        tgApi.sendPlainText("cannot create label ‘" + request.text + "’: File exists", user.getId(), dialogId -> {
                             user.setLastDialogId(dialogId);
                             userService.updateOpts(user);
                         });
@@ -162,6 +179,7 @@ public class GuiService {
                     case normalMode:
                         callAnswer = "Normal mode";
                         UOpts.GearMode.clear(user);
+                        UOpts.MovingFile.clear(user);
                         user.setOffset(0);
                         updateOpts.set(true);
                         doLs(user.getDirId(), user);
@@ -221,6 +239,15 @@ public class GuiService {
                         callAnswer = "Moved " + counter.get() + " entry(s)";
                         doLs(user.getDirId(), user);
                         break;
+                    case label:
+                        UOpts.WaitLabelText.set(user);
+                        updateOpts.set(true);
+
+                        tgApi.ask("Type label:", user.getId(), dialogId -> {
+                            user.setLastDialogId(dialogId);
+                            userService.updateOpts(user);
+                        });
+                        break;
                 }
 
                 tgApi.sendCallbackAnswer(callAnswer, request.callbackReplyId, answerAlert, answerCache);
@@ -272,8 +299,10 @@ public class GuiService {
                 pageRow.add(new InlineButton(Uni.rightArrow, pageUp));
         }
 
-        if (user.getSelection().length() > 2) {
-            final long size = Arrays.stream(user.getSelection().split(",")).filter(s -> getLong(s) > 0).count();
+        final long size = Arrays.stream(user.getSelection().split(",")).filter(s -> getLong(s) > 0).count();
+        if (size > 0) {
+            if (size == 1)
+                pageRow.add(new InlineButton(Uni.rename + " (" + size + ")", CallCmd.rename));
             pageRow.add(new InlineButton(Uni.move + " (" + size + ")", CallCmd.mv));
             pageRow.add(new InlineButton(Uni.drop + " (" + size + ")", CallCmd.rm));
         }
@@ -296,7 +325,7 @@ public class GuiService {
                         ? Arrays.stream(user.getSelection().split(",")).map(TextUtils::getLong).filter(s -> s > 0).collect(Collectors.toSet())
                         : Collections.singleton(id);
 
-        if (!subjects.contains(id))
+//        if (!subjects.contains(id))
             ref.row(new InlineButton(Uni.target, CallCmd.put));
 
         casualListing(fsService.listFolders(id, user), ref, user);
@@ -374,6 +403,7 @@ public class GuiService {
         final TextRef ref = new TextRef(user.getPwd(), user.getId());
         ref.headRow(new InlineButton(Uni.home, CallCmd.cd.of(1L)));
         if (current.getParentId() > 1) ref.headRow(new InlineButton(Uni.leftArrow, CallCmd.cd.of(current.getParentId())));
+        ref.headRow(new InlineButton(Uni.label, CallCmd.label.of(current.getId())));
 
         return ref;
     }
