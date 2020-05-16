@@ -96,7 +96,7 @@
                f.size,
                f.type,
                f.ref_id        as "refId",
-               f.selected
+               f.selected,
                ft.path
         from fs_struct_${owner} f
                  left outer join fs_tree_${owner} ft on f.id = ft.id
