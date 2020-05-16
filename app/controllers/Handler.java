@@ -120,7 +120,7 @@ public class Handler extends Controller {
                     } else
                         command = null;
 
-                    CompletableFuture.runAsync(() -> hq.accept(command == null ? new RefreshView(id, callbackId, user) : command));
+                    CompletableFuture.runAsync(() -> hq.accept(command == null ? new ExitMode(id, callbackId, user) : command));
                 } else
                     logger.debug("No UpdateRef object in request body");
             } else
