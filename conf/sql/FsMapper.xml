@@ -4,13 +4,15 @@
     <update id="createUserFs">
         create table fs_struct_${owner}
         (
-            id        bigserial                   not null primary key,
-            parent_id bigint                      not null,
-            indate    bigint                      not null,
+            id        bigserial                    not null primary key,
+            parent_id bigint                       not null,
+            indate    bigint                       not null,
             name      text,
-            size      bigint default 0            not null,
-            type      text   default 'DIR':: text not null,
-            ref_id    text   default '--':: text  not null
+            size      bigint  default 0            not null,
+            type      text    default 'DIR':: text not null,
+            ref_id    text    default '--':: text  not null,
+            selected  boolean default false,
+            found     boolean default false
         )
     </update>
 
@@ -94,6 +96,7 @@
                f.size,
                f.type,
                f.ref_id        as "refId",
+               f.selected
                ft.path
         from fs_struct_${owner} f
                  left outer join fs_tree_${owner} ft on f.id = ft.id
@@ -123,7 +126,8 @@
         update fs_struct_${owner}
         set name      = #{name} ,
             indate    = #{indate},
-            parent_id = #{parentId}
+            parent_id = #{parentId} ,
+            selected  = #{selected}
         where id = #{id}
     </update>
 
@@ -248,12 +252,11 @@
         from a
     </select>
 
-    <select id="selectChildsByName" resultType="model.TFile">
-        select
-        <include refid="struct"/>
-        where
-              lower(f.name) like #{query}
-              and f.id in (
+    <select id="selectChildsByName" resultType="int">
+        update fs_struct_${owner}
+        set found = true
+        where lower(name) like #{query}
+          and id in (
             WITH RECURSIVE tree AS
                                (
                                    SELECT id,
@@ -262,16 +265,79 @@
                                           ARRAY [name] AS fpath
                                    FROM fs_struct_${owner}
                                    WHERE parent_id = #{id}
-        UNION ALL SELECT si.id,
-                         si.name,
-                         si.parent_id,
-                         sp.fpath || si.name As fpath
-                  FROM fs_struct_${owner} As si
-                           JOIN
-                       tree AS sp
-                       ON (si.parent_id = sp.id)
-                      )
+                                   UNION ALL
+                                   SELECT si.id,
+                                          si.name,
+                                          si.parent_id,
+                                          sp.fpath || si.name As fpath
+                                   FROM fs_struct_${owner} As si
+                                            JOIN
+                                        tree AS sp
+                                        ON (si.parent_id = sp.id)
+                               )
             SELECT id
             FROM tree)
+    </select>
+
+    <select id="getSelectedSingle" resultType="model.TFile">
+        select
+        <include refid="struct"/>
+        where f.selected = true
+        limit 1
+    </select>
+
+    <update id="resetFound">
+        update fs_struct_${owner}
+        set found = false
+    </update>
+
+    <update id="resetSelection">
+        update fs_struct_${owner}
+        set selected = false
+    </update>
+
+    <update id="setSelection">
+        update fs_struct_${owner}
+        set selected = #{selected}
+        where id in
+        <foreach collection="selection" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="getSelected" resultType="model.TFile">
+        select
+        <include refid="struct"/>
+        where f.selected = true
+    </select>
+
+    <delete id="dropSelectionWithChilds">
+        delete
+        from fs_struct_${owner}
+        where id in (
+            WITH RECURSIVE tree AS
+                               (
+                                   SELECT id,
+                                          name,
+                                          parent_id,
+                                   FROM fs_struct_${owner}
+                                   WHERE selected = true
+                                   UNION ALL
+                                   SELECT si.id,
+                                          si.name,
+                                          si.parent_id,
+                                   FROM fs_struct_${owner} As si
+                                            JOIN
+                                        tree AS sp
+                                        ON (si.parent_id = sp.id)
+                               )
+            SELECT id
+            FROM tree)
+    </delete>
+
+    <select id="selectFound" resultType="model.TFile">
+        select
+        <include refid="struct"/>
+        where f.found = true
     </select>
 </mapper>

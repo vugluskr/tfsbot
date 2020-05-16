@@ -8,7 +8,7 @@ import utils.TextUtils;
  * SIRBot ☭ sweat and blood
  */
 public enum ContentType {
-    DIR, AUDIO(".mp3"), DOCUMENT, PHOTO(".jpg"), STICKER, VIDEO(".mp4"), VOICE(".ogg"), LABEL;
+    DIR, AUDIO(".mp3"), DOCUMENT, PHOTO(".jpg"), STICKER, VIDEO(".mp4"), VOICE(".ogg"), LABEL, CONTACT;
 
     public final String ext;
 

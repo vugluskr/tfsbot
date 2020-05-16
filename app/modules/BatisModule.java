@@ -3,8 +3,6 @@ package modules;
 import com.google.inject.name.Names;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import play.db.Database;
-import services.TgApi;
-import services.impl.TgApiReal;
 import sql.FsMapper;
 
 import javax.inject.Inject;
@@ -12,8 +10,6 @@ import javax.inject.Provider;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 /**
  * @author Denis Danilin | denis@danilin.name

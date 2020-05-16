@@ -21,6 +21,27 @@ public class ContactRef {
     @JsonProperty("language_code")
     private String languageCode;
 
+    @JsonProperty("phone_number")
+    private String phoneNumber;
+
+    @JsonProperty("user_id")
+    private long userId;
+
+    public long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(final long userId) {
+        this.userId = userId;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(final String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
 
     public long getId() {
         return id;

@@ -1,7 +1,8 @@
 package services;
 
+import model.Owner;
+import model.TFile;
 import model.User;
-import model.UserAlias;
 import model.telegram.api.ContactRef;
 import model.telegram.api.UpdateRef;
 import sql.UserMapper;
@@ -23,7 +24,7 @@ public class UserService {
     @Inject
     private FsService fsService;
 
-    public User getContact(final UpdateRef update) {
+    public User getUser(final UpdateRef update) {
         final ContactRef cr;
         if (update.getMessage() != null)
             cr = update.getMessage().getContactRef();
@@ -41,31 +42,23 @@ public class UserService {
             user.setNick(notNull(cr.getUsername(), "u" + cr.getId()));
             user.setDirId(1);
             user.setPwd("/");
-            if (cr.getLanguageCode().contains("ru"))
+            final boolean ru;
+            if ((ru = cr.getLanguageCode().contains("ru")))
                 UOpts.Russian.set(user);
             UOpts.Gui.set(user);
 
             fsService.init(user.getId());
             mapper.insertUser(user);
+            fsService.mkdir(ru ? "Документы" : "Documents", 1, user.getId());
+            fsService.mkdir(ru ? "Фото" : "Photos", 1, user.getId());
+            fsService.upload(TFile.label(ru ? "Пример заметки" : "Example note", fsService.mkdir(ru ? "Заметки" : "Notes", 1, user.getId()).getId()), user);
         } else
             return db;
 
         return user;
     }
 
-    public void updatePwd(final User user) {
-        mapper.updatePwd(user);
-    }
-
-    public void insertAlias(final UserAlias alias, final User user) {
-        mapper.insertAlias(alias, user.getId());
-    }
-
-    public void updateOpts(final User user) {
-        mapper.updateOpts(user.getMode(), user.getLastMessageId(), user.getLastDialogId(), user.getOptions(), user.getSelection(), user.getId());
-    }
-
-    public void updateOffset(final User user) {
-        mapper.updateOffset(user);
+    public <T extends Owner> void updateOpts(final T user) {
+        mapper.updateOpts(user.getMode(), user.getLastMessageId(), user.getLastDialogId(), user.getOptions(), user.getOffset(), user.getLastSearch(), user.getId());
     }
 }

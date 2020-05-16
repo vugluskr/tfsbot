@@ -16,11 +16,8 @@
                u.last_message,
                u.mode,
                u.ls_offset,
-               u.selection,
-               ua.alias,
-               ua.cmd
+               u.last_search
         from users u
-                 left outer join aliases ua on ua.owner = u.id
         where u.id = #{id}
     </select>
 
@@ -34,14 +31,7 @@
         <result property="lastDialogId" column="last_dialog"/>
         <result property="lastMessageId" column="last_message"/>
         <result property="offset" column="ls_offset"/>
-        <result property="selection" column="selection"/>
-
-        <collection property="aliases" notNullColumn="alias" resultMap="AliasMap"/>
-    </resultMap>
-
-    <resultMap id="AliasMap" type="model.UserAlias">
-        <result property="alias" column="alias"/>
-        <result property="cmd" column="cmd"/>
+        <result property="lastSearch" column="last_search"/>
     </resultMap>
 
     <update id="updatePwd">
@@ -52,25 +42,14 @@
         where id = #{id}
     </update>
 
-    <update id="updateOffset">
-        update users
-        set ls_offset = #{offset} ,
-            selection = #{selection}
-        where id = #{id}
-    </update>
-
-    <insert id="insertAlias">
-        insert into aliases(owner, alias, cmd)
-        values (#{userId} , #{alias.alias} , #{alias.cmd} )
-    </insert>
-
     <update id="updateOpts">
         update users
         set mode         = #{mode} ,
             last_message = #{lastMessageId} ,
             last_dialog  = #{lastDialogId} ,
             options      = #{options} ,
-            selection    = #{selection}
+            ls_offset    = #{offset} ,
+            last_search  = #{lastSearch}
         where id = #{userId}
     </update>
 </mapper>

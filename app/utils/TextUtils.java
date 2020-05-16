@@ -1,6 +1,5 @@
 package utils;
 
-import model.Cmd;
 import play.Logger;
 
 import java.lang.reflect.Array;
@@ -158,18 +157,4 @@ public class TextUtils {
         return md.matcher(s).replaceAll("\\\\$1");
     }
 
-    public static String[] splitCmd(final String cmd) {
-        final String[] parts = (cmd.contains("'")
-                ? singleQuotes
-                : cmd.contains("\"")
-                ? doubleQuotes
-                : cmd.contains("«")
-                ? winQuotes
-                : spaces).split(cmd);
-
-        Cmd c = null;
-        try { c = Cmd.valueOf(parts[0].toLowerCase()); } catch (final Exception ignore) { }
-
-        return c == null ? parts : Arrays.copyOfRange(parts, 1, parts.length);
-    }
 }

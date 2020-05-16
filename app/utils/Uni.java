@@ -8,7 +8,7 @@ package utils;
 public interface Uni {
     String rew = "\u25C0\uFE0F"; // ◀️
     String fwd = "\u25B6\uFE0F"; // ▶️
-    String home = "\u2B05\uFE0F"; // ⬅️
+    String updir = "\u2B05\uFE0F"; // ⬅️
     String search = "\uD83D\uDD0D"; // 🔍
     String gear = "\u2699"; // ⚙
     String mkdir = "\uD83D\uDCC1"; //

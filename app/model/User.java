@@ -2,16 +2,14 @@ package model;
 
 
 import utils.TextUtils;
-
-import java.util.SortedSet;
-import java.util.TreeSet;
+import utils.UserMode;
 
 /**
  * @author Denis Danilin | denis@danilin.name
  * 01.05.2020
  * tfs ☭ sweat and blood
  */
-public class User {
+public class User implements Owner {
     private long id;
     private String nick;
     private int options;
@@ -19,17 +17,21 @@ public class User {
     private int offset;
     private long lastMessageId;
     private long lastDialogId;
+    private String lastSearch;
 
-    private String pwd, selection;
+    private String pwd;
     private long dirId;
-    public final SortedSet<UserAlias> aliases;
-
-    {
-        aliases = new TreeSet<>();
-    }
 
     public long getId() {
         return id;
+    }
+
+    public String getLastSearch() {
+        return lastSearch;
+    }
+
+    public void setLastSearch(final String lastSearch) {
+        this.lastSearch = lastSearch;
     }
 
     public void setId(final long id) {
@@ -94,10 +96,6 @@ public class User {
         this.lastDialogId = lastDialogId;
     }
 
-    public String prompt() {
-        return "*" + TextUtils.escapeMd(nick) + "@tfs:__" + (isAtHome() ? "\\~" : TextUtils.escapeMd(pwd)) + "__$*";
-    }
-
     public boolean isAtHome() {
         return dirId == 1;
     }
@@ -110,11 +108,13 @@ public class User {
         this.offset = offset;
     }
 
-    public String getSelection() {
-        return selection;
+    public void setMode(final UserMode mode) {
+        this.mode = mode.ordinal();
     }
 
-    public void setSelection(final String selection) {
-        this.selection = selection;
+    public UserMode getUserMode() {
+        return UserMode.values()[Math.max(0, Math.min(UserMode.values().length - 1, mode))];
     }
+
+
 }

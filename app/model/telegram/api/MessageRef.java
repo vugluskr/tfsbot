@@ -1,6 +1,7 @@
 package model.telegram.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import model.User;
 
 import java.util.List;
 
@@ -44,6 +45,20 @@ public class MessageRef {
 
     private AudioRef audio;
     private VoiceRef voice;
+
+    // todo contact
+    // {"contact":{"phone_number":"+79807486512","first_name":"Кисюк","user_id":69436249}}}
+
+    @JsonProperty("contact")
+    private ContactRef tgUser;
+
+    public ContactRef getTgUser() {
+        return tgUser;
+    }
+
+    public void setTgUser(final ContactRef tgUser) {
+        this.tgUser = tgUser;
+    }
 
     public AudioRef getAudio() {
         return audio;

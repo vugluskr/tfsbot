@@ -18,6 +18,7 @@ public class TFile implements Comparable<TFile> {
     private long parentId;
     private long indate;
     private String name, path;
+    private boolean selected;
 
     public volatile boolean exist;
 
@@ -25,13 +26,12 @@ public class TFile implements Comparable<TFile> {
         return new TFile(ContentType.DIR, 0, null, null, name);
     }
 
-    public static TFile stub(final TFile pro) {
+    public static TFile label(final String name, final long parentId) {
         final TFile f = new TFile();
-        f.indate = pro.indate;
-        f.type = pro.type;
-        f.id = pro.id;
-        f.parentId = pro.parentId;
-        f.path = pro.path;
+        f.indate = System.currentTimeMillis();
+        f.type = ContentType.LABEL;
+        f.parentId = parentId;
+        f.name = name;
 
         return f;
     }
@@ -172,5 +172,13 @@ public class TFile implements Comparable<TFile> {
 
     public boolean isLabel() {
         return type == ContentType.LABEL;
+    }
+
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public void setSelected(final boolean selected) {
+        this.selected = selected;
     }
 }

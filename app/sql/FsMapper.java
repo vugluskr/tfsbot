@@ -32,7 +32,8 @@ public interface FsMapper {
     TFile findEntryAt(@Param("name") String name, @Param("parentId") long parentId, @Param("owner") long owner);
     List<TFile> listEntries(@Param("parentId") long dirId, @Param("owner") long id);
 
-    void updateEntry(@Param("name") String name, @Param("indate") long indate, @Param("parentId") long parentId, @Param("id") long id, @Param("owner") long owner);
+    void updateEntry(@Param("name") String name, @Param("indate") long indate, @Param("parentId") long parentId, @Param("selected") boolean selected, @Param("id") long id,
+                     @Param("owner") long owner);
 
     void dropEntry(@Param("id") long id, @Param("owner") long owner);
     void dropOrphans(@Param("id") long id, @Param("owner") long owner);
@@ -60,5 +61,19 @@ public interface FsMapper {
 
     List<TFile> getPredictors(@Param("id") long id, @Param("owner") long owner);
 
-    List<TFile> selectChildsByName(@Param("id") long id, @Param("query") String query, @Param("owner") long owner);
+    int selectChildsByName(@Param("id") long id, @Param("query") String query, @Param("owner") long owner);
+
+    TFile getSelectedSingle(long owner);
+
+    void resetFound(long owner);
+
+    void resetSelection(long owner);
+
+    void setSelection(@Param("selection") Collection<Long> selection, @Param("selected") boolean selected, @Param("owner") long owner);
+
+    List<TFile> getSelected(long owner);
+
+    int dropSelectionWithChilds(long owner);
+
+    List<TFile> selectFound(long owner);
 }

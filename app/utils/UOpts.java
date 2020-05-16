@@ -1,5 +1,6 @@
 package utils;
 
+import model.Owner;
 import model.User;
 
 /**
@@ -8,7 +9,7 @@ import model.User;
  * tfs ☭ sweat and blood
  */
 public enum  UOpts {
-    Gui, WaitFolderName, MovingFile, GearMode, WaitFileName, WaitLabelText, WaitSearchQuery, Russian;
+    Gui, WaitFolderName, WaitFileName, WaitLabelText, WaitSearchQuery, Russian;
 
     public final int bitmask() {
         return 1 << ordinal();
@@ -21,7 +22,7 @@ public enum  UOpts {
             set(u);
     }
 
-    public final boolean is(final User u) {
+    public final boolean is(final Owner u) {
         return (u.getOptions() & bitmask()) > 0;
     }
 
