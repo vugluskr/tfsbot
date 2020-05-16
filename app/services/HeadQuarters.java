@@ -5,6 +5,7 @@ import model.User;
 import model.telegram.ContentType;
 import model.telegram.api.TeleFile;
 import model.telegram.commands.*;
+import play.Logger;
 import utils.LangMap;
 import utils.UserMode;
 
@@ -23,6 +24,8 @@ import static utils.LangMap.v;
  * tfs ☭ sweat and blood
  */
 public class HeadQuarters {
+    private static final Logger.ALogger logger = Logger.of(HeadQuarters.class);
+
     @Inject
     private TgApi tgApi;
 
@@ -216,6 +219,8 @@ public class HeadQuarters {
                         userService.updateOpts(command);
                     }
                 });
+        } catch (final Exception e) {
+            logger.error(e.getMessage(), e);
         } finally {
             userService.updateOpts(command);
             if (callbackAnswer != null)
