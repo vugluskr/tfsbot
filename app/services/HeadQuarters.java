@@ -83,6 +83,8 @@ public class HeadQuarters {
                 });
             } else
                 user.getState().refreshView(); // refresh
+        } catch (final Exception e) {
+            logger.error(e.getMessage(), e);
         } finally {
             userService.updateOpts(user);
         }

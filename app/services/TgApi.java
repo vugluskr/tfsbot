@@ -66,18 +66,12 @@ public class TgApi {
     }
 
     public void deleteMessage(final long messageId, final long userId) {
-        deleteMessage(messageId, userId, aVoid -> {});
-    }
-
-    public void deleteMessage(final long messageId, final long userId, final Consumer<Void> completeConsumer) {
         CompletableFuture.runAsync(() -> ws.url(apiUrl + "deleteMessage")
                 .setContentType(jsonType)
                 .post("{\"chat_id\":" + userId + ",\"message_id\":" + messageId + "}")
                 .thenAccept(wsr -> {
                     try {
-                        if (wsr.asJson().get("ok").asBoolean())
-                            completeConsumer.accept(null);
-                        else
+                        if (!wsr.asJson().get("ok").asBoolean())
                             logger.error("Error complete delete message #" + messageId + ": " + wsr.getBody());
                     } catch (final Exception e) {
                         logger.error("Error complete delete message #" + messageId + ": " + e.getMessage(), e);
