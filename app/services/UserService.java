@@ -3,6 +3,7 @@ package services;
 import model.User;
 import model.telegram.api.ContactRef;
 import model.telegram.api.UpdateRef;
+import play.Logger;
 import play.libs.Json;
 import sql.UserMapper;
 import utils.State;

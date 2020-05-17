@@ -115,7 +115,9 @@ public abstract class State {
     public static <T extends State> T stateFromJson(final JsonNode node, final User user, final TgApi tgApi, final GUI gui, final UserService userService,
                                                     final FsService fsService) {
         try {
+            logger.debug("Rebuild session from: " + node);
             final State state = map.getOrDefault(node.get("type").asText(), map.get("")).newInstance();
+            logger.debug("Built: " + state.getClass().getSimpleName());
 
             state.fromJson(node.get("data"));
             state.dirId = node.get("dir_id").asInt();
