@@ -15,6 +15,7 @@ import services.GUI;
 import services.TgApi;
 import services.UserService;
 
+import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -31,6 +32,25 @@ import static utils.TextUtils.*;
  */
 public abstract class State {
     private static final Logger.ALogger logger = Logger.of(State.class);
+    private static final Map<String, Constructor<? extends State>> map = new HashMap<>(0);
+
+    static {
+        try {
+            map.put(Gear.class.getSimpleName(), Gear.class.getConstructor());
+            map.put(Renaming.class.getSimpleName(), Renaming.class.getConstructor());
+            map.put(Moving.class.getSimpleName(), Moving.class.getConstructor());
+            map.put(MkDir.class.getSimpleName(), MkDir.class.getConstructor());
+            map.put(MkLabel.class.getSimpleName(), MkLabel.class.getConstructor());
+            map.put(Search.class.getSimpleName(), Search.class.getConstructor());
+            map.put(SearchGear.class.getSimpleName(), SearchGear.class.getConstructor());
+            map.put(OpenFile.class.getSimpleName(), OpenFile.class.getConstructor());
+            map.put(MkFile.class.getSimpleName(), MkFile.class.getConstructor());
+            map.put("", MkFile.class.getConstructor());
+        } catch (final Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
 
     protected GUI gui;
     protected UserService userService;
@@ -95,13 +115,7 @@ public abstract class State {
     public static <T extends State> T stateFromJson(final JsonNode node, final User user, final TgApi tgApi, final GUI gui, final UserService userService,
                                                     final FsService fsService) {
         try {
-            final String name = node.get("type").asText();
-            final State state;
-
-            if (name.equals(Gear.class.getSimpleName()))
-                state = new Gear();
-            else
-                state = new View();
+            final State state = map.getOrDefault(node.get("type").asText(), map.get("")).newInstance();
 
             state.fromJson(node.get("data"));
             state.dirId = node.get("dir_id").asInt();
