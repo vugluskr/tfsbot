@@ -10,10 +10,10 @@
         <appender-ref ref="STDOUT"/>
     </appender>
 
-    <logger level="ERROR" name="utils"/>
-    <logger level="ERROR" name="modules"/>
-    <logger level="DEBUG" name="services"/>
-    <logger level="ERROR" name="listeners"/>
+<!--    <logger level="ERROR" name="utils"/>-->
+<!--    <logger level="ERROR" name="modules"/>-->
+<!--    <logger level="DEBUG" name="services"/>-->
+<!--    <logger level="ERROR" name="listeners"/>-->
 
     <!--    <logger level="OFF" name="mappers"/>-->
     <logger level="OFF" name="play"/>
