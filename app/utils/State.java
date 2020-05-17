@@ -676,7 +676,7 @@ public abstract class State {
             return recoil;
         }
 
-        private void setRecoil(final State state) {
+        public void setRecoil(final State state) {
             this.recoil = state;
         }
     }

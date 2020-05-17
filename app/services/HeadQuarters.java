@@ -51,7 +51,7 @@ public class HeadQuarters {
                     }
                 } else {
                     logger.debug("2. Its NOT RequireInput, making label from: " + input);
-                    user.getState().switchTo(new State.MkLabel());
+                    user.getState().switchTo(new State.MkLabel()).setRecoil(new State.View());
                     ((State.RequireInput) user.getState()).accept(input);
                 }
             } else if (!isEmpty(callbackData) && callbackId > 0) {
@@ -70,9 +70,12 @@ public class HeadQuarters {
                         } else if (user.getState() instanceof State.OneStep) {
                             logger.debug("3. State is one-step, recoiling to: " + ((State.OneStep) user.getState()).recoil());
                             user.setState(((State.OneStep) user.getState()).recoil());
-                        } else {
+                        } else
+                            user.setState(null);
+
+                        if (user.getState() == null) {
                             logger.debug("3. State is not reversable, falling to View");
-                            user.getState().switchTo(new State.View());
+                            user.getState().switchTo(new State.View()).setDirId(1);
                         }
 
                         logger.debug("4. State now: " + user.getState());
