@@ -151,7 +151,7 @@ public class TextUtils {
         return null;
     }
 
-    private static final Pattern md = Pattern.compile("([\\/\\.\\(\\)\\*\\[\\]\"`'~_-])");
+    private static final Pattern md = Pattern.compile("([\\.\\(\\)\\*\\[\\]\"`'~_-])");
 
     public static String escapeMd(final String s) {
         return md.matcher(s).replaceAll("\\\\$1");

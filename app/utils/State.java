@@ -364,8 +364,9 @@ public abstract class State {
 
                     upper.add(new InlineButton(Uni.move + "(" + selection.size() + ")", move));
                     upper.add(new InlineButton(Uni.drop + "(" + selection.size() + ")", drop));
-                    upper.add(GUI.Buttons.cancelButton);
                 }
+
+                upper.add(GUI.Buttons.cancelButton);
 
                 if (offset > 0)
                     bottom.add(GUI.Buttons.rewindButton);
