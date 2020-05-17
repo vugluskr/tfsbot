@@ -32,13 +32,13 @@ public class TFileFactory {
         return f;
     }
 
-    public static TFile file(final TeleFile src, final long parentId) {
+    public static TFile file(final TeleFile src, final String caption, final long parentId) {
         final ContentType type = src.getType();
 
         final TFile f = new TFile();
         f.setType(src.getType());
         f.setParentId(parentId);
-        f.setName(notNull(src.getFileName(), type.name().toLowerCase() + "_" + src.getUniqId() + type.ext));
+        f.setName(notNull(notNull(src.getFileName(), caption), type.name().toLowerCase() + "_" + src.getUniqId() + type.ext));
         f.setRefId(src.getFileId());
 
         return f;

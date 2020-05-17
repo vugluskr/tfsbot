@@ -152,7 +152,7 @@ public abstract class State {
 
     public final CallbackAnswer apply(final TeleFile file, final String input, final String callbackData) {
         if (file != null) {
-            fsService.upload(TFileFactory.file(file, dirId), user);
+            fsService.upload(TFileFactory.file(file, input, dirId), user);
             return new CallbackAnswer(v(LangMap.Names.UPLOADED, user, file.getFileName()));
         }
 

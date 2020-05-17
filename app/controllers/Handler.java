@@ -14,6 +14,8 @@ import services.UserService;
 import javax.inject.Inject;
 import java.util.concurrent.CompletableFuture;
 
+import static utils.TextUtils.isEmpty;
+
 /**
  * @author Denis Danilin | denis@danilin.name
  * 16.05.2020
@@ -49,7 +51,7 @@ public class Handler extends Controller {
 
                     logger.debug("Input: {id: " + id + ", text: " + text + ", callback: " + callback + "}", id, text, callback);
 
-                    CompletableFuture.runAsync(() -> hq.accept(user, file, text, callback, id, callbackId));
+                    CompletableFuture.runAsync(() -> hq.accept(user, file, file != null ? updateRef.getMessage().getCaption() : text, callback, id, callbackId));
                 } else
                     logger.debug("No UpdateRef object in request body");
             } else

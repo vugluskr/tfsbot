@@ -208,7 +208,7 @@
         from a
     </select>
 
-    <select id="selectChildsByName" resultType="int">
+    <update id="selectChildsByName">
         update fs_struct_${owner}
         set found = true
         where lower(name) like #{query}
@@ -233,7 +233,7 @@
                                )
             SELECT id
             FROM tree)
-    </select>
+    </update>
 
     <update id="resetFound">
         update fs_struct_${owner}
