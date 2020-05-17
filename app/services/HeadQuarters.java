@@ -75,7 +75,9 @@ public class HeadQuarters {
 
                         if (user.getState() == null) {
                             logger.debug("3. State is not reversable, falling to View");
-                            user.getState().switchTo(new State.View()).setDirId(1);
+                            final State state = new State.View();
+                            state.setDirId(1);
+                            user.setState(state);
                         }
 
                         logger.debug("4. State now: " + user.getState());
