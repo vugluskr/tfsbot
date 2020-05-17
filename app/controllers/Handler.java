@@ -56,6 +56,8 @@ public class Handler extends Controller {
                     final TeleFile file = updateRef.getMessage() != null ? updateRef.getMessage().getTeleFile() : null;
                     final ContactRef sentContact = updateRef.getMessage() != null ? updateRef.getMessage().getTgUser() : null;
 
+                    logger.debug("Input: {id: %s, text: %s, callback: %s}", id, text, callback);
+
                     final TgCommand command;
 
                     if (file != null)
@@ -120,6 +122,7 @@ public class Handler extends Controller {
                     } else
                         command = null;
 
+                    logger.debug("Command: " + command);
                     CompletableFuture.runAsync(() -> hq.accept(command == null ? new ExitMode(id, callbackId, user) : command));
                 } else
                     logger.debug("No UpdateRef object in request body");
