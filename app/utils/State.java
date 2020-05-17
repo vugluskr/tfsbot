@@ -412,6 +412,12 @@ public abstract class State {
         }
 
         @Override
+        protected CallbackAnswer applyCallback(final String callback) {
+            goBack();
+            return null;
+        }
+
+        @Override
         protected void handleInput(final String input) {
             if (!isEmpty(input)) {
                 if (fsService.findAt(input, dirId, user) != null) {
@@ -580,6 +586,12 @@ public abstract class State {
                 fsService.upload(TFileFactory.label(input, dirId), user);
                 goBack();
             }
+        }
+
+        @Override
+        protected CallbackAnswer applyCallback(final String callback) {
+            goBack();
+            return null;
         }
     }
 
@@ -836,11 +848,9 @@ public abstract class State {
                 case drop:
                     fsService.rm(itemId, user);
                     answer = v(LangMap.Names.DELETED, user);
-                case cancel:
+                default:
                     goBack();
                     break;
-                default:
-                    return null;
             }
 
             return new CallbackAnswer(answer);
