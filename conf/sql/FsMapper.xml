@@ -319,13 +319,13 @@
                                (
                                    SELECT id,
                                           name,
-                                          parent_id,
+                                          parent_id
                                    FROM fs_struct_${owner}
                                    WHERE selected = true
                                    UNION ALL
                                    SELECT si.id,
                                           si.name,
-                                          si.parent_id,
+                                          si.parent_id
                                    FROM fs_struct_${owner} As si
                                             JOIN
                                         tree AS sp
