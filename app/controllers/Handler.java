@@ -56,7 +56,7 @@ public class Handler extends Controller {
                     final TeleFile file = updateRef.getMessage() != null ? updateRef.getMessage().getTeleFile() : null;
                     final ContactRef sentContact = updateRef.getMessage() != null ? updateRef.getMessage().getTgUser() : null;
 
-                    logger.debug("Input: {id: %s, text: %s, callback: %s}", id, text, callback);
+                    logger.debug("Input: {id: "+id+", text: "+text+", callback: "+callback+"}", id, text, callback);
 
                     final TgCommand command;
 

@@ -4,6 +4,8 @@ import model.User;
 import model.telegram.ContentType;
 import model.telegram.api.TeleFile;
 
+import static utils.TextUtils.notNull;
+
 /**
  * @author Denis Danilin | denis@danilin.name
  * 16.05.2020
@@ -48,5 +50,17 @@ public final class CreateFile extends ACommand implements TgCommand, TeleFile {
     @Override
     public String getFileName() {
         return name;
+    }
+
+    public static String mnemonic() {
+        return CreateFile.class.getSimpleName() + '.';
+    }
+
+    public static String mnemonic(final long id) {
+        return mnemonic() + id;
+    }
+
+    public static boolean is(final String data) {
+        return notNull(data).startsWith(mnemonic());
     }
 }
