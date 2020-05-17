@@ -35,16 +35,22 @@ public class HeadQuarters {
                 tgApi.deleteMessage(msgId, user.getId());
                 user.getState().switchTo(new State.MkFile());
                 ((State.MkFile) user.getState()).accept(file);
-                // refresh view
             } else if (!isEmpty(input)) {
                 tgApi.deleteMessage(msgId, user.getId());
 
+                logger.debug("1. User state: " + user.getState().getClass().getSimpleName());
+
                 if (user.getState() instanceof State.RequireInput) {
+                    logger.debug("2. Its RequireInput, feed with input: " + input);
                     ((State.RequireInput) user.getState()).accept(input);
 
-                    if (user.getState() instanceof State.OneStep)
+                    if (user.getState() instanceof State.OneStep) {
+                        logger.debug("3. Its OneStep, recoiling");
                         user.setState(((State.OneStep) user.getState()).recoil());
+                        logger.debug("4. Recoiled to: " + user.getState().getClass().getSimpleName());
+                    }
                 } else {
+                    logger.debug("2. Its NOT RequireInput, making label from: " + input);
                     user.getState().switchTo(new State.MkLabel());
                     ((State.RequireInput) user.getState()).accept(input);
                 }
