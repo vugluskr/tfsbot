@@ -40,6 +40,17 @@ public class HeadQuarters {
             if (input != null || file != null)
                 tgApi.deleteMessage(msgId, user.getId());
 
+            if (notNull(input).equals("/start")) {
+                if (user.getLastMessageId() > 0) {
+                    tgApi.deleteMessage(user.getLastMessageId(), user.getId());
+                    user.setLastMessageId(0);
+                    State.freshInit(user, tgApi, gui, userService, fsService);
+                    user.getState().refreshView();
+
+                    return;
+                }
+            }
+
             CallbackAnswer answer = null;
 
             try {
