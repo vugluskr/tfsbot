@@ -56,12 +56,14 @@ public class HeadQuarters {
                 });
 
 
-            if (command instanceof RequestUserInput)
+            if (command instanceof RequestUserInput) {
+                refreshView = false;
+
                 tgApi.ask(makePrompt((RequestUserInput) command), command.getId(), dialogId -> {
                     command.setLastDialogId(dialogId);
                     userService.updateOpts(command);
                 });
-            else if (command instanceof GotUserInput) {
+            } else if (command instanceof GotUserInput) {
                 final String input = ((GotUserInput) command).getInput();
 
                 if (command instanceof CreateDir) {

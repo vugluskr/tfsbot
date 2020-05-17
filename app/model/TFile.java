@@ -32,6 +32,7 @@ public class TFile implements Comparable<TFile> {
         f.type = ContentType.LABEL;
         f.parentId = parentId;
         f.name = name;
+        f.refId = "--";
 
         return f;
     }
