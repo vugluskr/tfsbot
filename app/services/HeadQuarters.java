@@ -55,19 +55,27 @@ public class HeadQuarters {
                     ((State.RequireInput) user.getState()).accept(input);
                 }
             } else if (!isEmpty(callbackData) && callbackId > 0) {
+                logger.debug("1. Callback: '" + callbackData + "', user state: " + user.getState().getClass().getSimpleName());
                 CallbackAnswer a = new CallbackAnswer(callbackId, "");
 
                 try {
                     if (user.getState().isCallbackAppliable(callbackData)) {
+                        logger.debug("2. Its appliable, put it in");
                         a = user.getState().applyCallback(callbackData);
                     } else {
-                        if (user.getState() instanceof State.Fallbackable)
+                        logger.debug("2. Its NOT appliable");
+                        if (user.getState() instanceof State.Fallbackable) {
+                            logger.debug("3. State is fallbackable, falling to: " + ((State.Fallbackable) user.getState()).fallback());
                             user.setState(((State.Fallbackable) user.getState()).fallback());
-                        else if (user.getState() instanceof State.OneStep)
+                        } else if (user.getState() instanceof State.OneStep) {
+                            logger.debug("3. State is one-step, recoiling to: " + ((State.OneStep) user.getState()).recoil());
                             user.setState(((State.OneStep) user.getState()).recoil());
-                        else
+                        } else {
+                            logger.debug("3. State is not reversable, falling to View");
                             user.getState().switchTo(new State.View());
+                        }
 
+                        logger.debug("4. State now: " + user.getState());
                         if (user.getState().isCallbackAppliable(callbackData))
                             a = user.getState().applyCallback(callbackData);
                     }
