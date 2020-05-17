@@ -44,11 +44,12 @@ public class HeadQuarters {
                 if (user.getLastMessageId() > 0) {
                     tgApi.deleteMessage(user.getLastMessageId(), user.getId());
                     user.setLastMessageId(0);
-                    State.freshInit(user, tgApi, gui, userService, fsService);
-                    user.getState().refreshView();
-
-                    return;
                 }
+
+                State.freshInit(user, tgApi, gui, userService, fsService);
+                user.getState().refreshView();
+
+                return;
             }
 
             CallbackAnswer answer = null;
