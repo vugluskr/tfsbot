@@ -774,14 +774,16 @@ public abstract class State {
         public void refreshView() {
             final List<TFile> scope = fsService.getFound(user);
             final List<InlineButton> upper = new ArrayList<>(0), bottom = new ArrayList<>(0);
+
             if (!selection.isEmpty()) {
                 if (selection.size() == 1)
                     upper.add(GUI.Buttons.renameButton);
 
                 upper.add(new InlineButton(Uni.move + "(" + selection.size() + ")", move));
                 upper.add(new InlineButton(Uni.drop + "(" + selection.size() + ")", drop));
-                upper.add(GUI.Buttons.cancelButton);
             }
+
+            upper.add(GUI.Buttons.cancelButton);
 
             if (offset > 0)
                 bottom.add(GUI.Buttons.rewindButton);

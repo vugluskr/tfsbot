@@ -58,7 +58,7 @@ public class GUI {
 
     public void makeMovingView(final String mdEscapedBody, final List<TFile> scope, final List<InlineButton> upper, final List<InlineButton> bottom,
                                final int offset, final User user, final Consumer<Long> sentMsgIdConsumer) {
-        final TextRef box = new TextRef(mdEscapedBody, user.getId());
+        final TextRef box = new TextRef(mdEscapedBody, user.getId()).setMd2();
 
         if (!isEmpty(upper))
             upper.forEach(box::headRow);
@@ -80,7 +80,7 @@ public class GUI {
 
     public void makeGearView(final String mdEscapedBody, final Set<Long> selection, final List<TFile> scope, final List<InlineButton> upper, final List<InlineButton> bottom,
                              final int offset, final User user, final Consumer<Long> sentMsgIdConsumer) {
-        final TextRef box = new TextRef(mdEscapedBody, user.getId());
+        final TextRef box = new TextRef(mdEscapedBody, user.getId()).setMd2();
         if (!isEmpty(upper))
             upper.forEach(box::headRow);
 
