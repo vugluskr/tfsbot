@@ -11,6 +11,7 @@ import utils.UOpts;
 
 import javax.inject.Inject;
 
+import static utils.TextUtils.isEmpty;
 import static utils.TextUtils.notNull;
 
 /**
@@ -62,7 +63,11 @@ public class UserService {
             fsService.mkdir(ru ? "Фото" : "Photos", 1, user.getId());
             fsService.upload(TFileFactory.label(ru ? "Пример заметки" : "Example note", fsService.mkdir(ru ? "Заметки" : "Notes", 1, user.getId()).getId()), user);
         } else {
-            db.setState(State.stateFromJson(Json.parse(db.getSavedState()), db, tgApi, gui, this, fsService));
+            if (isEmpty(db.getSavedState()) || !db.getSavedState().startsWith("{"))
+                State.freshInit(db, tgApi, gui, this, fsService);
+            else
+                db.setState(State.stateFromJson(Json.parse(db.getSavedState()), db, tgApi, gui, this, fsService));
+
             return db;
         }
 
