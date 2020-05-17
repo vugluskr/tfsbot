@@ -171,12 +171,9 @@ public abstract class State {
         private static final Logger.ALogger logger = Logger.of(View.class);
         private int offset;
 
-        private View() { }
-
         @Override
         public JsonNode toJson() {
             final ObjectNode node = Json.newObject();
-            node.put("dir_id", dirId);
             node.put("offset", offset);
 
             return node;
@@ -187,7 +184,6 @@ public abstract class State {
             if (node == null || node.size() <= 0)
                 return;
 
-            dirId = node.has("dir_id") ? node.get("dir_id").asInt() : 1;
             offset = node.has("offset") ? node.get("offset").asInt() : 0;
         }
 
@@ -284,8 +280,6 @@ public abstract class State {
 
         private final Set<Long> selection = new HashSet<>();
         private int offset;
-
-        private Gear() { }
 
         @Override
         public JsonNode toJson() {
@@ -390,8 +384,6 @@ public abstract class State {
     public static class Renaming extends State {
         private long itemId;
 
-        private Renaming() {}
-
         @Override
         public JsonNode toJson() {
             final ObjectNode node = Json.newObject();
@@ -437,8 +429,6 @@ public abstract class State {
     public static class Moving extends State {
         private final Set<Long> ids = new HashSet<>(0);
         private int offset;
-
-        private Moving() {}
 
         @Override
         public void refreshView() {
@@ -535,8 +525,6 @@ public abstract class State {
     }
 
     public static class MkDir extends State {
-        private MkDir() {}
-
         @Override
         public JsonNode toJson() {
             return Json.newObject();
@@ -564,8 +552,6 @@ public abstract class State {
     }
 
     public static class MkLabel extends State {
-        private MkLabel() {}
-
         @Override
         public JsonNode toJson() {
             return Json.newObject();
@@ -595,8 +581,6 @@ public abstract class State {
     public static class Search extends State {
         private String query = null, body = null;
         private int offset;
-
-        private Search() {}
 
         @Override
         public JsonNode toJson() {
@@ -709,8 +693,6 @@ public abstract class State {
         private int offset;
         private String query;
 
-        private SearchGear() {}
-
         @Override
         public JsonNode toJson() {
             final ObjectNode node = Json.newObject();
@@ -811,8 +793,6 @@ public abstract class State {
 
     public static class OpenFile extends State {
         private long itemId;
-
-        private OpenFile() {}
 
         @Override
         public void refreshView() {
