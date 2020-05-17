@@ -335,11 +335,9 @@ public abstract class State {
                     break;
                 default:
                     final long itemId = getLong(callbackData);
-                    if (itemId <= 0)
-                        return null;
 
-                    if (callbackData.startsWith(renameEntry)) {
-                        switchTo(new Renaming()).itemId = itemId;
+                    if (callbackData.startsWith(renameEntry) && (itemId > 0 || !selection.isEmpty())) {
+                        switchTo(new Renaming()).itemId = itemId > 0 ? itemId : selection.iterator().next();
                         break;
                     } else if (callbackData.startsWith(inversCheck)) {
                         if (selection.remove(itemId))
