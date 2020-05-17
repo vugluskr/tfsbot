@@ -3,7 +3,6 @@ package services;
 import model.User;
 import model.telegram.api.ContactRef;
 import model.telegram.api.UpdateRef;
-import play.Logger;
 import play.libs.Json;
 import sql.UserMapper;
 import utils.State;
@@ -46,9 +45,6 @@ public class UserService {
         final User user;
 
         if (db == null) {
-            final State view = new State.View();
-            view.setDirId(1);
-
             user = new User();
             user.setId(cr.getId());
             user.setNick(notNull(cr.getUsername(), "u" + cr.getId()));

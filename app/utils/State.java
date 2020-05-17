@@ -36,47 +36,19 @@ public abstract class State {
 
     static {
         try {
-            map.put(Gear.class.getSimpleName(), Gear.class.getConstructor());
-            map.put(Renaming.class.getSimpleName(), Renaming.class.getConstructor());
-            map.put(Moving.class.getSimpleName(), Moving.class.getConstructor());
-            map.put(MkDir.class.getSimpleName(), MkDir.class.getConstructor());
-            map.put(MkLabel.class.getSimpleName(), MkLabel.class.getConstructor());
-            map.put(Search.class.getSimpleName(), Search.class.getConstructor());
-            map.put(SearchGear.class.getSimpleName(), SearchGear.class.getConstructor());
-            map.put(OpenFile.class.getSimpleName(), OpenFile.class.getConstructor());
-            map.put(MkFile.class.getSimpleName(), MkFile.class.getConstructor());
-            map.put("", MkFile.class.getConstructor());
+            map.put(Gear.class.getSimpleName(), Gear.class.getDeclaredConstructor());
+            map.put(Renaming.class.getSimpleName(), Renaming.class.getDeclaredConstructor());
+            map.put(Moving.class.getSimpleName(), Moving.class.getDeclaredConstructor());
+            map.put(MkDir.class.getSimpleName(), MkDir.class.getDeclaredConstructor());
+            map.put(MkLabel.class.getSimpleName(), MkLabel.class.getDeclaredConstructor());
+            map.put(Search.class.getSimpleName(), Search.class.getDeclaredConstructor());
+            map.put(SearchGear.class.getSimpleName(), SearchGear.class.getDeclaredConstructor());
+            map.put(OpenFile.class.getSimpleName(), OpenFile.class.getDeclaredConstructor());
+            map.put("", View.class.getDeclaredConstructor());
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
         }
     }
-
-
-    protected GUI gui;
-    protected UserService userService;
-    protected FsService fsService;
-    protected TgApi tgApi;
-    protected User user;
-
-    protected long dirId;
-    protected final Consumer<Long> dialogIdConsumer = dialogId -> {
-        user.setLastDialogId(dialogId);
-        userService.updateOpts(user);
-    };
-
-    public void setDirId(final long dirId) {
-        this.dirId = dirId;
-    }
-
-    public abstract boolean isCallbackAppliable(final String callbackData);
-
-    public abstract CallbackAnswer applyCallback(final String callbackData);
-
-    public abstract void refreshView();
-
-    abstract JsonNode toJson();
-
-    public abstract void fromJson(JsonNode node);
 
     public static void freshInit(final User user, final TgApi tgApi, final GUI gui, final UserService userService, final FsService fsService) {
         final State state = new View();
@@ -96,20 +68,10 @@ public abstract class State {
         node.put("type", state.getClass().getSimpleName());
         node.put("dir_id", state.dirId);
         node.set("data", state.toJson());
+        if (state.routeBack != null)
+            node.set("routeback", state.routeBack.toJson());
 
         return node;
-    }
-
-    public <T extends State> T switchTo(T state) {
-        user.setState(state);
-        state.dirId = dirId;
-        state.user = user;
-        state.fsService = fsService;
-        state.userService = userService;
-        state.gui = gui;
-        state.tgApi = tgApi;
-
-        return state;
     }
 
     @SuppressWarnings("unchecked")
@@ -128,6 +90,9 @@ public abstract class State {
             state.fsService = fsService;
             state.tgApi = tgApi;
 
+            if (node.has("routeback"))
+                state.routeBack = stateFromJson(node.get("routeback"), user, tgApi, gui, userService, fsService);
+
             return (T) state;
         } catch (final Exception e) {
             logger.error("Cant restore state: " + e.getMessage(), e);
@@ -136,15 +101,77 @@ public abstract class State {
         return null;
     }
 
-    protected <T extends State> T fromMyBackup(final JsonNode node) {
-        return State.stateFromJson(node, user, tgApi, gui, userService, fsService);
+    protected GUI gui;
+    protected UserService userService;
+    protected FsService fsService;
+    protected TgApi tgApi;
+    protected User user;
+    protected State routeBack;
+
+    protected long dirId;
+    protected final Consumer<Long> dialogIdConsumer = dialogId -> {
+        user.setLastDialogId(dialogId);
+        userService.updateOpts(user);
+    };
+
+    public abstract void refreshView();
+
+    protected abstract JsonNode toJson();
+
+    protected abstract void fromJson(JsonNode node);
+
+    protected <T extends State> T chainBack(final T forward) {
+        return switchTo(forward, routeBack != null ? routeBack : new View());
+    }
+
+    protected final void goBack() {
+        switchTo(routeBack != null ? routeBack : new View(), null);
+    }
+
+    protected <T extends State> T switchTo(T state) {
+        return switchTo(state, this);
+    }
+
+    private <T extends State> T switchTo(T state, final State routeBack) {
+        logger.debug("Switching from '" + getClass().getSimpleName() + "' to '" + state.getClass().getSimpleName() + "'");
+        user.setState(state);
+        state.dirId = dirId;
+        state.user = user;
+        state.fsService = fsService;
+        state.userService = userService;
+        state.gui = gui;
+        state.tgApi = tgApi;
+        state.routeBack = routeBack;
+
+        return state;
+    }
+
+    public final CallbackAnswer apply(final TeleFile file, final String input, final String callbackData) {
+        if (file != null) {
+            fsService.upload(TFileFactory.file(file, dirId), user);
+            return new CallbackAnswer(v(LangMap.Names.UPLOADED, user, file.getFileName()));
+        }
+
+        if (callbackData != null)
+            return applyCallback(callbackData);
+
+        handleInput(input);
+
+        return null;
+    }
+
+    protected CallbackAnswer applyCallback(final String callback) { return null; }
+
+    protected void handleInput(final String input) {
+        if (!isEmpty(input))
+            fsService.upload(TFileFactory.label(input, dirId), user);
     }
 
     public static class View extends State implements Callback {
         private static final Logger.ALogger logger = Logger.of(View.class);
-        private static final Set<String> appliableCallbacks =
-                Arrays.stream(new String[]{goUp, mkLabel, searchStateInit, mkDir, gearStateInit, rewind, forward}).collect(Collectors.toSet());
         private int offset;
+
+        private View() { }
 
         @Override
         public JsonNode toJson() {
@@ -165,12 +192,7 @@ public abstract class State {
         }
 
         @Override
-        public boolean isCallbackAppliable(final String callbackData) {
-            return appliableCallbacks.contains(callbackData) || callbackData.startsWith(openEntry);
-        }
-
-        @Override
-        public CallbackAnswer applyCallback(final String callbackData) {
+        protected CallbackAnswer applyCallback(final String callbackData) {
             String answer = "";
             switch (callbackData) {
                 case goUp:
@@ -189,21 +211,23 @@ public abstract class State {
                     answer = v(LangMap.Names.PAGE, user, (offset / 10) + 1);
                     break;
                 case mkLabel:
-                    switchTo(new MkLabel()).setRecoil(this);
+                    switchTo(new MkLabel());
                     break;
                 case searchStateInit:
-                    switchTo(new Search()).setFallback(this);
+                    switchTo(new Search());
                     break;
                 case mkDir:
-                    switchTo(new MkDir()).setRecoil(this);
+                    switchTo(new MkDir());
                     break;
                 case gearStateInit:
                     final Gear gear = switchTo(new Gear());
-                    gear.setFallback(this);
                     gear.offset = offset;
                     answer = v(LangMap.Names.EDIT_MODE, user);
                     break;
                 default:
+                    if (!callbackData.startsWith(openEntry))
+                        return null;
+
                     final long id = getLong(callbackData);
 
                     if (id <= 0)
@@ -217,13 +241,11 @@ public abstract class State {
                     } else if (entry.isLabel())
                         break;
 
-                    final OpenFile openFile = switchTo(new OpenFile());
-                    openFile.itemId = id;
-                    openFile.fallback = this;
+                    switchTo(new OpenFile()).itemId = id;
                     break;
             }
 
-            return new CallbackAnswer(0, answer);
+            return new CallbackAnswer(answer);
         }
 
         @Override
@@ -257,14 +279,13 @@ public abstract class State {
         }
     }
 
-    public static class Gear extends State implements Fallbackable {
+    public static class Gear extends State {
         private static final Logger.ALogger logger = Logger.of(Gear.class);
-        private static final Set<String> appliableCallbacks =
-                Arrays.stream(new String[]{inversCheck, renameEntry, move, drop, cancel, rewind, forward}).collect(Collectors.toSet());
 
         private final Set<Long> selection = new HashSet<>();
         private int offset;
-        private State fallback;
+
+        private Gear() { }
 
         @Override
         public JsonNode toJson() {
@@ -272,7 +293,6 @@ public abstract class State {
 
             node.put("offset", offset);
             selection.forEach(i -> node.withArray("selection").add(i));
-            node.set("fallback", State.stateToJson(fallback));
 
             return node;
         }
@@ -284,12 +304,6 @@ public abstract class State {
             offset = node.has("offset") ? node.get("offset").asInt() : 0;
             if (node.has("selection"))
                 node.get("selection").forEach(j -> selection.add(j.asLong()));
-            fallback = node.has("fallback") ? fromMyBackup(node.get("fallback")) : new View();
-        }
-
-        @Override
-        public boolean isCallbackAppliable(final String callbackData) {
-            return appliableCallbacks.contains(callbackData) || callbackData.startsWith(renameEntry) || callbackData.startsWith(inversCheck);
         }
 
         @Override
@@ -302,7 +316,6 @@ public abstract class State {
                         break;
                     final Moving moving = switchTo(new Moving());
                     moving.ids.addAll(selection);
-                    moving.setFallback(this);
                     break;
                 case drop:
                     fsService.rm(selection, user);
@@ -310,7 +323,7 @@ public abstract class State {
                     selection.clear();
                     break;
                 case cancel:
-                    switchTo(fallback());
+                    goBack();
                     break;
                 case rewind:
                     offset = Math.max(0, offset - 10);
@@ -323,30 +336,21 @@ public abstract class State {
                 default:
                     final long itemId = getLong(callbackData);
                     if (itemId <= 0)
-                        break;
+                        return null;
 
                     if (callbackData.startsWith(renameEntry)) {
-                        final Renaming renaming = switchTo(new Renaming());
-                        renaming.setRecoil(this);
-                        renaming.itemId = itemId;
+                        switchTo(new Renaming()).itemId = itemId;
                         break;
-                    } else // check/uncheck
+                    } else if (callbackData.startsWith(inversCheck)) {
                         if (selection.remove(itemId))
                             answer = v(LangMap.Names.DESELECTED, user);
                         else if (selection.add(itemId))
                             answer = v(LangMap.Names.SELECTED, user);
+                    } else
+                        return null;
             }
 
-            return new CallbackAnswer(0, answer);
-        }
-
-        @Override
-        public State fallback() {
-            return fallback;
-        }
-
-        private void setFallback(final State state) {
-            this.fallback = state;
+            return new CallbackAnswer(answer);
         }
 
         @Override
@@ -383,16 +387,16 @@ public abstract class State {
         }
     }
 
-    public static class Renaming extends State implements RequireInput, OneStep {
+    public static class Renaming extends State {
         private long itemId;
-        private State recoil;
+
+        private Renaming() {}
 
         @Override
         public JsonNode toJson() {
             final ObjectNode node = Json.newObject();
 
             node.put("item_id", itemId);
-            node.set("recoil", State.stateToJson(recoil));
 
             return node;
         }
@@ -403,100 +407,61 @@ public abstract class State {
                 return;
 
             itemId = node.has("item_id") ? node.get("item_id").asLong() : 0;
-            recoil = node.has("recoil") ? fromMyBackup(node.get("recoil")) : new View();
         }
 
         @Override
         public void refreshView() {
-            switchTo(recoil).refreshView();
+            tgApi.ask(v(LangMap.Names.TYPE_RENAME, user, fsService.get(itemId, user).getName()), user.getId(), dialogIdConsumer);
         }
 
         @Override
-        public boolean isCallbackAppliable(final String callbackData) { return false; }
+        protected void handleInput(final String input) {
+            if (!isEmpty(input)) {
+                if (fsService.findAt(input, dirId, user) != null) {
+                    tgApi.sendPlainText(v(LangMap.Names.CANT_RN_TO, user, input), user.getId(), dialogIdConsumer);
+                    return;
+                }
 
-        @Override
-        public CallbackAnswer applyCallback(final String callbackData) { return null; }
+                final TFile file = fsService.get(itemId, user);
 
-        @Override
-        public String prompt() {
-            return v(LangMap.Names.TYPE_RENAME, user, fsService.get(itemId, user).getName());
-        }
-
-        @Override
-        public void accept(final String input) {
-            if (isEmpty(input))
-                return;
-
-            if (fsService.findAt(input, dirId, user) != null) {
-                tgApi.sendPlainText(v(LangMap.Names.CANT_RN_TO, user, input), user.getId(), dialogIdConsumer);
-                return;
+                if (!file.getName().equals(input)) {
+                    file.setName(input);
+                    fsService.updateMeta(file, user);
+                }
             }
 
-            final TFile file = fsService.get(itemId, user);
-
-            if (file.getName().equals(input))
-                return;
-
-            file.setName(input);
-            fsService.updateMeta(file, user);
-        }
-
-        @Override
-        public State recoil() {
-            return recoil;
-        }
-
-        private void setRecoil(final State state) {
-            this.recoil = state;
+            goBack();
         }
     }
 
-    public static class Moving extends State implements Fallbackable {
-        private static final Logger.ALogger logger = Logger.of(Moving.class);
-        private static final Set<String> appliableCallbacks =
-                Arrays.stream(new String[]{put, goUp, cancel, rewind, forward}).collect(Collectors.toSet());
-
+    public static class Moving extends State {
         private final Set<Long> ids = new HashSet<>(0);
-        private State fallback;
         private int offset;
+
+        private Moving() {}
 
         @Override
         public void refreshView() {
-            try {
-                final List<TFile> scope = fsService.listFolders(dirId, user);
-                final List<InlineButton> upper = new ArrayList<>(0), bottom = new ArrayList<>(0);
-                if (dirId > 1)
-                    upper.add(GUI.Buttons.goUpButton);
-                upper.add(GUI.Buttons.putButton);
-                upper.add(GUI.Buttons.cancelButton);
+            final List<TFile> scope = fsService.listFolders(dirId, user);
+            final List<InlineButton> upper = new ArrayList<>(0), bottom = new ArrayList<>(0);
+            if (dirId > 1)
+                upper.add(GUI.Buttons.goUpButton);
+            upper.add(GUI.Buttons.putButton);
+            upper.add(GUI.Buttons.cancelButton);
 
-                if (offset > 0)
-                    bottom.add(GUI.Buttons.rewindButton);
-                if (!scope.isEmpty() && offset + 10 < scope.stream().filter(e -> e.getType() != ContentType.LABEL).count())
-                    bottom.add(GUI.Buttons.forwardButton);
+            if (offset > 0)
+                bottom.add(GUI.Buttons.rewindButton);
+            if (!scope.isEmpty() && offset + 10 < scope.stream().filter(e -> e.getType() != ContentType.LABEL).count())
+                bottom.add(GUI.Buttons.forwardButton);
 
-                final TFile cd = fsService.get(dirId, user);
+            final TFile cd = fsService.get(dirId, user);
 
-                gui.makeMovingView(escapeMd(cd.getPath()), scope, upper, bottom, offset, user, msgId -> {
-                    if (msgId == 0 || msgId != user.getLastMessageId()) {
-                        user.setLastMessageId(msgId);
-                        userService.updateOpts(user);
-                    }
-                });
-            } catch (final Exception e) {
-                logger.error(e.getMessage(), e);
-
-                switchTo(fallback).refreshView();
-            }
-        }
-
-        @Override
-        public State fallback() {
-            return fallback;
-        }
-
-        private void setFallback(final State state) {
-            this.fallback = state;
+            gui.makeMovingView(escapeMd(cd.getPath()), scope, upper, bottom, offset, user, msgId -> {
+                if (msgId == 0 || msgId != user.getLastMessageId()) {
+                    user.setLastMessageId(msgId);
+                    userService.updateOpts(user);
+                }
+            });
         }
 
         @Override
@@ -505,7 +470,6 @@ public abstract class State {
 
             node.put("offset", offset);
             ids.forEach(i -> node.withArray("ids").add(i));
-            node.set("fallback", State.stateToJson(fallback));
 
             return node;
         }
@@ -517,12 +481,6 @@ public abstract class State {
             offset = node.has("offset") ? node.get("offset").asInt() : 0;
             if (node.has("ids"))
                 node.get("ids").forEach(j -> ids.add(j.asLong()));
-            fallback = node.has("fallback") ? fromMyBackup(node.get("fallback")) : new View();
-        }
-
-        @Override
-        public boolean isCallbackAppliable(final String callbackData) {
-            return appliableCallbacks.contains(callbackData) || callbackData.startsWith(openEntry);
         }
 
         @Override
@@ -556,12 +514,15 @@ public abstract class State {
                     fsService.updateMetas(selection, user);
                     answer = v(LangMap.Names.MOVED, user, counter.get());
                 case cancel:
-                    switchTo(fallback);
+                    goBack();
                     break;
                 default:
+                    if (!callbackData.startsWith(openEntry))
+                        return null;
+
                     final TFile dir = fsService.get(getLong(callbackData), user);
                     if (dir == null || !dir.isDir())
-                        switchTo(fallback);
+                        goBack();
                     else {
                         this.dirId = dir.getId();
                         answer = v(LangMap.Names.CD, user, dir.getName());
@@ -569,126 +530,73 @@ public abstract class State {
                     break;
             }
 
-            return new CallbackAnswer(0, answer);
+            return new CallbackAnswer(answer);
         }
     }
 
-    public static class MkDir extends State implements RequireInput, OneStep {
-        private State recoil;
+    public static class MkDir extends State {
+        private MkDir() {}
 
         @Override
         public JsonNode toJson() {
-            final ObjectNode node = Json.newObject();
-            if (recoil != null)
-                node.set("recoil", State.stateToJson(recoil));
-
-            return node;
+            return Json.newObject();
         }
 
         @Override
-        public void fromJson(final JsonNode node) {
-            if (node == null || !node.has("recoil"))
-                return;
-
-            recoil = fromMyBackup(node.get("recoil"));
-        }
-
-        @Override
-        public boolean isCallbackAppliable(final String callbackData) { return false; }
-
-        @Override
-        public CallbackAnswer applyCallback(final String callbackData) { return null; }
+        public void fromJson(final JsonNode node) { }
 
         @Override
         public void refreshView() {
-            if (recoil != null)
-                recoil.refreshView();
+            tgApi.ask(v(LangMap.Names.TYPE_FOLDER, user), user.getId(), dialogIdConsumer);
         }
 
         @Override
-        public String prompt() {
-            return v(LangMap.Names.TYPE_FOLDER, user);
-        }
-
-        @Override
-        public void accept(final String input) {
+        protected void handleInput(final String input) {
             if (isEmpty(input)) return;
 
-            fsService.mkdir(input, dirId, user.getId());
-        }
-
-        @Override
-        public State recoil() {
-            return recoil;
-        }
-
-        private void setRecoil(final State state) {
-            this.recoil = state;
+            if (fsService.findAt(input, dirId, user) != null)
+                tgApi.sendPlainText(v(LangMap.Names.CANT_MKDIR, user, input), user.getId(), dialogIdConsumer);
+            else {
+                fsService.mkdir(input, dirId, user.getId());
+                goBack();
+            }
         }
     }
 
-    public static class MkLabel extends State implements RequireInput, OneStep {
-        private State recoil;
+    public static class MkLabel extends State {
+        private MkLabel() {}
 
         @Override
         public JsonNode toJson() {
-            final ObjectNode node = Json.newObject();
-            if (recoil != null)
-                node.set("recoil", State.stateToJson(recoil));
-
-            return node;
+            return Json.newObject();
         }
 
         @Override
-        public void fromJson(final JsonNode node) {
-            if (node == null || !node.has("recoil"))
-                return;
-
-            recoil = fromMyBackup(node.get("recoil"));
-        }
-
-        @Override
-        public boolean isCallbackAppliable(final String callbackData) { return false; }
-
-        @Override
-        public CallbackAnswer applyCallback(final String callbackData) { return null; }
+        public void fromJson(final JsonNode node) { }
 
         @Override
         public void refreshView() {
-            if (recoil != null)
-                recoil.refreshView();
+            tgApi.ask(v(LangMap.Names.TYPE_LABEL, user), user.getId(), dialogIdConsumer);
         }
 
         @Override
-        public String prompt() {
-            return v(LangMap.Names.TYPE_LABEL, user);
-        }
-
-        @Override
-        public void accept(final String input) {
+        public void handleInput(final String input) {
             if (isEmpty(input)) return;
 
-            fsService.upload(TFileFactory.label(input, dirId), user);
-        }
-
-        @Override
-        public State recoil() {
-            return recoil;
-        }
-
-        public void setRecoil(final State state) {
-            this.recoil = state;
+            if (fsService.findAt(input, dirId, user) != null)
+                tgApi.sendPlainText(v(LangMap.Names.CANT_MKLBL, user, input), user.getId(), dialogIdConsumer);
+            else {
+                fsService.upload(TFileFactory.label(input, dirId), user);
+                goBack();
+            }
         }
     }
 
-    public static class Search extends State implements RequireInput, Fallbackable {
-        private static final Logger.ALogger logger = Logger.of(View.class);
-        private static final Set<String> appliableCallbacks =
-                Arrays.stream(new String[]{searchStateInit, gearStateInit, cancel, rewind, forward, openEntry}).collect(Collectors.toSet());
-
+    public static class Search extends State {
         private String query = null, body = null;
         private int offset;
-        private State fallback;
+
+        private Search() {}
 
         @Override
         public JsonNode toJson() {
@@ -697,7 +605,6 @@ public abstract class State {
             node.put("query", query);
             node.put("body", body);
             node.put("offset", offset);
-            node.set("fallback", State.stateToJson(fallback));
 
             return node;
         }
@@ -710,12 +617,6 @@ public abstract class State {
             query = node.has("query") ? node.get("query").asText() : null;
             body = node.has("body") ? node.get("body").asText() : null;
             offset = node.has("offset") ? node.get("offset").asInt() : 0;
-            fallback = node.has("fallback") ? fromMyBackup(node.get("fallback")) : new View();
-        }
-
-        @Override
-        public boolean isCallbackAppliable(final String callbackData) {
-            return appliableCallbacks.contains(callbackData) || callbackData.startsWith(openEntry);
         }
 
         @Override
@@ -728,12 +629,11 @@ public abstract class State {
                     break;
                 case gearStateInit:
                     final SearchGear sg = switchTo(new SearchGear());
-                    sg.setFallback(this);
                     sg.offset = offset;
                     sg.query = query;
                     break;
                 case cancel:
-                    switchTo(fallback);
+                    goBack();
                     break;
                 case rewind:
                     offset = Math.max(0, offset - 10);
@@ -744,88 +644,72 @@ public abstract class State {
                     answer = v(LangMap.Names.PAGE, user, (offset / 10) + 1);
                     break;
                 default:
+                    if (!callbackData.startsWith(openEntry))
+                        return null;
+
                     final TFile file = fsService.get(getLong(callbackData), user);
                     if (file == null || file.isLabel())
                         break;
+
                     if (file.isDir())
                         switchTo(new View()).dirId = file.getId();
-                    else {
-                        final OpenFile openFile = switchTo(new OpenFile());
-                        openFile.itemId = file.getId();
-                        openFile.fallback = this;
-                    }
+                    else
+                        switchTo(new OpenFile()).itemId = file.getId();
+
                     break;
             }
 
-            return new CallbackAnswer(0, answer);
+            return new CallbackAnswer(answer);
         }
 
         @Override
-        public void accept(final String input) {
+        public void handleInput(final String input) {
             query = input;
 
             final int found = fsService.findChildsByName(dirId, input.toLowerCase(), user);
             if (found > 0)
                 body = escapeMd(v(LangMap.Names.SEARCHED, user, input, found));
-            else {
-                tgApi.sendPlainText(v(LangMap.Names.NO_RESULTS, user, input), user.getId(), dialogId -> {
-                    user.setLastDialogId(dialogId);
-                    userService.updateOpts(user);
-                });
-
-                switchTo(fallback);
-            }
+            else
+                body = escapeMd(v(LangMap.Names.NO_RESULTS, user, input));
         }
 
-        @Override
         public String prompt() {
             return v(LangMap.Names.TYPE_LABEL, user);
         }
 
         @Override
-        public State fallback() {
-            return fallback;
-        }
-
-        private void setFallback(final State state) {
-            this.fallback = state;
-        }
-
-        @Override
         public void refreshView() {
-            try {
-                final List<TFile> scope = fsService.getFound(user);
-                final List<InlineButton> upper = new ArrayList<>(0), bottom = new ArrayList<>(0);
-                upper.add(GUI.Buttons.searchButton);
-                upper.add(GUI.Buttons.gearButton);
-                upper.add(GUI.Buttons.cancelButton);
-
-                if (offset > 0)
-                    bottom.add(GUI.Buttons.rewindButton);
-                if (!scope.isEmpty() && offset + 10 < scope.stream().filter(e -> e.getType() != ContentType.LABEL).count())
-                    bottom.add(GUI.Buttons.forwardButton);
-
-                gui.makeMainView(body, scope, offset, upper, bottom, user.getLastMessageId(), user.getId(), msgId -> {
-                    if (msgId == 0 || msgId != user.getLastMessageId()) {
-                        user.setLastMessageId(msgId);
-                        userService.updateOpts(user);
-                    }
-                });
-            } catch (final Exception e) {
-                logger.error(e.getMessage(), e);
+            if (isEmpty(query)) {
+                tgApi.ask(prompt(), user.getId(), dialogIdConsumer);
+                return;
             }
+
+            final List<TFile> scope = fsService.getFound(user);
+            final List<InlineButton> upper = new ArrayList<>(0), bottom = new ArrayList<>(0);
+            upper.add(GUI.Buttons.searchButton);
+            upper.add(GUI.Buttons.gearButton);
+            upper.add(GUI.Buttons.cancelButton);
+
+            if (offset > 0)
+                bottom.add(GUI.Buttons.rewindButton);
+            if (!scope.isEmpty() && offset + 10 < scope.stream().filter(e -> e.getType() != ContentType.LABEL).count())
+                bottom.add(GUI.Buttons.forwardButton);
+
+            gui.makeMainView(body, scope, offset, upper, bottom, user.getLastMessageId(), user.getId(), msgId -> {
+                if (msgId == 0 || msgId != user.getLastMessageId()) {
+                    user.setLastMessageId(msgId);
+                    userService.updateOpts(user);
+                }
+            });
         }
     }
 
-    public static class SearchGear extends State implements Fallbackable {
-        private static final Logger.ALogger logger = Logger.of(SearchGear.class);
-        private static final Set<String> appliableCallbacks =
-                Arrays.stream(new String[]{inversCheck, renameEntry, move, drop, cancel, rewind, forward}).collect(Collectors.toSet());
-
+    public static class SearchGear extends State {
         private final Set<Long> selection = new HashSet<>();
         private int offset;
-        private State fallback;
         private String query;
+
+        private SearchGear() {}
 
         @Override
         public JsonNode toJson() {
@@ -834,7 +718,6 @@ public abstract class State {
             node.put("offset", offset);
             node.put("query", query);
             selection.forEach(i -> node.withArray("selection").add(i));
-            node.set("fallback", State.stateToJson(fallback));
 
             return node;
         }
@@ -847,12 +730,6 @@ public abstract class State {
             offset = node.has("offset") ? node.get("offset").asInt() : 0;
             if (node.has("selection"))
                 node.get("selection").forEach(j -> selection.add(j.asLong()));
-            fallback = node.has("fallback") ? fromMyBackup(node.get("fallback")) : new View();
-        }
-
-        @Override
-        public boolean isCallbackAppliable(final String callbackData) {
-            return appliableCallbacks.contains(callbackData) || callbackData.startsWith(renameEntry) || callbackData.startsWith(inversCheck);
         }
 
         @Override
@@ -863,9 +740,7 @@ public abstract class State {
                 case move:
                     if (isEmpty(selection))
                         break;
-                    final Moving moving = switchTo(new Moving());
-                    moving.ids.addAll(selection);
-                    moving.setFallback(this);
+                    switchTo(new Moving()).ids.addAll(selection);
                     break;
                 case drop:
                     if (!selection.isEmpty()) {
@@ -875,7 +750,7 @@ public abstract class State {
                     }
                     break;
                 case cancel:
-                    switchTo(fallback());
+                    goBack();
                     break;
                 case rewind:
                     offset = Math.max(0, offset - 10);
@@ -886,14 +761,15 @@ public abstract class State {
                     answer = v(LangMap.Names.PAGE, user, (offset / 10) + 1);
                     break;
                 default:
+                    if (!callbackData.startsWith(renameEntry) && !callbackData.startsWith(inversCheck))
+                        return null;
+
                     final long itemId = getLong(callbackData);
                     if (itemId <= 0)
                         break;
 
                     if (callbackData.startsWith(renameEntry)) {
-                        final Renaming renaming = switchTo(new Renaming());
-                        renaming.setRecoil(this);
-                        renaming.itemId = itemId;
+                        switchTo(new Renaming()).itemId = itemId;
                         break;
                     } else // check/uncheck
                         if (selection.remove(itemId))
@@ -902,56 +778,41 @@ public abstract class State {
                             answer = v(LangMap.Names.SELECTED, user);
             }
 
-            return new CallbackAnswer(0, answer);
-        }
-
-        @Override
-        public State fallback() {
-            return fallback;
-        }
-
-        private void setFallback(final State state) {
-            this.fallback = state;
+            return new CallbackAnswer(answer);
         }
 
         @Override
         public void refreshView() {
-            try {
-                final List<TFile> scope = fsService.getFound(user);
-                final List<InlineButton> upper = new ArrayList<>(0), bottom = new ArrayList<>(0);
-                if (!selection.isEmpty()) {
-                    if (selection.size() == 1)
-                        upper.add(GUI.Buttons.renameButton);
+            final List<TFile> scope = fsService.getFound(user);
+            final List<InlineButton> upper = new ArrayList<>(0), bottom = new ArrayList<>(0);
+            if (!selection.isEmpty()) {
+                if (selection.size() == 1)
+                    upper.add(GUI.Buttons.renameButton);
 
-                    upper.add(new InlineButton(Uni.move + "(" + selection.size() + ")", move));
-                    upper.add(new InlineButton(Uni.drop + "(" + selection.size() + ")", drop));
-                    upper.add(GUI.Buttons.cancelButton);
-                }
-
-                if (offset > 0)
-                    bottom.add(GUI.Buttons.rewindButton);
-                if (!scope.isEmpty() && offset + 10 < scope.stream().filter(e -> e.getType() != ContentType.LABEL).count())
-                    bottom.add(GUI.Buttons.forwardButton);
-
-                gui.makeGearView("_" + escapeMd(v(LangMap.Names.SEARCHED, user, query, scope.size())) + "_", selection, scope, upper,
-                        bottom, offset, user, msgId -> {
-                            if (msgId == 0 || msgId != user.getLastMessageId()) {
-                                user.setLastMessageId(msgId);
-                                userService.updateOpts(user);
-                            }
-                        });
-            } catch (final Exception e) {
-                logger.error(e.getMessage(), e);
+                upper.add(new InlineButton(Uni.move + "(" + selection.size() + ")", move));
+                upper.add(new InlineButton(Uni.drop + "(" + selection.size() + ")", drop));
+                upper.add(GUI.Buttons.cancelButton);
             }
+
+            if (offset > 0)
+                bottom.add(GUI.Buttons.rewindButton);
+            if (!scope.isEmpty() && offset + 10 < scope.stream().filter(e -> e.getType() != ContentType.LABEL).count())
+                bottom.add(GUI.Buttons.forwardButton);
+
+            gui.makeGearView("_" + escapeMd(v(LangMap.Names.SEARCHED, user, query, scope.size())) + "_", selection, scope, upper,
+                    bottom, offset, user, msgId -> {
+                        if (msgId == 0 || msgId != user.getLastMessageId()) {
+                            user.setLastMessageId(msgId);
+                            userService.updateOpts(user);
+                        }
+                    });
         }
     }
 
-    public static class OpenFile extends State implements Fallbackable {
-        private static final Set<String> appliableCallbacks =
-                Arrays.stream(new String[]{renameEntry, move, drop, cancel}).collect(Collectors.toSet());
-
+    public static class OpenFile extends State {
         private long itemId;
-        private State fallback;
+
+        private OpenFile() {}
 
         @Override
         public void refreshView() {
@@ -963,7 +824,6 @@ public abstract class State {
             final ObjectNode node = Json.newObject();
 
             node.put("item_id", itemId);
-            node.set("fallback", State.stateToJson(fallback));
 
             return node;
         }
@@ -973,12 +833,6 @@ public abstract class State {
             if (node == null || node.size() <= 0) return;
 
             itemId = node.has("item_id") ? node.get("item_id").asLong() : 0;
-            fallback = node.has("fallback") ? fromMyBackup(node.get("fallback")) : new View();
-        }
-
-        @Override
-        public State fallback() {
-            return fallback;
         }
 
         @Override
@@ -987,68 +841,22 @@ public abstract class State {
 
             switch (callbackData) {
                 case renameEntry:
-                    final Renaming renaming = switchTo(new Renaming());
-                    renaming.setRecoil(fallback());
-                    renaming.itemId = itemId;
+                    chainBack(new Renaming()).itemId = itemId;
                     break;
                 case move:
-                    final Moving moving = switchTo(new Moving());
-                    moving.setFallback(fallback());
-                    moving.ids.add(itemId);
+                    chainBack(new Moving()).ids.add(itemId);
                     break;
                 case drop:
                     fsService.rm(itemId, user);
                     answer = v(LangMap.Names.DELETED, user);
                 case cancel:
-                    switchTo(fallback());
+                    goBack();
                     break;
+                default:
+                    return null;
             }
 
-            return new CallbackAnswer(0, answer);
+            return new CallbackAnswer(answer);
         }
-
-        @Override
-        public boolean isCallbackAppliable(final String callbackData) {
-            return appliableCallbacks.contains(callbackData);
-        }
-    }
-
-    public static class MkFile extends State {
-        public void accept(final TeleFile file) {
-            if (file == null)
-                return;
-
-            fsService.upload(TFileFactory.file(file, dirId), user);
-            switchTo(new View());
-        }
-
-        @Override
-        public boolean isCallbackAppliable(final String callbackData) { return false; }
-
-        @Override
-        public CallbackAnswer applyCallback(final String callbackData) { return null; }
-
-        @Override
-        public void refreshView() { }
-
-        @Override
-        public JsonNode toJson() { return null; }
-
-        @Override
-        public void fromJson(final JsonNode node) { }
-    }
-
-    public interface RequireInput {
-        String prompt();
-
-        void accept(String input);
-    }
-
-    public interface Fallbackable {
-        State fallback();
-    }
-
-    public interface OneStep {
-        State recoil();
     }
 }

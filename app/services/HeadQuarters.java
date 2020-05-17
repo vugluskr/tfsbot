@@ -8,7 +8,7 @@ import utils.State;
 
 import javax.inject.Inject;
 
-import static utils.TextUtils.isEmpty;
+import static utils.TextUtils.notNull;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -22,6 +22,12 @@ public class HeadQuarters {
     private TgApi tgApi;
 
     @Inject
+    private GUI gui;
+
+    @Inject
+    private FsService fsService;
+
+    @Inject
     private UserService userService;
 
     public void accept(final User user, final TeleFile file, final String input, final String callbackData, final long msgId, final long callbackId) {
@@ -31,73 +37,32 @@ public class HeadQuarters {
                 user.setLastDialogId(0);
             }
 
-            if (file != null) {
-                tgApi.deleteMessage(msgId, user.getId());
-                user.getState().switchTo(new State.MkFile());
-                ((State.MkFile) user.getState()).accept(file);
-            } else if (!isEmpty(input)) {
+            if (input != null || file != null)
                 tgApi.deleteMessage(msgId, user.getId());
 
-                logger.debug("1. User state: " + user.getState().getClass().getSimpleName());
+            CallbackAnswer answer = null;
 
-                if (user.getState() instanceof State.RequireInput) {
-                    logger.debug("2. Its RequireInput, feed with input: " + input);
-                    ((State.RequireInput) user.getState()).accept(input);
-
-                    if (user.getState() instanceof State.OneStep) {
-                        logger.debug("3. Its OneStep, recoiling");
-                        user.setState(((State.OneStep) user.getState()).recoil());
-                        logger.debug("4. Recoiled to: " + user.getState().getClass().getSimpleName());
-                    }
-                } else {
-                    logger.debug("2. Its NOT RequireInput, making label from: " + input);
-                    user.getState().switchTo(new State.MkLabel()).setRecoil(new State.View());
-                    ((State.RequireInput) user.getState()).accept(input);
-                }
-            } else if (!isEmpty(callbackData) && callbackId > 0) {
-                logger.debug("1. Callback: '" + callbackData + "', user state: " + user.getState().getClass().getSimpleName());
-                CallbackAnswer a = new CallbackAnswer(callbackId, "");
-
-                try {
-                    if (user.getState().isCallbackAppliable(callbackData)) {
-                        logger.debug("2. Its appliable, put it in");
-                        a = user.getState().applyCallback(callbackData);
-                    } else {
-                        logger.debug("2. Its NOT appliable");
-                        if (user.getState() instanceof State.Fallbackable) {
-                            logger.debug("3. State is fallbackable, falling to: " + ((State.Fallbackable) user.getState()).fallback());
-                            user.setState(((State.Fallbackable) user.getState()).fallback());
-                        } else if (user.getState() instanceof State.OneStep) {
-                            logger.debug("3. State is one-step, recoiling to: " + ((State.OneStep) user.getState()).recoil());
-                            user.setState(((State.OneStep) user.getState()).recoil());
-                        } else
-                            user.setState(null);
-
-                        if (user.getState() == null) {
-                            logger.debug("3. State is not reversable, falling to View");
-                            final State state = new State.View();
-                            state.setDirId(1);
-                            user.setState(state);
-                        }
-
-                        logger.debug("4. State now: " + user.getState());
-                        if (user.getState().isCallbackAppliable(callbackData))
-                            a = user.getState().applyCallback(callbackData);
-                    }
-                } finally {
-                    tgApi.sendCallbackAnswer(a.getText(), callbackId, a.isAlert(), a.getCacheTimeSeconds());
-                }
+            try {
+                answer = user.getState().apply(file, input, callbackData);
+            } catch (final Exception e) {
+                logger.error("Current user state failed to apply: " + e.getMessage(), e);
+                State.freshInit(user, tgApi, gui, userService, fsService);
             }
 
-            if (user.getState() instanceof State.RequireInput) {
-                tgApi.ask(((State.RequireInput) user.getState()).prompt(), user.getId(), dialogId -> {
-                    user.setLastDialogId(dialogId);
-                    userService.updateOpts(user);
-                });
-            } else
-                user.getState().refreshView(); // refresh
+            if (callbackId > 0) {
+                if (answer == null)
+                    answer = new CallbackAnswer("");
+
+                tgApi.sendCallbackAnswer(notNull(answer.getText()), callbackId, answer.isAlert(), answer.getCacheTimeSeconds());
+            }
+
+            user.getState().refreshView();
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
+            if (user.getState() == null || !user.getState().getClass().equals(State.View.class)) {
+                logger.error("Hard reset to init View");
+                State.freshInit(user, tgApi, gui, userService, fsService);
+            }
         } finally {
             userService.updateOpts(user);
         }

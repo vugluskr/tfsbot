@@ -29,13 +29,11 @@ public class CallbackAnswer {
     public CallbackAnswer() {
     }
 
-    public CallbackAnswer(final long callbackId, final String text) {
-        this.callbackId = callbackId;
+    public CallbackAnswer(final String text) {
         this.text = text;
     }
 
-    public CallbackAnswer(final long callbackId, final String text, final boolean alert) {
-        this.callbackId = callbackId;
+    public CallbackAnswer(final String text, final boolean alert) {
         this.text = text;
         this.alert = alert;
     }
