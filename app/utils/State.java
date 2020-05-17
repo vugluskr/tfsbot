@@ -199,6 +199,7 @@ public abstract class State {
                     if (dirId > 1) {
                         final TFile dir = fsService.get(dirId, user);
                         dirId = dir.getParentId();
+                        offset = 0;
                         answer = v(LangMap.Names.CD, user, dir.getPath());
                     }
                     break;
@@ -236,6 +237,7 @@ public abstract class State {
                     final TFile entry = fsService.get(id, user);
                     if (entry.isDir()) {
                         dirId = id;
+                        offset = 0;
                         answer = v(LangMap.Names.CD, user, entry.getName());
                         break;
                     } else if (entry.isLabel())
