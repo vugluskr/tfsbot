@@ -1,11 +1,12 @@
 package services;
 
-import model.Owner;
-import model.TFile;
 import model.User;
 import model.telegram.api.ContactRef;
 import model.telegram.api.UpdateRef;
+import play.libs.Json;
 import sql.UserMapper;
+import utils.State;
+import utils.TFileFactory;
 import utils.UOpts;
 
 import javax.inject.Inject;
@@ -24,6 +25,12 @@ public class UserService {
     @Inject
     private FsService fsService;
 
+    @Inject
+    private GUI gui;
+
+    @Inject
+    private TgApi tgApi;
+
     public User getUser(final UpdateRef update) {
         final ContactRef cr;
         if (update.getMessage() != null)
@@ -37,28 +44,32 @@ public class UserService {
         final User user;
 
         if (db == null) {
+            final State view = new State.View();
+            view.setDirId(1);
+
             user = new User();
             user.setId(cr.getId());
             user.setNick(notNull(cr.getUsername(), "u" + cr.getId()));
-            user.setDirId(1);
-            user.setPwd("/");
             final boolean ru;
             if ((ru = cr.getLanguageCode().contains("ru")))
                 UOpts.Russian.set(user);
             UOpts.Gui.set(user);
-
+            State.freshInit(user, tgApi, gui, this, fsService);
+            user.setSavedState(State.stateToJson(user.getState()).toString());
             fsService.init(user.getId());
             mapper.insertUser(user);
             fsService.mkdir(ru ? "Документы" : "Documents", 1, user.getId());
             fsService.mkdir(ru ? "Фото" : "Photos", 1, user.getId());
-            fsService.upload(TFile.label(ru ? "Пример заметки" : "Example note", fsService.mkdir(ru ? "Заметки" : "Notes", 1, user.getId()).getId()), user);
-        } else
+            fsService.upload(TFileFactory.label(ru ? "Пример заметки" : "Example note", fsService.mkdir(ru ? "Заметки" : "Notes", 1, user.getId()).getId()), user);
+        } else {
+            db.setState(State.stateFromJson(Json.parse(db.getSavedState()), db, tgApi, gui, this, fsService));
             return db;
+        }
 
         return user;
     }
 
-    public <T extends Owner> void updateOpts(final T user) {
-        mapper.updateOpts(user.getMode(), user.getLastMessageId(), user.getLastDialogId(), user.getOptions(), user.getOffset(), user.getLastSearch(), user.getId());
+    public void updateOpts(final User user) {
+        mapper.updateOpts(user.getLastMessageId(), user.getLastDialogId(), user.getOptions(), State.stateToJson(user.getState()).toString(), user.getId());
     }
 }

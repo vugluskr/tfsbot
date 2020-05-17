@@ -1,13 +1,14 @@
 package model.telegram.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import model.telegram.ContentType;
 
 /**
  * @author Denis Danilin | denis@danilin.name
  * 26.10.2017 09:23
  * SIRBot ☭ sweat and blood
  */
-public class ContactRef {
+public class ContactRef implements TeleFile {
     private long id;
     @JsonProperty("is_bot")
     private boolean bot;
@@ -89,5 +90,25 @@ public class ContactRef {
 
     public void setLanguageCode(final String languageCode) {
         this.languageCode = languageCode;
+    }
+
+    @Override
+    public ContentType getType() {
+        return ContentType.CONTACT;
+    }
+
+    @Override
+    public long getFileSize() {
+        return 0;
+    }
+
+    @Override
+    public String getFileId() {
+        return phoneNumber;
+    }
+
+    @Override
+    public String getUniqId() {
+        return phoneNumber;
     }
 }

@@ -28,32 +28,22 @@ public interface FsMapper {
     void mkFile(@Param("file") TFile file, @Param("owner") long owner);
 
     TFile getEntry(@Param("id") long id, @Param("owner") long owner);
-    TFile findEntryByPath(@Param("path") String path, @Param("owner") long owner);
     TFile findEntryAt(@Param("name") String name, @Param("parentId") long parentId, @Param("owner") long owner);
     List<TFile> listEntries(@Param("parentId") long dirId, @Param("owner") long id);
 
-    void updateEntry(@Param("name") String name, @Param("indate") long indate, @Param("parentId") long parentId, @Param("selected") boolean selected, @Param("id") long id,
-                     @Param("owner") long owner);
+    void updateEntry(@Param("name") String name, @Param("parentId") long parentId, @Param("id") long id, @Param("owner") long owner);
 
     void dropEntry(@Param("id") long id, @Param("owner") long owner);
     void dropOrphans(@Param("id") long id, @Param("owner") long owner);
 
     boolean isFsTableExist(long userId);
 
-    void updateDirCount(@Param("size") long size, @Param("id") long id, @Param("owner") long owner);
-
     TFile getParentEntry(@Param("id") long id, @Param("owner") long owner);
-
-    void dropEntryByPath(@Param("path") String path, @Param("owner") long owner);
 
     void dropEntryByName(@Param("name") String name, @Param("parentId") long parentId, @Param("owner") long owner);
 
-    List<TFile> findEntriesByPaths(@Param("paths") Collection<String> paths, @Param("owner") long owner);
-
     void dropEntries(@Param("ids") Collection<Long> ids, @Param("owner") long owner);
     void dropMultiOrphans(@Param("ids") Collection<Long> ids, @Param("owner") long owner);
-
-    void mkDirs(@Param("dirs") Collection<TFile> dirs, @Param("owner") long owner);
 
     List<TFile> listTypeEntries(@Param("parentId") long dirId, @Param("type") String type, @Param("owner") long owner);
 
@@ -63,17 +53,7 @@ public interface FsMapper {
 
     int selectChildsByName(@Param("id") long id, @Param("query") String query, @Param("owner") long owner);
 
-    TFile getSelectedSingle(long owner);
-
     void resetFound(long owner);
-
-    void resetSelection(long owner);
-
-    void setSelection(@Param("selection") Collection<Long> selection, @Param("selected") boolean selected, @Param("owner") long owner);
-
-    List<TFile> getSelected(long owner);
-
-    int dropSelectionWithChilds(long owner);
 
     List<TFile> selectFound(long owner);
 }

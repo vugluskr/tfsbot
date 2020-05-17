@@ -203,6 +203,8 @@ public class MessageRef {
             return sticker;
         if (photo != null)
             return getMaxPhoto();
+        if (tgUser != null)
+            return tgUser;
 
         return null;
     }

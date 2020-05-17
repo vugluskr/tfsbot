@@ -2,20 +2,16 @@
 
 <mapper namespace="sql.UserMapper">
     <insert id="insertUser">
-        insert into users(id, nick, options, pwd, dir_id)
-        VALUES (#{id} , #{nick} , #{options} , #{pwd} , #{dirId})
+        insert into users(id, nick, options, last_search, pwd, dir_id)
+        VALUES (#{id} , #{nick} , #{options} , #{savedState} , '-', 0)
     </insert>
 
     <select id="selectUser" resultMap="UserMap">
         select u.id,
                u.nick,
                u.options,
-               u.pwd,
-               u.dir_id,
                u.last_dialog,
                u.last_message,
-               u.mode,
-               u.ls_offset,
                u.last_search
         from users u
         where u.id = #{id}
@@ -23,33 +19,19 @@
 
     <resultMap id="UserMap" type="model.User">
         <id column="id" property="id"/>
-        <result property="dirId" column="dir_id"/>
         <result property="nick" column="nick"/>
         <result property="options" column="options"/>
-        <result property="pwd" column="pwd"/>
-        <result property="mode" column="mode"/>
         <result property="lastDialogId" column="last_dialog"/>
         <result property="lastMessageId" column="last_message"/>
-        <result property="offset" column="ls_offset"/>
-        <result property="lastSearch" column="last_search"/>
+        <result property="savedState" column="last_search"/>
     </resultMap>
-
-    <update id="updatePwd">
-        update users
-        set dir_id    = #{dirId} ,
-            pwd       = #{pwd} ,
-            ls_offset = 0
-        where id = #{id}
-    </update>
 
     <update id="updateOpts">
         update users
-        set mode         = #{mode} ,
-            last_message = #{lastMessageId} ,
+        set last_message = #{lastMessageId} ,
             last_dialog  = #{lastDialogId} ,
             options      = #{options} ,
-            ls_offset    = #{offset} ,
-            last_search  = #{lastSearch}
+            last_search  = #{savedState}
         where id = #{userId}
     </update>
 </mapper>

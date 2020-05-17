@@ -6,19 +6,16 @@
         (
             id        bigserial                    not null primary key,
             parent_id bigint                       not null,
-            indate    bigint                       not null,
             name      text,
-            size      bigint  default 0            not null,
             type      text    default 'DIR':: text not null,
             ref_id    text    default '--':: text  not null,
-            selected  boolean default false,
             found     boolean default false
         )
     </update>
 
     <insert id="createRoot">
-        insert into fs_struct_${owner} (parent_id, name, indate)
-        values (0, '', date_part('epoch'::text, now()))
+        insert into fs_struct_${owner} (parent_id, name)
+        values (0, '')
     </insert>
 
     <update id="createTree">
@@ -47,8 +44,8 @@
     </update>
 
     <insert id="mkDir">
-        insert into fs_struct_${owner} (parent_id, indate, name, type)
-        values (#{parentId} , #{indate}, #{name} , #{type} )
+        insert into fs_struct_${owner} (parent_id,  name, type)
+        values (#{parentId} , #{name} , #{type} )
     </insert>
 
     <delete id="dropOrphans">
@@ -78,8 +75,8 @@
     </delete>
 
     <insert id="mkFile">
-        insert into fs_struct_${owner} (parent_id, indate, name, type, size, ref_id)
-        values (#{file.parentId} , #{file.indate}, #{file.name} , #{file.type} , #{file.size} , #{file.refId} )
+        insert into fs_struct_${owner} (parent_id, name, type, ref_id)
+        values (#{file.parentId} , #{file.name} , #{file.type} , #{file.refId} )
     </insert>
 
     <select id="getEntry" resultType="model.TFile">
@@ -91,23 +88,13 @@
     <sql id="struct">
         f.id,
                f.parent_id as "parentId",
-               f.indate,
                f.name,
-               f.size,
                f.type,
                f.ref_id        as "refId",
-               f.selected,
                ft.path
         from fs_struct_${owner} f
                  left outer join fs_tree_${owner} ft on f.id = ft.id
     </sql>
-
-    <select id="findEntryByPath" resultType="model.TFile">
-        select
-        <include refid="struct"/>
-        where ft.path = #{path}
-        limit 1
-    </select>
 
     <delete id="dropEntry">
         delete
@@ -125,16 +112,14 @@
     <update id="updateEntry">
         update fs_struct_${owner}
         set name      = #{name} ,
-            indate    = #{indate},
-            parent_id = #{parentId} ,
-            selected  = #{selected}
+            parent_id = #{parentId}
         where id = #{id}
     </update>
 
     <select id="listEntries" resultType="model.TFile">
         select
         <include refid="struct"/>
-        where f.parent_id = #{parentId} order by f.name, f.indate
+        where f.parent_id = #{parentId} order by f.name
     </select>
 
     <select id="isFsTableExist" resultType="_boolean">
@@ -145,23 +130,11 @@
                    )
     </select>
 
-    <update id="updateDirCount">
-        update fs_struct_${owner}
-        set size = #{size}
-        where id = #{id}
-    </update>
-
     <select id="getParentEntry" resultType="model.TFile">
         select
         <include refid="struct"/>
         where f.id = (select parent_id from fs_struct_${owner} where id = #{id} )
     </select>
-
-    <delete id="dropEntryByPath">
-        delete
-        from fs_struct_${owner}
-        where id = (select id from fs_tree_${owner} where path = #{path})
-    </delete>
 
     <delete id="dropEntryByName">
         delete
@@ -169,15 +142,6 @@
         where parent_id = #{parentId}
           and name = #{name}
     </delete>
-
-    <select id="findEntriesByPaths" resultType="model.TFile">
-        select
-        <include refid="struct"/>
-        where ft.path in
-        <foreach collection="paths" item="path" open="(" close=")" separator=",">
-            #{path}
-        </foreach>
-    </select>
 
     <delete id="dropEntries">
         delete
@@ -216,18 +180,10 @@
             FROM tree)
     </delete>
 
-    <insert id="mkDirs">
-        insert into fs_struct_${owner} (parent_id, indate, name, type)
-            values
-        <foreach collection="dirs" item="dir" separator=",">
-                (#{dir.parentId} ,#{dir.indate} ,#{dir.name} ,#{dir.type.name} )
-        </foreach>
-    </insert>
-
     <select id="listTypeEntries" resultType="model.TFile">
         select
         <include refid="struct"/>
-        where f.parent_id = #{parentId} and type = #{type} order by f.name, f.indate
+        where f.parent_id = #{parentId} and type = #{type} order by f.name
     </select>
 
     <select id="getByIds" resultType="model.TFile">
@@ -237,7 +193,7 @@
         <foreach collection="ids" open="(" close=")" separator="," item="id">
             #{id}
         </foreach>
-        order by f.name, f.indate
+        order by f.name
     </select>
 
     <select id="getPredictors" resultType="model.TFile">
@@ -279,61 +235,10 @@
             FROM tree)
     </select>
 
-    <select id="getSelectedSingle" resultType="model.TFile">
-        select
-        <include refid="struct"/>
-        where f.selected = true
-        limit 1
-    </select>
-
     <update id="resetFound">
         update fs_struct_${owner}
         set found = false
     </update>
-
-    <update id="resetSelection">
-        update fs_struct_${owner}
-        set selected = false
-    </update>
-
-    <update id="setSelection">
-        update fs_struct_${owner}
-        set selected = #{selected}
-        where id in
-        <foreach collection="selection" item="id" open="(" close=")" separator=",">
-            #{id}
-        </foreach>
-    </update>
-
-    <select id="getSelected" resultType="model.TFile">
-        select
-        <include refid="struct"/>
-        where f.selected = true
-    </select>
-
-    <delete id="dropSelectionWithChilds">
-        delete
-        from fs_struct_${owner}
-        where id in (
-            WITH RECURSIVE tree AS
-                               (
-                                   SELECT id,
-                                          name,
-                                          parent_id
-                                   FROM fs_struct_${owner}
-                                   WHERE selected = true
-                                   UNION ALL
-                                   SELECT si.id,
-                                          si.name,
-                                          si.parent_id
-                                   FROM fs_struct_${owner} As si
-                                            JOIN
-                                        tree AS sp
-                                        ON (si.parent_id = sp.id)
-                               )
-            SELECT id
-            FROM tree)
-    </delete>
 
     <select id="selectFound" resultType="model.TFile">
         select

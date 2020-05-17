@@ -1,6 +1,5 @@
 package utils;
 
-import model.Owner;
 import model.User;
 
 import java.util.EnumMap;
@@ -62,7 +61,7 @@ public class LangMap {
         init(Names.TYPE_LABEL, "Type label:", "Текст заметки:");
         init(Names.NO_CONTENT, "No content here yet. Send me some files.", "В этой директории пока ничего нет.");
         init(Names.LANG_SWITCHED, "Switched to English", "Используется русский язык");
-        init(Names.SEARCHED, "Search for '%s'", "Результаты поиска '%s'");
+        init(Names.SEARCHED, "Search for '%s': %s entry(s)", "Поиск '%s': %s результат(ов)");
     }
 
     private static void init(final Names key, final String en, final String ru) {
@@ -74,7 +73,7 @@ public class LangMap {
         CMD, DESC, CD_HELP, CD_HELP2, GET_HELP, GET_HELP2, LS_HELP, LS_HELP2, MKD_HELP, MKD_HELP2, MV_HELP, MV_HELP2, PWD_HELP, PWD_HELP2, RM_HELP, RM_HELP2, LBL_HELP, LBL_HELP2, ALS_HELP, ALS_HELP2, CANT_MKDIR, CANT_RN_TO, CANT_MKLBL, NO_RESULTS, TYPE_QUERY, TYPE_RENAME, TYPE_FOLDER, CD, PAGE, NORMAL_MODE, EDIT_MODE, DELETED, DELETED_MANY, MOVE_DEST, DESELECTED, SELECTED, MOVED, TYPE_LABEL, SEARCHED, NO_CONTENT, LANG_SWITCHED, NO_RESULTS_AFTER, CMD_LIST
     }
 
-    public static <T extends Owner> String v(final Names name, final T user, final Object... args) {
+    public static String v(final Names name, final User user, final Object... args) {
         try {
             final String value = (UOpts.Russian.is(user) ? ruData : enData).getOrDefault(name, name.name());
 

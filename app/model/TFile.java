@@ -1,7 +1,6 @@
 package model;
 
 import model.telegram.ContentType;
-import model.telegram.api.TeleFile;
 
 import static utils.TextUtils.notNull;
 
@@ -11,57 +10,11 @@ import static utils.TextUtils.notNull;
  * tfs ☭ sweat and blood
  */
 public class TFile implements Comparable<TFile> {
-    private String refId;
-    private long size;
-    private ContentType type;
     private long id;
     private long parentId;
-    private long indate;
+    private String refId;
+    private ContentType type;
     private String name, path;
-    private boolean selected;
-
-    public volatile boolean exist;
-
-    public static TFile mkdir(final String name) {
-        return new TFile(ContentType.DIR, 0, null, null, name);
-    }
-
-    public static TFile label(final String name, final long parentId) {
-        final TFile f = new TFile();
-        f.indate = System.currentTimeMillis();
-        f.type = ContentType.LABEL;
-        f.parentId = parentId;
-        f.name = name;
-        f.refId = "--";
-
-        return f;
-    }
-
-    public TFile(final TeleFile teleFile) {
-        this(teleFile.getType(), teleFile.getFileSize(), teleFile.getFileId(), teleFile.getUniqId(), teleFile.getFileName());
-    }
-
-    public TFile(final ContentType type, final long size, final String refId, final String uniqId, final String caption) {
-        this.type = type;
-
-        this.refId = refId;
-        this.size = size;
-
-        this.name = notNull(caption, type.name().toLowerCase() + "_" + uniqId + type.ext);
-    }
-
-    public TFile(final long parentId, final String name) {
-        this.parentId = parentId;
-        this.name = name;
-        this.type = ContentType.DIR;
-    }
-
-    public TFile(final long id) {
-        this.id = id;
-    }
-
-    public TFile() {
-    }
 
     public boolean isDir() {
         return type == ContentType.DIR;
@@ -95,14 +48,11 @@ public class TFile implements Comparable<TFile> {
     public String toString() {
         return "TFile{" +
                 "refId='" + refId + '\'' +
-                ", size=" + size +
                 ", type=" + type +
                 ", id=" + id +
                 ", parentId=" + parentId +
-                ", indate=" + indate +
                 ", name='" + name + '\'' +
                 ", path='" + path + '\'' +
-                ", exist=" + exist +
                 '}';
     }
 
@@ -139,28 +89,12 @@ public class TFile implements Comparable<TFile> {
         this.refId = refId;
     }
 
-    public long getSize() {
-        return size;
-    }
-
-    public void setSize(final long size) {
-        this.size = size;
-    }
-
     public ContentType getType() {
         return type;
     }
 
     public void setType(final ContentType type) {
         this.type = type;
-    }
-
-    public long getIndate() {
-        return indate;
-    }
-
-    public void setIndate(final long indate) {
-        this.indate = indate;
     }
 
     public String getPath() {
@@ -173,13 +107,5 @@ public class TFile implements Comparable<TFile> {
 
     public boolean isLabel() {
         return type == ContentType.LABEL;
-    }
-
-    public boolean isSelected() {
-        return selected;
-    }
-
-    public void setSelected(final boolean selected) {
-        this.selected = selected;
     }
 }

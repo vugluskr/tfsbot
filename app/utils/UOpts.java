@@ -1,6 +1,5 @@
 package utils;
 
-import model.Owner;
 import model.User;
 
 /**
@@ -9,7 +8,7 @@ import model.User;
  * tfs ☭ sweat and blood
  */
 public enum  UOpts {
-    Gui, WaitFolderName, WaitFileName, WaitLabelText, WaitSearchQuery, Russian;
+    Gui, Russian;
 
     public final int bitmask() {
         return 1 << ordinal();
@@ -22,7 +21,7 @@ public enum  UOpts {
             set(u);
     }
 
-    public final boolean is(final Owner u) {
+    public final boolean is(final User u) {
         return (u.getOptions() & bitmask()) > 0;
     }
 
@@ -30,13 +29,7 @@ public enum  UOpts {
         user.setOptions(user.getOptions() | bitmask());
     }
 
-    public final void clear(final Owner user) {
+    public final void clear(final User user) {
         user.setOptions(user.getOptions() & ~bitmask());
-    }
-
-    public static void clearWait(final Owner user) {
-        for (final UOpts o : values())
-            if (o.name().startsWith("Wait"))
-                o.clear(user);
     }
 }

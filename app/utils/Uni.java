@@ -6,8 +6,8 @@ package utils;
  * tfs ☭ sweat and blood
  */
 public interface Uni {
-    String rew = "\u25C0\uFE0F"; // ◀️
-    String fwd = "\u25B6\uFE0F"; // ▶️
+    String rewind = "\u25C0\uFE0F"; // ◀️
+    String forward = "\u25B6\uFE0F"; // ▶️
     String updir = "\u2B05\uFE0F"; // ⬅️
     String search = "\uD83D\uDD0D"; // 🔍
     String gear = "\u2699"; // ⚙

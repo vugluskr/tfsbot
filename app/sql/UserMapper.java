@@ -13,8 +13,6 @@ public interface UserMapper {
 
     void insertUser(User user);
 
-    void updatePwd(User user);
-
-    void updateOpts(@Param("mode") int mode, @Param("lastMessageId") long lastMessageId, @Param("lastDialogId") long lastDialogId, @Param("options") int options,
-                    @Param("offset") int offset, @Param("lastSearch") String lastSearch, @Param("userId") long userId);
+    void updateOpts(@Param("lastMessageId") long lastMessageId, @Param("lastDialogId") long lastDialogId, @Param("options") int options,
+                    @Param("savedState") String savedState, @Param("userId") long userId);
 }

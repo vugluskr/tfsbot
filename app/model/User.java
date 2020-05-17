@@ -1,37 +1,33 @@
 package model;
 
 
-import utils.TextUtils;
-import utils.UserMode;
+import utils.State;
 
 /**
  * @author Denis Danilin | denis@danilin.name
  * 01.05.2020
  * tfs ☭ sweat and blood
  */
-public class User implements Owner {
+public class User {
     private long id;
     private String nick;
     private int options;
-    private int mode;
-    private int offset;
     private long lastMessageId;
     private long lastDialogId;
-    private String lastSearch;
+    private String savedState;
 
-    private String pwd;
-    private long dirId;
+    private State state;
 
     public long getId() {
         return id;
     }
 
-    public String getLastSearch() {
-        return lastSearch;
+    public String getSavedState() {
+        return savedState;
     }
 
-    public void setLastSearch(final String lastSearch) {
-        this.lastSearch = lastSearch;
+    public void setSavedState(final String savedState) {
+        this.savedState = savedState;
     }
 
     public void setId(final long id) {
@@ -54,37 +50,37 @@ public class User implements Owner {
         this.options = options;
     }
 
-    public String getPwd() {
-        return isAtHome() ? "/" : pwd;
-    }
-
-    public void setPwd(final String pwd) {
-        this.pwd = pwd;
-    }
-
-    public long getDirId() {
-        return dirId;
-    }
-
-    public void setDirId(final long dirId) {
-        this.dirId = dirId;
-    }
-
-    public int getMode() {
-        return mode;
-    }
-
-    public void setMode(final int mode) {
-        this.mode = mode;
-    }
+//    public String getPwd() {
+//        return isAtHome() ? "/" : pwd;
+//    }
+//
+//    public void setPwd(final String pwd) {
+//        this.pwd = pwd;
+//    }
+//
+//    public long getDirId() {
+//        return dirId;
+//    }
+//
+//    public void setDirId(final long dirId) {
+//        this.dirId = dirId;
+//    }
+//
+//    public int getMode() {
+//        return mode;
+//    }
+//
+//    public void setMode(final int mode) {
+//        this.mode = mode;
+//    }
 
     public long getLastMessageId() {
         return lastMessageId;
     }
 
     public void setLastMessageId(final long lastMessageId) {
-        if (lastMessageId != this.lastMessageId)
-            setOffset(0);
+//        if (lastMessageId != this.lastMessageId)
+//            setOffset(0);
         this.lastMessageId = lastMessageId;
     }
 
@@ -96,25 +92,31 @@ public class User implements Owner {
         this.lastDialogId = lastDialogId;
     }
 
-    public boolean isAtHome() {
-        return dirId == 1;
+//    public boolean isAtHome() {
+//        return dirId == 1;
+//    }
+
+//    public int getOffset() {
+//        return offset;
+//    }
+//
+//    public void setOffset(final int offset) {
+//        this.offset = offset;
+//    }
+//
+//    public void setMode(final UserMode mode) {
+//        this.mode = mode.ordinal();
+//    }
+//
+//    public UserMode getUserMode() {
+//        return UserMode.values()[Math.max(0, Math.min(UserMode.values().length - 1, mode))];
+//    }
+
+    public State getState() {
+        return state;
     }
 
-    public int getOffset() {
-        return offset;
+    public void setState(final State state) {
+        this.state = state;
     }
-
-    public void setOffset(final int offset) {
-        this.offset = offset;
-    }
-
-    public void setMode(final UserMode mode) {
-        this.mode = mode.ordinal();
-    }
-
-    public UserMode getUserMode() {
-        return UserMode.values()[Math.max(0, Math.min(UserMode.values().length - 1, mode))];
-    }
-
-
 }
