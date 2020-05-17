@@ -68,8 +68,12 @@ public abstract class State {
         node.put("type", state.getClass().getSimpleName());
         node.put("dir_id", state.dirId);
         node.set("data", state.toJson());
-        if (state.routeBack != null)
-            node.set("routeback", state.routeBack.toJson());
+        if (state.routeBack != null) {
+            final ObjectNode rb = node.with("routeback");
+            rb.put("type", state.routeBack.getClass().getSimpleName());
+            rb.put("dir_id", state.routeBack.dirId);
+            rb.set("data", state.routeBack.toJson());
+        }
 
         return node;
     }
