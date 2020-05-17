@@ -88,6 +88,7 @@ public abstract class State {
         state.user = user;
 
         user.setState(state);
+        logger.debug("Built fresh state for user #" + user.getId());
     }
 
     public static JsonNode stateToJson(final State state) {
