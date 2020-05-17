@@ -192,6 +192,14 @@ public abstract class State {
                     if (id <= 0)
                         break;
 
+                    final TFile entry = fsService.get(id, user);
+                    if (entry.isDir()) {
+                        dirId = id;
+                        answer = v(LangMap.Names.CD, user, entry.getName());
+                        break;
+                    } else if (entry.isLabel())
+                        break;
+
                     final OpenFile openFile = switchTo(new OpenFile());
                     openFile.itemId = id;
                     openFile.fallback = this;
