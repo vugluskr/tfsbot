@@ -560,6 +560,12 @@ public abstract class State {
                 goBack();
             }
         }
+
+        @Override
+        protected CallbackAnswer applyCallback(final String callback) {
+            goBack();
+            return null;
+        }
     }
 
     public static class MkLabel extends State {
