@@ -1,16 +1,19 @@
 package utils;
 
 import model.User;
-import model.telegram.api.ContactRef;
-import model.telegram.api.TeleFile;
-import model.telegram.api.UpdateRef;
-import model.telegram.commands.*;
-import play.libs.Json;
-
-import static utils.TextUtils.isEmpty;
-import static utils.TextUtils.notNull;
 
 public class Test {
     public static void main(final String[] argz) throws Exception {
+        final User user = new User();
+        user.setOptions(141);
+
+        for (final UOpts o : UOpts.values()) {
+            System.out.println(o.name()+" >> " + o.is(user));
+//            if (TextUtils.rnd.nextInt() % 2 == 0) {
+                o.set(user);
+//                System.out.print(" apply '" + o.name() + ": " + user.getOptions());
+//            }
+//            System.out.print("; has ? " + o.is(user) + "\n");
+        }
     }
 }

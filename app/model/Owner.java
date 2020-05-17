@@ -33,4 +33,6 @@ public interface Owner {
     void setLastSearch(String query);
 
     String getLastSearch();
+
+    void setOptions(int options);
 }

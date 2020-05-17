@@ -30,7 +30,13 @@ public enum  UOpts {
         user.setOptions(user.getOptions() | bitmask());
     }
 
-    public final void clear(final User user) {
+    public final void clear(final Owner user) {
         user.setOptions(user.getOptions() & ~bitmask());
+    }
+
+    public static void clearWait(final Owner user) {
+        for (final UOpts o : values())
+            if (o.name().startsWith("Wait"))
+                o.clear(user);
     }
 }

@@ -7,6 +7,7 @@ import model.telegram.api.TeleFile;
 import model.telegram.commands.*;
 import play.Logger;
 import utils.LangMap;
+import utils.UOpts;
 import utils.UserMode;
 
 import javax.inject.Inject;
@@ -43,6 +44,8 @@ public class HeadQuarters {
         CallbackAnswer callbackAnswer = command instanceof OfCallback ? new CallbackAnswer(command.getCallbackId()) : null;
 
         try {
+            UOpts.clearWait(command);
+
             if (command.getMsgId() > 0)
                 tgApi.deleteMessage(command.getMsgId(), command.getId());
 
