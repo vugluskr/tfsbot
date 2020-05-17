@@ -30,7 +30,7 @@ public class GUI {
     private static final InlineButton
             simpleCancel = new InlineButton(Uni.cancel, SimpleCancel.mnemonic()),
             label = new InlineButton(Uni.label, CreateLabelReq.mnemonic()),
-            search = new InlineButton(Uni.search, Search.mnemonic()),
+            search = new InlineButton(Uni.search, SearchReq.mnemonic()),
             mkdir = new InlineButton(Uni.mkdir, CreateDirReq.mnemonic()),
             gear = new InlineButton(Uni.gear, EditMode.mnemonic()),
             exitMode = new InlineButton(Uni.cancel, ExitMode.mnemonic());
@@ -43,7 +43,7 @@ public class GUI {
 
     public void makeFileDialog(final TFile entry, final long chatId, final Consumer<Long> dialogIdConsumer) {
         tgApi.sendMedia(entry, entry.getPath(), new InlineKeyboard(Collections.singletonList(new ArrayList<InlineButton>(3) {{
-            add(new InlineButton(Uni.rename, RenameEntry.mnemonic(entry.getId())));
+            add(new InlineButton(Uni.rename, RenameEntryReq.mnemonic(entry.getId())));
             add(new InlineButton(Uni.move, MoveEntry.mnemonic(entry.getId())));
             add(new InlineButton(Uni.drop, DropEntry.mnemonic(entry.getId())));
             add(simpleCancel);
@@ -116,7 +116,7 @@ public class GUI {
             final List<Long> selectedIds = scope.stream().filter(TFile::isSelected).map(TFile::getId).collect(Collectors.toList());
             if (selectedIds.size() > 0) {
                 if (selectedIds.size() == 1)
-                    pageRow.add(new InlineButton(Uni.rename + " (" + selectedIds.size() + ")", RenameEntry.mnemonic(selectedIds.get(0))));
+                    pageRow.add(new InlineButton(Uni.rename + " (" + selectedIds.size() + ")", RenameEntryReq.mnemonic(selectedIds.get(0))));
                 pageRow.add(new InlineButton(Uni.move + " (" + selectedIds.size() + ")", MoveSelection.mnemonic()));
                 pageRow.add(new InlineButton(Uni.drop + " (" + selectedIds.size() + ")", DropSelection.mnemonic()));
             }

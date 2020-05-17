@@ -23,16 +23,4 @@ public final class CreateDir extends ACommand implements TgCommand, GotUserInput
     public String getInput() {
         return name;
     }
-
-    public static String mnemonic() {
-        return CreateDir.class.getSimpleName() + '.';
-    }
-
-    public static String mnemonic(final long id) {
-        return mnemonic() + id;
-    }
-
-    public static boolean is(final String data) {
-        return notNull(data).startsWith(mnemonic());
-    }
 }

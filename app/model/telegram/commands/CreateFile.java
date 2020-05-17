@@ -51,16 +51,4 @@ public final class CreateFile extends ACommand implements TgCommand, TeleFile {
     public String getFileName() {
         return name;
     }
-
-    public static String mnemonic() {
-        return CreateFile.class.getSimpleName() + '.';
-    }
-
-    public static String mnemonic(final long id) {
-        return mnemonic() + id;
-    }
-
-    public static boolean is(final String data) {
-        return notNull(data).startsWith(mnemonic());
-    }
 }

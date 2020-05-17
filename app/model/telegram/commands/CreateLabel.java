@@ -23,16 +23,4 @@ public final class CreateLabel extends ACommand implements TgCommand, GotUserInp
     public String getInput() {
         return name;
     }
-
-    public static String mnemonic() {
-        return CreateLabel.class.getSimpleName() + '.';
-    }
-
-    public static String mnemonic(final long id) {
-        return mnemonic() + id;
-    }
-
-    public static boolean is(final String data) {
-        return notNull(data).startsWith(mnemonic());
-    }
 }

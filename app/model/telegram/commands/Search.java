@@ -23,15 +23,4 @@ public final class Search extends ACommand implements TgCommand, GotUserInput {
     public String getInput() {
         return query;
     }
-
-    public static String mnemonic() {
-        return Search.class.getSimpleName() + '.';
-    }
-
-    public static String mnemonic(final long id) {
-        return mnemonic() + id;
-    }
-    public static boolean is(final String data) {
-        return notNull(data).startsWith(mnemonic());
-    }
 }
