@@ -168,7 +168,7 @@ public abstract class State {
 
     protected void handleInput(final String input) {
         if (!isEmpty(input))
-            fsService.upload(TFileFactory.label(input, dirId), user);
+            user.getState().switchTo(new Search()).handleInput(input);
     }
 
     public static class View extends State implements Callback {
