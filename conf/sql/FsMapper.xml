@@ -289,7 +289,7 @@
     <select id="getSelected" resultType="model.TFile">
         select
         <include refid="struct"/>
-        where f.selected = #{true}
+        where f.selected = true
     </select>
 
     <update id="inversListSelection">
