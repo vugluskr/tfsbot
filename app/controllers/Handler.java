@@ -1,9 +1,5 @@
 package controllers;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
-import io.swagger.annotations.ApiOperation;
 import model.User;
 import model.telegram.api.TeleFile;
 import model.telegram.api.UpdateRef;
