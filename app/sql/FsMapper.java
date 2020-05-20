@@ -68,4 +68,8 @@ public interface FsMapper {
     void inversListSelection(@Param("dirId") long dirId, @Param("owner") long owner);
 
     void inversFoundSelection(long owner);
+
+    void inversSelection(@Param("id") long id, @Param("owner") long owner);
+
+    void setExclusiveSelected(@Param("id") long id, @Param("owner") long owner);
 }

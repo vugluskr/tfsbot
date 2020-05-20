@@ -1,6 +1,10 @@
 package model;
 
 
+import utils.Strings;
+
+import java.util.Objects;
+
 /**
  * @author Denis Danilin | denis@danilin.name
  * 01.05.2020
@@ -19,6 +23,8 @@ public class User {
             searchOffset,
             searchCount;
 
+    private volatile boolean changed;
+
     public long getId() {
         return id;
     }
@@ -28,6 +34,10 @@ public class User {
     }
 
     public void setFallback(final String fallback) {
+        if (Objects.equals(fallback, this.fallback))
+            return;
+
+        changed = true;
         this.fallback = fallback;
     }
 
@@ -40,6 +50,11 @@ public class User {
     }
 
     public void setLastMessageId(final long lastMessageId) {
+        if (Objects.equals(lastMessageId, this.lastMessageId))
+            return;
+
+        changed = true;
+
         this.lastMessageId = lastMessageId;
     }
 
@@ -48,6 +63,10 @@ public class User {
     }
 
     public void setLastDialogId(final long lastDialogId) {
+        if (Objects.equals(lastDialogId, this.lastDialogId))
+            return;
+
+        changed = true;
         this.lastDialogId = lastDialogId;
     }
 
@@ -64,6 +83,10 @@ public class User {
     }
 
     public void setState(final String state) {
+        if (Objects.equals(state, this.state))
+            return;
+
+        changed = true;
         this.state = state;
     }
 
@@ -72,6 +95,10 @@ public class User {
     }
 
     public void setQuery(final String query) {
+        if (Objects.equals(query, this.query))
+            return;
+
+        changed = true;
         this.query = query;
     }
 
@@ -80,6 +107,10 @@ public class User {
     }
 
     public void setDirId(final long dirId) {
+        if (Objects.equals(dirId, this.dirId))
+            return;
+
+        changed = true;
         this.dirId = dirId;
     }
 
@@ -89,9 +120,15 @@ public class User {
 
     public void deltaOffset(final int delta) {
         offset = Math.max(0, offset + delta);
+        if (!changed && delta != 0)
+            changed = true;
     }
 
     public void setOffset(final int offset) {
+        if (Objects.equals(offset, this.offset))
+            return;
+
+        changed = true;
         this.offset = offset;
     }
 
@@ -100,6 +137,11 @@ public class User {
     }
 
     public void setSearchOffset(final int searchOffset) {
+        if (Objects.equals(searchOffset, this.searchOffset))
+            return;
+
+        changed = true;
+
         this.searchOffset = searchOffset;
     }
 
@@ -108,10 +150,26 @@ public class User {
     }
 
     public void setSearchCount(final int searchCount) {
+        if (Objects.equals(searchCount, this.searchCount))
+            return;
+
+        changed = true;
         this.searchCount = searchCount;
     }
 
     public void deltaSearchOffset(final int delta) {
         searchOffset = Math.max(0, searchOffset + delta);
+
+        if (!changed && delta != 0)
+            changed = true;
+    }
+
+    public void switchBack() {
+        setState(fallback);
+        setFallback(Strings.State.View);
+    }
+
+    public boolean isChanged() {
+        return changed;
     }
 }

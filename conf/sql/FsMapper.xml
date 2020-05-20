@@ -93,7 +93,7 @@
                f.type,
                f.ref_id        as "refId",
                f.selected,
-               f.found
+               f.found,
                ft.path
         from fs_struct_${owner} f
                  left outer join fs_tree_${owner} ft on f.id = ft.id
@@ -294,11 +294,24 @@
 
     <update id="inversListSelection">
         update fs_struct_${owner}
-        set selected = exists(select 1 from fs_struct_${owner} where parent_id = #{dirId} selected = false) where parent_id = #{dirId}
+        set selected = exists(select 1 from fs_struct_${owner} where parent_id = #{dirId} selected = false)
+        where parent_id = #{dirId}
     </update>
 
     <update id="inversFoundSelection">
         update fs_struct_${owner}
-        set selected = exists(select 1 from fs_struct_${owner} where found = true and selected = false) where found = true
+        set selected = exists(select 1 from fs_struct_${owner} where found = true and selected = false)
+        where found = true
+    </update>
+
+    <update id="inversSelection">
+        update fs_struct_${owner}
+        set selected = !selected
+        where id = #{id}
+    </update>
+
+    <update id="setExclusiveSelected">
+        update fs_struct_${owner}
+        set selected = (case when id = #{id} then true else false end)
     </update>
 </mapper>

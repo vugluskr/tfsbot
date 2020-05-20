@@ -41,7 +41,8 @@ public class UserService {
             user = new User();
             user.setId(cr.getId());
             user.setLang(cr.getLanguageCode());
-            user.setState(Strings.Actors.View);
+            user.setState(Strings.State.View);
+            user.setDirId(1);
             fsService.init(user.getId());
             mapper.insertUser(user);
             fsService.mkdir(ru ? "Документы" : "Documents", 1, user.getId());
@@ -49,7 +50,7 @@ public class UserService {
             fsService.upload(TFileFactory.label(ru ? "Пример заметки" : "Example note", fsService.mkdir(ru ? "Заметки" : "Notes", 1, user.getId()).getId()), user);
         } else {
             if (isEmpty(db.getState()))
-                db.setState(Strings.Actors.View);
+                db.setState(Strings.State.View);
 
             if (isEmpty(db.getLang()))
                 db.setLang(notNull(cr.getLanguageCode(), "ru"));
@@ -61,6 +62,7 @@ public class UserService {
     }
 
     public void update(final User user) {
-        mapper.update(user);
+        if (user.isChanged())
+            mapper.update(user);
     }
 }

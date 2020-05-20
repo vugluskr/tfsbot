@@ -7,16 +7,16 @@ package utils;
  * tfs ☭ sweat and blood
  */
 public interface Strings {
-    interface Actors {
-        String MkLabel = "actor-MkLabel";
-        String Search = "actor-Search";
-        String MkDir = "actor-MkDir";
-        String Gear = "actor-Gear";
-        String OpenFile = "actor-OpenFile";
-        String View = "actor-View";
-        String SearchGear = "actor-SearchGear";
-        String Move = "actor-Move";
-        String Rename = "actor-Rename";
+    interface State {
+        String MkLabel = "MkLabel";
+        String Search = "Search";
+        String MkDir = "MkDir";
+        String Gear = "Gear";
+        String OpenFile = "OpenFile";
+        String View = "View";
+        String SearchGear = "SearchGear";
+        String Move = "Move";
+        String Rename = "Rename";
     }
 
     interface Params {
@@ -29,18 +29,18 @@ public interface Strings {
     interface Callback {
         // main buttons
         String goUp = "goUp";
-        String mkLabel = "mklb";
-        String searchStateInit = "srch";
-        String mkDir = "mkdr";
-        String gearStateInit = "gear";
+        String mkLabel = State.MkLabel;
+        String searchStateInit = State.Search;
+        String mkDir = State.MkDir;
+        String gearStateInit = State.Gear;
         String cancel = "cncl";
-        String move = "mv";
+        String move = State.Move;
         String drop = "rm";
 
         // entry buttons
         String inversCheck = "ichk_";
-        String openEntry = "op_";
-        String renameEntry = "rnm";
+        String openEntry = State.OpenFile + '.';
+        String renameEntry = State.Rename + '.';
 
         // flow nav buttons
         String rewind = "rwd";

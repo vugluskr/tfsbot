@@ -100,17 +100,12 @@ public class FsService {
         return mapper.deleteSelected(user.getId());
     }
 
-    public boolean setSelected(final long itemId, final User user) {
-        final TFile file = mapper.getEntry(itemId, user.getId());
+    public void inversSelection(final long itemId, final User user) {
+        mapper.inversSelection(itemId, user.getId());
+    }
 
-        if (file != null) {
-            file.setSelected(!file.isSelected());
-            mapper.updateSelection(file.isSelected(), file.getId(), user.getId());
-
-            return file.isSelected();
-        }
-
-        return false;
+    public void setExclusiveSelected(final long itemId, final User user) {
+        mapper.setExclusiveSelected(itemId, user.getId());
     }
 
     public List<TFile> getSelection(final User user) {
