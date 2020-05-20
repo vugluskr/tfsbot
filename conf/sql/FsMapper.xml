@@ -306,7 +306,7 @@
 
     <update id="inversSelection">
         update fs_struct_${owner}
-        set selected = !selected
+        set selected = not selected
         where id = #{id}
     </update>
 
