@@ -7,6 +7,7 @@ import play.libs.Json;
 import sql.UserMapper;
 import utils.State;
 import utils.TFileFactory;
+import utils.TextUtils;
 import utils.UOpts;
 
 import javax.inject.Inject;
@@ -49,7 +50,7 @@ public class UserService {
             user.setId(cr.getId());
             user.setNick(notNull(cr.getUsername(), "u" + cr.getId()));
             final boolean ru;
-            if ((ru = cr.getLanguageCode().contains("ru")))
+            if ((ru = TextUtils.notNull(cr.getLanguageCode()).contains("ru")))
                 UOpts.Russian.set(user);
             UOpts.Gui.set(user);
             State.freshInit(user, tgApi, gui, this, fsService);
