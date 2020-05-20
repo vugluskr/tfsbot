@@ -58,7 +58,7 @@ public class HeadQuarters {
                     tgApi.deleteMessage(user.getLastMessageId(), user.getId());
                     user.setLastMessageId(0);
                 }
-
+                input = null;
                 user.setState(View);
             }
 
