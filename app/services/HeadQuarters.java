@@ -345,14 +345,14 @@ public class HeadQuarters {
                             user.setQuery(notNull(input));
                             user.setSearchCount(fsService.findChildsByName(user.getDirId(), user.getQuery().toLowerCase(), user));
                             user.setSearchOffset(0);
-                            input = null;
+                            eol = true;
+                            makeSearchView(user);
                         } else {
                             tgApi.sendPlainText(LangMap.Value.TYPE_QUERY, user, dlgId -> {
                                 user.setLastDialogId(dlgId);
                                 userService.update(user);
                             });
                             eol = true;
-                            break;
                         }
                         break;
                     case SearchGear:
