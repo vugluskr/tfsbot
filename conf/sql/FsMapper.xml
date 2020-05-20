@@ -294,7 +294,7 @@
 
     <update id="inversListSelection">
         update fs_struct_${owner}
-        set selected = exists(select 1 from fs_struct_${owner} where parent_id = #{dirId} selected = false)
+        set selected = exists(select 1 from fs_struct_${owner} where parent_id = #{dirId} and selected = false)
         where parent_id = #{dirId}
     </update>
 
