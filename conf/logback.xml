@@ -14,6 +14,7 @@
     <logger level="WARN" name="akka"/>
     <logger level="WARN" name="sql"/>
     <logger level="OFF" name="org.mybatis"/>
+    <logger level="OFF" name="org.apache"/>
     <logger level="OFF" name="com.zaxxer"/>
 
     <root level="DEBUG">

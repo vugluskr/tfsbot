@@ -452,6 +452,7 @@ public class HeadQuarters {
                                         user.setDirId(entry.getId());
                                         user.setOffset(0);
                                         tgApi.sendCallbackAnswer(LangMap.Value.CD, callbackId, user, entry.getName());
+                                        callbackData = null;
                                         break;
                                     } else if (entry != null && !entry.isLabel()) {
                                         callbackData = input = null;
