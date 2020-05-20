@@ -9,9 +9,7 @@ import sql.FsMapper;
 
 import javax.inject.Inject;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static utils.TextUtils.isEmpty;
 
@@ -52,19 +50,6 @@ public class FsService {
         mapper.dropOrphans(id, owner.getId());
     }
 
-    public void rm(final Collection<Long> ids, final User owner) {
-        if (isEmpty(ids))
-            return;
-
-        if (ids.size() == 1) {
-            rm(ids.iterator().next(), owner);
-            return;
-        }
-
-        mapper.dropEntries(ids, owner.getId());
-        mapper.dropMultiOrphans(ids, owner.getId());
-    }
-
     public TFile get(final long id, final User user) {
         return mapper.getEntry(id, user.getId());
     }
@@ -96,10 +81,6 @@ public class FsService {
         return mapper.listTypeEntries(dirId, ContentType.DIR.name(), user.getId());
     }
 
-    public List<TFile> getByIds(final Set<Long> ids, final User user) {
-        return isEmpty(ids) ? Collections.emptyList() : mapper.getByIds(ids, user.getId());
-    }
-
     public List<TFile> getPredictors(final long dirId, final User user) {
         return mapper.getPredictors(dirId, user.getId());
     }
@@ -112,5 +93,30 @@ public class FsService {
 
     public List<TFile> getFound(final User user) {
         return mapper.selectFound(user.getId());
+    }
+
+    public void resetSelection(final User user) {
+        mapper.resetSelection(user.getId());
+    }
+
+    public int rmSelected(final User user) {
+        return mapper.deleteSelected(user.getId());
+    }
+
+    public boolean setSelected(final long itemId, final User user) {
+        final TFile file = mapper.getEntry(itemId, user.getId());
+
+        if (file != null) {
+            file.setSelected(!file.isSelected());
+            mapper.updateSelection(file.isSelected(), file.getId(), user.getId());
+
+            return file.isSelected();
+        }
+
+        return false;
+    }
+
+    public List<TFile> getSelection(final User user) {
+        return mapper.getSelected(user.getId());
     }
 }

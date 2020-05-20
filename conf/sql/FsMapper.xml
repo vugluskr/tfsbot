@@ -9,6 +9,7 @@
             name      text,
             type      text    default 'DIR':: text not null,
             ref_id    text    default '--':: text  not null,
+            selected  boolean default false,
             found     boolean default false
         )
     </update>
@@ -44,7 +45,7 @@
     </update>
 
     <insert id="mkDir">
-        insert into fs_struct_${owner} (parent_id,  name, type)
+        insert into fs_struct_${owner} (parent_id, name, type)
         values (#{parentId} , #{name} , #{type} )
     </insert>
 
@@ -91,6 +92,8 @@
                f.name,
                f.type,
                f.ref_id        as "refId",
+               f.selected,
+               f.found
                ft.path
         from fs_struct_${owner} f
                  left outer join fs_tree_${owner} ft on f.id = ft.id
@@ -244,5 +247,46 @@
         select
         <include refid="struct"/>
         where f.found = true
+    </select>
+
+    <update id="resetSelection">
+        update fs_struct_${owner}
+        set selected = false
+    </update>
+
+    <delete id="deleteSelected">
+        delete
+        from fs_struct_${owner}
+        where id in (
+            WITH RECURSIVE tree AS
+                               (
+                                   SELECT id,
+                                          name,
+                                          parent_id,
+                                          ARRAY [name] AS fpath
+                                   FROM fs_struct_${owner}
+                                   WHERE selected = true
+                                   UNION ALL
+                                   SELECT si.id,
+                                          si.name,
+                                          si.parent_id,
+                                          sp.fpath || si.name As fpath
+                                   FROM fs_struct_${owner} As si
+                                            JOIN
+                                        tree AS sp
+                                        ON (si.parent_id = sp.id)
+                               )
+            SELECT id
+            FROM tree)
+    </delete>
+
+    <update id="updateSelection">
+        update fs_struct_${owner} set selected = #{selected} where id = #{id}
+    </update>
+
+    <select id="getSelected" resultType="model.TFile">
+        select
+        <include refid="struct" />
+        where f.selected = #{true}
     </select>
 </mapper>

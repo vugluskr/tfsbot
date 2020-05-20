@@ -16,8 +16,8 @@
 <!--    <logger level="ERROR" name="listeners"/>-->
 
     <!--    <logger level="OFF" name="mappers"/>-->
-    <logger level="OFF" name="play"/>
-    <logger level="OFF" name="akka"/>
+    <logger level="WARN" name="play"/>
+    <logger level="WARN" name="akka"/>
     <logger level="OFF" name="org.mybatis"/>
     <logger level="OFF" name="io.swagger"/>
     <logger level="OFF" name="org.apache"/>

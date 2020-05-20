@@ -1,13 +1,20 @@
 package services;
 
+import actors.StateActor;
+import actors.protocol.GotCallback;
+import actors.protocol.GotInput;
+import actors.protocol.WakeUpNeo;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import model.User;
-import model.telegram.api.CallbackAnswer;
 import model.telegram.api.TeleFile;
 import play.Logger;
-import utils.State;
+import utils.Strings;
+import utils.TFileFactory;
 
 import javax.inject.Inject;
 
+import static utils.TextUtils.isEmpty;
 import static utils.TextUtils.notNull;
 
 /**
@@ -22,13 +29,10 @@ public class HeadQuarters {
     private TgApi tgApi;
 
     @Inject
-    private GUI gui;
-
-    @Inject
     private FsService fsService;
 
     @Inject
-    private UserService userService;
+    private ActorSystem actorSystem;
 
     public void accept(final User user, final TeleFile file, final String input, final String callbackData, final long msgId, final long callbackId) {
         try {
@@ -46,37 +50,24 @@ public class HeadQuarters {
                     user.setLastMessageId(0);
                 }
 
-                State.freshInit(user, tgApi, gui, userService, fsService);
-                user.getState().refreshView();
-
-                return;
+                user.setState(Strings.Actors.View);
             }
 
-            CallbackAnswer answer = null;
-
-            try {
-                answer = user.getState().apply(file, input, callbackData);
-            } catch (final Exception e) {
-                logger.error("Current user state failed to apply: " + e.getMessage(), e);
-                State.freshInit(user, tgApi, gui, userService, fsService);
+            if (file != null) {
+                fsService.upload(TFileFactory.file(file, input, user.getDirId()), user);
+                user.setState(Strings.Actors.View);
             }
 
-            if (callbackId > 0) {
-                if (answer == null)
-                    answer = new CallbackAnswer("");
-
-                tgApi.sendCallbackAnswer(notNull(answer.getText()), callbackId, answer.isAlert(), answer.getCacheTimeSeconds());
-            }
-
-            user.getState().refreshView();
+            actorSystem.actorOf(StateActor.props.get(user.getState()),
+                    user.getState()).tell(
+                    callbackData != null
+                            ? new GotCallback(callbackId, callbackData, user)
+                            : !isEmpty(input)
+                            ? new GotInput(input, user)
+                            : new WakeUpNeo(user),
+                    ActorRef.noSender());
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
-            if (user.getState() == null || !user.getState().getClass().equals(State.View.class)) {
-                logger.error("Hard reset to init View");
-                State.freshInit(user, tgApi, gui, userService, fsService);
-            }
-        } finally {
-            userService.updateOpts(user);
         }
     }
 }
