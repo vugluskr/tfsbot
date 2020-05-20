@@ -281,12 +281,24 @@
     </delete>
 
     <update id="updateSelection">
-        update fs_struct_${owner} set selected = #{selected} where id = #{id}
+        update fs_struct_${owner}
+        set selected = #{selected}
+        where id = #{id}
     </update>
 
     <select id="getSelected" resultType="model.TFile">
         select
-        <include refid="struct" />
+        <include refid="struct"/>
         where f.selected = #{true}
     </select>
+
+    <update id="inversListSelection">
+        update fs_struct_${owner}
+        set selected = exists(select 1 from fs_struct_${owner} where parent_id = #{dirId} selected = false) where parent_id = #{dirId}
+    </update>
+
+    <update id="inversFoundSelection">
+        update fs_struct_${owner}
+        set selected = exists(select 1 from fs_struct_${owner} where found = true and selected = false) where found = true
+    </update>
 </mapper>

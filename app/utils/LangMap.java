@@ -63,6 +63,7 @@ public class LangMap {
         init(Value.LANG_SWITCHED, "Switched to English", "Используется русский язык");
         init(Value.SEARCHED, "Search for '%s': %s entry(s)", "Поиск '%s': %s результат(ов)");
         init(Value.UPLOADED, "File stored '%s'", "Файл сохранён '%s'");
+        init(Value.CHECK_ALL, "*", "*");
     }
 
     private static void init(final Value key, final String en, final String ru) {
@@ -73,7 +74,7 @@ public class LangMap {
     public enum Value {
         CMD, DESC, CD_HELP, CD_HELP2, GET_HELP, GET_HELP2, LS_HELP, LS_HELP2, MKD_HELP, MKD_HELP2, MV_HELP, MV_HELP2, PWD_HELP, PWD_HELP2, RM_HELP, RM_HELP2, LBL_HELP,
         LBL_HELP2, ALS_HELP, ALS_HELP2, CANT_MKDIR, CANT_RN_TO, CANT_MKLBL, NO_RESULTS, TYPE_QUERY, TYPE_RENAME, TYPE_FOLDER, CD, PAGE, NORMAL_MODE, EDIT_MODE, DELETED,
-        DELETED_MANY, MOVE_DEST, DESELECTED, SELECTED, MOVED, TYPE_LABEL, SEARCHED, NO_CONTENT, LANG_SWITCHED, NO_RESULTS_AFTER, UPLOADED, None, CMD_LIST
+        DELETED_MANY, MOVE_DEST, DESELECTED, SELECTED, MOVED, TYPE_LABEL, SEARCHED, NO_CONTENT, LANG_SWITCHED, NO_RESULTS_AFTER, UPLOADED, None, CHECK_ALL, CMD_LIST
     }
 
     public static String v(final Value name, final User user, final Object... args) {

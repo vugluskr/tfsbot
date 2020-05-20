@@ -8,10 +8,7 @@ import play.Logger;
 import sql.FsMapper;
 
 import javax.inject.Inject;
-import java.util.Collection;
 import java.util.List;
-
-import static utils.TextUtils.isEmpty;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -118,5 +115,13 @@ public class FsService {
 
     public List<TFile> getSelection(final User user) {
         return mapper.getSelected(user.getId());
+    }
+
+    public void inversListSelection(final User user) {
+        mapper.inversListSelection(user.getDirId(), user.getId());
+    }
+
+    public void inversFoundSelection(final User user) {
+        mapper.inversFoundSelection(user.getId());
     }
 }

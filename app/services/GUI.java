@@ -35,6 +35,7 @@ public class GUI {
         InlineButton putButton = new InlineButton(Uni.put, Callback.put);
         InlineButton moveButton = new InlineButton(Uni.move, Callback.move);
         InlineButton dropButton = new InlineButton(Uni.drop, Callback.drop);
+        InlineButton checkAll = new InlineButton(Uni.checkAll, Callback.checkAll);
     }
 
     private static final InlineKeyboard fileKbd = new InlineKeyboard();

@@ -64,4 +64,8 @@ public interface FsMapper {
     void updateSelection(@Param("selected") boolean selected, @Param("id") long id, @Param("owner") long owner);
 
     List<TFile> getSelected(long owner);
+
+    void inversListSelection(@Param("dirId") long dirId, @Param("owner") long owner);
+
+    void inversFoundSelection(long owner);
 }

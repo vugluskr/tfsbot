@@ -60,6 +60,10 @@ public class GearActor extends StateActor {
                     tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
                     switchTo(new WakeUpNeo(user), Strings.Actors.Rename);
                     return;
+                case checkAll:
+                    tgApi.sendCallbackAnswer(LangMap.Value.CHECK_ALL, callbackId, user, (user.getOffset() / 10) + 1);
+                    fsService.inversListSelection(user);
+                    break;
                 default:
                     tgApi.sendCallbackAnswer(fsService.setSelected(getLong(callbackData), user) ? LangMap.Value.SELECTED : LangMap.Value.DESELECTED, callbackId, user);
                     break;
@@ -91,7 +95,7 @@ public class GearActor extends StateActor {
             upper.add(new InlineButton(Strings.Uni.move + "(" + selection + ")", move));
             upper.add(new InlineButton(Strings.Uni.drop + "(" + selection + ")", drop));
         }
-
+        upper.add(GUI.Buttons.checkAll);
         upper.add(GUI.Buttons.cancelButton);
 
         if (user.getOffset() > 0)

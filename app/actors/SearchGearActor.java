@@ -60,6 +60,10 @@ public class SearchGearActor extends StateActor {
                     tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
                     switchTo(new WakeUpNeo(user), Strings.Actors.Rename);
                     return;
+                case checkAll:
+                    tgApi.sendCallbackAnswer(LangMap.Value.CHECK_ALL, callbackId, user, (user.getOffset() / 10) + 1);
+                    fsService.inversFoundSelection(user);
+                    break;
                 default:
                     tgApi.sendCallbackAnswer(fsService.setSelected(getLong(callbackData), user) ? LangMap.Value.SELECTED : LangMap.Value.DESELECTED, callbackId, user);
                     break;
@@ -93,6 +97,7 @@ public class SearchGearActor extends StateActor {
             upper.add(new InlineButton(Strings.Uni.drop + "(" + selection + ")", drop));
         }
 
+        upper.add(GUI.Buttons.checkAll);
         upper.add(GUI.Buttons.cancelButton);
 
         if (user.getSearchOffset() > 0)

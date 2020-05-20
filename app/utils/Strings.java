@@ -47,6 +47,7 @@ public interface Strings {
         String forward = "fwd";
 
         String put = "pt";
+        String checkAll = "ca";
     }
 
     interface Uni {
@@ -62,7 +63,7 @@ public interface Strings {
         String move = "\u2934\uFE0F"; // ⤴️
         String cancel = "\u274C"; // ❌
         String checked = "\u2714\uFE0F"; // ✔️
-        String checkAll = "\u2611\uFE0F"; // ☑️ // todo
+        String checkAll = "\u2611\uFE0F"; // ☑️
         String put = "\u2705"; // ✅
         String label = "\uD83C\uDFF7"; // 🏷
     }
