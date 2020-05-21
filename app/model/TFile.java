@@ -15,6 +15,7 @@ public class TFile implements Comparable<TFile> {
     private String refId;
     private ContentType type;
     private String name, path;
+    private boolean selected, found;
 
     public boolean isDir() {
         return type == ContentType.DIR;
@@ -107,5 +108,21 @@ public class TFile implements Comparable<TFile> {
 
     public boolean isLabel() {
         return type == ContentType.LABEL;
+    }
+
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public void setSelected(final boolean selected) {
+        this.selected = selected;
+    }
+
+    public boolean isFound() {
+        return found;
+    }
+
+    public void setFound(final boolean found) {
+        this.found = found;
     }
 }

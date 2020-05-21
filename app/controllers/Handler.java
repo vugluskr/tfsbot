@@ -14,8 +14,6 @@ import services.UserService;
 import javax.inject.Inject;
 import java.util.concurrent.CompletableFuture;
 
-import static utils.TextUtils.isEmpty;
-
 /**
  * @author Denis Danilin | denis@danilin.name
  * 16.05.2020

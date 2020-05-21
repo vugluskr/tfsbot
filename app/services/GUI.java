@@ -6,8 +6,8 @@ import model.telegram.ContentType;
 import model.telegram.api.InlineButton;
 import model.telegram.api.InlineKeyboard;
 import model.telegram.api.TextRef;
-import utils.Callback;
-import utils.Uni;
+import utils.Strings.Callback;
+import utils.Strings.Uni;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -35,6 +35,7 @@ public class GUI {
         InlineButton putButton = new InlineButton(Uni.put, Callback.put);
         InlineButton moveButton = new InlineButton(Uni.move, Callback.move);
         InlineButton dropButton = new InlineButton(Uni.drop, Callback.drop);
+        InlineButton checkAll = new InlineButton(Uni.checkAll, Callback.checkAll);
     }
 
     private static final InlineKeyboard fileKbd = new InlineKeyboard();
@@ -75,10 +76,10 @@ public class GUI {
         if (!bottom.isEmpty())
             box.row(bottom);
 
-        send(box, user.getLastMessageId(), user.getId(), sentMsgIdConsumer);
+        send(box, user.getLastMessageId(), user, sentMsgIdConsumer);
     }
 
-    public void makeGearView(final String mdEscapedBody, final Set<Long> selection, final List<TFile> scope, final List<InlineButton> upper, final List<InlineButton> bottom,
+    public void makeGearView(final String mdEscapedBody, final List<TFile> scope, final List<InlineButton> upper, final List<InlineButton> bottom,
                              final int offset, final User user, final Consumer<Long> sentMsgIdConsumer) {
         final TextRef box = new TextRef(mdEscapedBody, user.getId()).setMd2();
         if (!isEmpty(upper))
@@ -92,19 +93,19 @@ public class GUI {
                 })
                 .skip(offset)
                 .limit(10)
-                .forEach(f -> box.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName() + (selection.contains(f.getId()) ?
+                .forEach(f -> box.row(new InlineButton((f.isDir() ? Uni.folder + " " : "") + f.getName() + (f.isSelected() ?
                         " " + Uni.checked : ""), Callback.inversCheck + f.getId())));
 
         if (!bottom.isEmpty())
             box.row(bottom);
 
-        send(box, user.getLastMessageId(), user.getId(), sentMsgIdConsumer);
+        send(box, user.getLastMessageId(), user, sentMsgIdConsumer);
     }
 
     public void makeMainView(final String mdEscapedBody, final Collection<TFile> scope, final int offset, final List<InlineButton> upButtons,
                              final List<InlineButton> bottomButtons,
-                             final long lastMessageId, final long userId, final Consumer<Long> sentMsgIdConsumer) {
-        final TextRef box = new TextRef(mdEscapedBody, userId).setMd2();
+                             final long lastMessageId, final User user, final Consumer<Long> sentMsgIdConsumer) {
+        final TextRef box = new TextRef(mdEscapedBody, user.getId()).setMd2();
         upButtons.forEach(box::headRow);
 
         if (scope.stream().anyMatch(e -> e.getType() == ContentType.LABEL)) {
@@ -133,10 +134,10 @@ public class GUI {
                 box.row(bottomButtons);
         }
 
-        send(box, lastMessageId, userId, sentMsgIdConsumer);
+        send(box, lastMessageId, user, sentMsgIdConsumer);
     }
 
-    private void send(final TextRef box, final long lastMessageId, final long userId, final Consumer<Long> sentMsgIdConsumer) {
-        tgApi.sendOrUpdate(box.getText(), box.getParseMode(), box.getReplyMarkup(), lastMessageId, userId, sentMsgIdConsumer);
+    private void send(final TextRef box, final long lastMessageId, final User user, final Consumer<Long> sentMsgIdConsumer) {
+        tgApi.sendOrUpdate(box.getText(), box.getParseMode(), box.getReplyMarkup(), lastMessageId, user, sentMsgIdConsumer);
     }
 }

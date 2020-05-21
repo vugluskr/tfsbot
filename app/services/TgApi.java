@@ -4,16 +4,19 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
 import com.typesafe.config.Config;
 import model.TFile;
+import model.User;
 import model.telegram.ContentType;
 import model.telegram.api.ForceReply;
 import model.telegram.api.ReplyMarkup;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
+import utils.LangMap;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
+import static utils.LangMap.v;
 import static utils.TextUtils.isEmpty;
 
 /**
@@ -34,11 +37,11 @@ public class TgApi {
         apiUrl = config.getString("service.bot.api_url");
     }
 
-    public void sendOrUpdate(final String text, final String format, final ReplyMarkup replyMarkup, final long updateMessageId, final long userId,
+    public void sendOrUpdate(final String text, final String format, final ReplyMarkup replyMarkup, final long updateMessageId, final User user,
                              final Consumer<Long> msgIdConsumer) {
         if (updateMessageId > 0) {
             final ObjectNode node = Json.newObject();
-            node.put("chat_id", userId);
+            node.put("chat_id", user.getId());
             node.put("text", text);
             node.put("message_id", updateMessageId);
             if (format != null)
@@ -57,12 +60,12 @@ public class TgApi {
                                     wsr.asJson().get("description").asText().contains("are exactly the same") ? updateMessageId : 0)// небольшой хак, если тг отвечает, что сообщение одинаковое - просто ничо делать не будем
                             .thenAccept(msgId -> {
                                 if (msgId <= 0)
-                                    sendMessage(text, format, userId, replyMarkup, msgIdConsumer);
+                                    sendMessage(text, format, user, replyMarkup, msgIdConsumer);
                                 else
                                     msgIdConsumer.accept(msgId);
                             }));
         } else
-            sendMessage(text, format, userId, replyMarkup, msgIdConsumer);
+            sendMessage(text, format, user, replyMarkup, msgIdConsumer);
     }
 
     public void deleteMessage(final long messageId, final long userId) {
@@ -79,17 +82,17 @@ public class TgApi {
                 }));
     }
 
-    public void ask(final String question, final long userId, final Consumer<Long> msgIdConsumer) {
-        sendMessage(question, null, userId, new ForceReply(), msgIdConsumer);
+    public void ask(final LangMap.Value question, final User user, final Consumer<Long> msgIdConsumer, final Object... args) {
+        sendMessage(v(question, user, args), null, user, new ForceReply(), msgIdConsumer);
     }
 
-    public void sendPlainText(final String text, final long userId, final Consumer<Long> msgIdConsumer) {
-        sendMessage(text, null, userId, null, msgIdConsumer);
+    public void sendPlainText(final LangMap.Value value, final User user, final Consumer<Long> msgIdConsumer, final Object ... args) {
+        sendMessage(v(value, user, args), null, user, null, msgIdConsumer);
     }
 
-    private void sendMessage(final String text, final String format, final long userId, final ReplyMarkup replyMarkup, final Consumer<Long> msgIdConsumer) {
+    private void sendMessage(final String text, final String format, final User user, final ReplyMarkup replyMarkup, final Consumer<Long> msgIdConsumer) {
         final ObjectNode node = Json.newObject();
-        node.put("chat_id", userId);
+        node.put("chat_id", user.getId());
         node.put("text", text);
         if (format != null)
             node.put("parse_mode", format);
@@ -102,10 +105,10 @@ public class TgApi {
                 .thenAccept(msgIdConsumer));
     }
 
-    public void sendCallbackAnswer(final String text, final long callbackId, final boolean alert, final int cacheTime) {
+    public void sendCallbackAnswer(final LangMap.Value text, final long callbackId, final boolean alert, final int cacheTime, final User user, final Object... args) {
         final ObjectNode node = Json.newObject();
         node.put("callback_query_id", callbackId);
-        node.put("text", text);
+        node.put("text", v(text, user, args));
         node.put("show_alert", alert);
         node.put("cache_time", cacheTime);
 
@@ -129,5 +132,9 @@ public class TgApi {
                 .post(node)
                 .thenApply(wsr -> wsr.asJson().get("result").get("message_id").asLong())
                 .thenAccept(msgIdConsumer));
+    }
+
+    public void sendCallbackAnswer(final LangMap.Value text, final long callbackId, final User user, final Object... args) {
+        sendCallbackAnswer(text, callbackId, false, 0, user, args);
     }
 }

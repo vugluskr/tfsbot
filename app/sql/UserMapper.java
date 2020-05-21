@@ -13,6 +13,5 @@ public interface UserMapper {
 
     void insertUser(User user);
 
-    void updateOpts(@Param("lastMessageId") long lastMessageId, @Param("lastDialogId") long lastDialogId, @Param("options") int options,
-                    @Param("savedState") String savedState, @Param("userId") long userId);
+    void update(User user);
 }

@@ -10,16 +10,10 @@
         <appender-ref ref="STDOUT"/>
     </appender>
 
-<!--    <logger level="ERROR" name="utils"/>-->
-<!--    <logger level="ERROR" name="modules"/>-->
-<!--    <logger level="DEBUG" name="services"/>-->
-<!--    <logger level="ERROR" name="listeners"/>-->
-
-    <!--    <logger level="OFF" name="mappers"/>-->
-    <logger level="OFF" name="play"/>
-    <logger level="OFF" name="akka"/>
+    <logger level="WARN" name="play"/>
+    <logger level="WARN" name="akka"/>
+    <logger level="WARN" name="sql"/>
     <logger level="OFF" name="org.mybatis"/>
-    <logger level="OFF" name="io.swagger"/>
     <logger level="OFF" name="org.apache"/>
     <logger level="OFF" name="com.zaxxer"/>
 

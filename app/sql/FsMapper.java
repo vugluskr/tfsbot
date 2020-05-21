@@ -56,4 +56,20 @@ public interface FsMapper {
     void resetFound(long owner);
 
     List<TFile> selectFound(long owner);
+
+    void resetSelection(long owner);
+
+    int deleteSelected(long owner);
+
+    void updateSelection(@Param("selected") boolean selected, @Param("id") long id, @Param("owner") long owner);
+
+    List<TFile> getSelected(long owner);
+
+    void inversListSelection(@Param("dirId") long dirId, @Param("owner") long owner);
+
+    void inversFoundSelection(long owner);
+
+    void inversSelection(@Param("id") long id, @Param("owner") long owner);
+
+    void setExclusiveSelected(@Param("id") long id, @Param("owner") long owner);
 }
