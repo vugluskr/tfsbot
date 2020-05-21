@@ -37,7 +37,7 @@ public class UserService {
         final User user;
 
         if (db == null) {
-            final boolean ru = cr.getLanguageCode().equalsIgnoreCase("ru");
+            final boolean ru = notNull(cr.getLanguageCode()).equalsIgnoreCase("ru");
             user = new User();
             user.setId(cr.getId());
             user.setLang(cr.getLanguageCode());
