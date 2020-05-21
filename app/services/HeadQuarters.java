@@ -310,6 +310,7 @@ public class HeadQuarters {
                                     tgApi.sendCallbackAnswer(LangMap.Value.EDIT_MODE, callbackId, user);
                                     callbackData = null;
                                     user.setState(Gear);
+                                    user.setFallback(Search);
                                     break;
                                 case cancel:
                                     tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
@@ -370,7 +371,9 @@ public class HeadQuarters {
                                     break;
                                 case cancel:
                                     tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
-                                    user.switchBack();
+                                    user.switchBack(); // should be 'Search'
+                                    if (!isEmpty(user.getQuery()))
+                                        input = user.getQuery();
                                     callbackData = null;
                                     break;
                                 case rewind:
