@@ -111,4 +111,16 @@ public class ContactRef implements TeleFile {
     public String getUniqId() {
         return phoneNumber;
     }
+
+    @Override
+    public String toString() {
+        return "ContactRef{" +
+                "id=" + id +
+                ", bot=" + bot +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", username='" + username + '\'' +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                '}';
+    }
 }
