@@ -53,7 +53,7 @@ public class TgApi {
                     ws.url(apiUrl + "editMessageText")
                             .post(node)
                             .thenApply(wsr -> {
-                                logger.debug("UpdateMessageText:\nrequest: " + node + "\nresponse: " + wsr.getBody());
+//                                logger.debug("UpdateMessageText:\nrequest: " + node + "\nresponse: " + wsr.getBody());
                                 return wsr;
                             })
                             .thenApply(wsr -> wsr.asJson().get("ok").asBoolean() ? wsr.asJson().get("result").get("message_id").asLong() :

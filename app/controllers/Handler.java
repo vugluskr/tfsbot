@@ -35,7 +35,7 @@ public class Handler extends Controller {
     public Result post(final Http.Request request) {
         try {
             if (request.hasBody()) {
-                logger.debug("INCOMING:\n" + request.body().asJson());
+//                logger.debug("INCOMING:\n" + request.body().asJson());
                 final UpdateRef updateRef = Json.fromJson(request.body().asJson(), UpdateRef.class);
 
                 if (updateRef != null) {
@@ -47,13 +47,13 @@ public class Handler extends Controller {
                     final long callbackId = callback == null ? 0 : updateRef.getCallback().getId();
                     final TeleFile file = updateRef.getMessage() != null ? updateRef.getMessage().getTeleFile() : null;
 
-                    logger.debug("Input: {id: " + id + ", text: " + text + ", callback: " + callback + "}", id, text, callback);
+//                    logger.debug("Input: {id: " + id + ", text: " + text + ", callback: " + callback + "}", id, text, callback);
 
                     CompletableFuture.runAsync(() -> hq.accept(user, file, file != null ? updateRef.getMessage().getCaption() : text, callback, id, callbackId));
-                } else
-                    logger.debug("No UpdateRef object in request body");
-            } else
-                logger.debug("Empty request body");
+                } //else
+//                    logger.debug("No UpdateRef object in request body");
+            } //else
+//                logger.debug("Empty request body");
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
         }
