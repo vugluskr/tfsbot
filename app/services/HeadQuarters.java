@@ -64,6 +64,7 @@ public class HeadQuarters {
 
             if (file != null) {
                 fsService.upload(TFileFactory.file(file, input, user.getDirId()), user);
+                input = callbackData = null;
                 user.setState(View);
             }
 
