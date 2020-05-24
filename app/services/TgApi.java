@@ -79,6 +79,10 @@ public class TgApi {
                     } catch (final Exception e) {
                         logger.error("Error complete delete message #" + messageId + ": " + e.getMessage(), e);
                     }
+                })
+                .exceptionally(throwable -> {
+                    logger.error(throwable.getMessage(), throwable);
+                    return null;
                 }));
     }
 
@@ -86,7 +90,7 @@ public class TgApi {
         sendMessage(v(question, user, args), null, user, new ForceReply(), msgIdConsumer);
     }
 
-    public void sendPlainText(final LangMap.Value value, final User user, final Consumer<Long> msgIdConsumer, final Object ... args) {
+    public void sendPlainText(final LangMap.Value value, final User user, final Consumer<Long> msgIdConsumer, final Object... args) {
         sendMessage(v(value, user, args), null, user, null, msgIdConsumer);
     }
 

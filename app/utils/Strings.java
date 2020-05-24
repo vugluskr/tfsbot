@@ -19,13 +19,6 @@ public interface Strings {
         String Rename = "Rename";
     }
 
-    interface Params {
-        String offset = "offset";
-        String dirId = "dirId";
-        String query = "query";
-        String fileId = "fileId";
-    }
-
     interface Callback {
         // main buttons
         String goUp = "goUp";
@@ -48,6 +41,8 @@ public interface Strings {
 
         String put = "pt";
         String checkAll = "ca";
+
+        String shares = "sha";
     }
 
     interface Uni {
