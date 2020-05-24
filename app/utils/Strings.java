@@ -1,12 +1,16 @@
 package utils;
 
 
+import java.time.format.DateTimeFormatter;
+
 /**
  * @author Denis Danilin | denis@danilin.name
  * 19.05.2020
  * tfs ☭ sweat and blood
  */
 public interface Strings {
+    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yy HH:mm");
+
     interface State {
         String MkLabel = "MkLabel";
         String Search = "Search";
@@ -17,6 +21,9 @@ public interface Strings {
         String SearchGear = "SearchGear";
         String Move = "Move";
         String Rename = "Rename";
+        String MkShare = "MkShare";
+        String PubShareWizard = "PubShareWizard";
+        String PasswWizard = "PasswordWizard";
     }
 
     interface Callback {
@@ -26,7 +33,7 @@ public interface Strings {
         String searchStateInit = State.Search;
         String mkDir = State.MkDir;
         String gearStateInit = State.Gear;
-        String cancel = "cncl";
+        String cancelCb = "cncl";
         String move = State.Move;
         String drop = "rm";
 
@@ -42,7 +49,15 @@ public interface Strings {
         String put = "pt";
         String checkAll = "ca";
 
-        String shares = "sha";
+        String share = "sha";
+        String mkLink = "lnk";
+        String mkGrant = "grnt";
+        String resetPassword = "rpss";
+        String dropPassword = "dpss";
+        String save = "sv";
+        String resetValid = "vld_rst";
+        String makeOtuValid = "vld_otu";
+        String makeUntillValid = "vld_unt";
     }
 
     interface Uni {
@@ -61,6 +76,14 @@ public interface Strings {
         String checkAll = "\u2611\uFE0F"; // ☑️
         String put = "\u2705"; // ✅
         String label = "\uD83C\uDFF7"; // 🏷
+        String share = "\uD83C\uDF10"; // 🌐
+        String keyLock = "\uD83D\uDD10"; // 🔐
+        String lock = "\uD83D\uDD12"; // 🔒
+        String Link = "\uD83D\uDD17"; // 🔗
+        String People = "\uD83D\uDC65"; // 👥
+        String Person = "\uD83D\uDC64"; // 👤
+        String save = "\uD83D\uDCBE"; // 💾
+        String uno = "1\uFE0F\u20E3"; // 1️⃣
     }
 
 }

@@ -1,5 +1,6 @@
 package sql;
 
+import model.Share;
 import model.TFile;
 import org.apache.ibatis.annotations.Param;
 
@@ -31,7 +32,7 @@ public interface FsMapper {
     TFile findEntryAt(@Param("name") String name, @Param("parentId") long parentId, @Param("owner") long owner);
     List<TFile> listEntries(@Param("parentId") long dirId, @Param("owner") long id);
 
-    void updateEntry(@Param("name") String name, @Param("parentId") long parentId, @Param("id") long id, @Param("owner") long owner);
+    void updateEntry(@Param("name") String name, @Param("parentId") long parentId, @Param("options") int options, @Param("id") long id, @Param("owner") long owner);
 
     void dropEntry(@Param("id") long id, @Param("owner") long owner);
     void dropOrphans(@Param("id") long id, @Param("owner") long owner);
@@ -72,4 +73,18 @@ public interface FsMapper {
     void inversSelection(@Param("id") long id, @Param("owner") long owner);
 
     void setExclusiveSelected(@Param("id") long id, @Param("owner") long owner);
+
+    List<Share> selectSharesByDir(@Param("entryId") long id, @Param("owner") long owner);
+
+    Share getLinkShare(@Param("entryId") long id, @Param("owner") long owner);
+
+    boolean isShareIdAvailable(String id);
+
+    void insertShare(Share share);
+
+    void deletePublicShare(@Param("entryId") long id, @Param("owner") long owner);
+
+    int countSharesByDir(long entryId);
+
+    void updateShare(Share share);
 }

@@ -10,7 +10,8 @@
             type      text    default 'DIR':: text not null,
             ref_id    text    default '--':: text  not null,
             selected  boolean default false,
-            found     boolean default false
+            found     boolean default false,
+            options   int     default 0
         )
     </update>
 
@@ -94,6 +95,7 @@
                f.ref_id        as "refId",
                f.selected,
                f.found,
+               f.options,
                ft.path
         from fs_struct_${owner} f
                  left outer join fs_tree_${owner} ft on f.id = ft.id
@@ -115,7 +117,8 @@
     <update id="updateEntry">
         update fs_struct_${owner}
         set name      = #{name} ,
-            parent_id = #{parentId}
+            parent_id = #{parentId} ,
+            options   = #{options}
         where id = #{id}
     </update>
 
@@ -313,5 +316,68 @@
     <update id="setExclusiveSelected">
         update fs_struct_${owner}
         set selected = (case when id = #{id} then true else false end)
+    </update>
+
+    <select id="selectSharesByDir" resultType="model.Share">
+        select
+        <include refid="share"/>
+        from shares
+        where entry_id = #{entryId}
+          and owner = #{owner}
+          and shared_to != owner
+    </select>
+
+    <select id="getLinkShare" resultType="model.Share">
+        select
+        <include refid="share"/>
+        from shares
+        where entry_id = #{entryId}
+          and owner = #{owner}
+        and shared_to = 0
+    </select>
+
+    <sql id="share">
+        id,
+               name,
+               entry_id  as "entryId",
+               owner,
+               shared_to as "sharedTo",
+               options,
+               untill,
+               salt,
+               hash
+    </sql>
+
+    <select id="isShareIdAvailable" resultType="_boolean">
+        select not exists(select 1 from shares where id = #{id} )
+    </select>
+
+    <insert id="insertShare">
+        insert INTO shares(id, name, entry_id, owner, salt, hash, options, shared_to, untill)
+        VALUES (#{id} , #{name} , #{entryId} , #{owner} , #{salt} , #{hash} , #{options} , #{sharedTo} , #{untill} )
+    </insert>
+
+    <delete id="deletePublicShare">
+        delete
+        from shares
+        where entry_id = #{entryId}
+          and owner = #{owner}
+          and shared_to = 0
+    </delete>
+
+    <select id="countSharesByDir" resultType="_int">
+        select count(*)
+        from shares
+        where entry_id = #{entryId}
+          and owner = #{owner}
+    </select>
+
+    <update id="updateShare">
+        update shares
+        set untill  = #{untill} ,
+            salt    = #{salt} ,
+            hash    = #{hash} ,
+            options = #{options}
+        where id = #{id}
     </update>
 </mapper>

@@ -151,6 +151,40 @@ public class TextUtils {
         return null;
     }
 
+    private static long _toLong(byte[] buffer, int offset) {
+        long l1 = _toInt(buffer, offset);
+        long l2 = _toInt(buffer, offset + 4);
+        return (l1 << 32) + ((l2 << 32) >>> 32);
+    }
+
+    private static long _toInt(byte[] buffer, int offset) {
+        return (buffer[offset] << 24)
+                + ((buffer[++offset] & 0xFF) << 16)
+                + ((buffer[++offset] & 0xFF) << 8)
+                + (buffer[++offset] & 0xFF);
+    }
+
+    public static UUID generateUuid() {
+        final byte[] buffer = new byte[16];
+        rnd.nextBytes(buffer);
+
+        return generateUuid(buffer);
+    }
+
+    private static UUID generateUuid(final byte[] buffer) {
+        long r1, r2;
+
+        r1 = _toLong(buffer, 0);
+        r2 = _toLong(buffer, 1);
+
+        r1 &= ~0xF000L;
+        r1 |= 4 << 12;
+        r2 = ((r2 << 2) >>> 2);
+        r2 |= (2L << 62);
+
+        return new UUID(r1, r2);
+    }
+
     private static final Pattern md = Pattern.compile("([=#\\.\\(\\)\\*\\[\\]\"`'~_-])");
 
     public static String escapeMd(final String s) {

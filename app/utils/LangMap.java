@@ -43,7 +43,7 @@ public class LangMap {
         init(Value.CANT_MKLBL, "cannot create label ‘%s’: File exists", "Невозможно создать заметку '%s': файл уже существует");
         init(Value.NO_RESULTS, "Nothing found for ‘%s’", "Ничего не найдено по запросу '%s'");
         init(Value.NO_RESULTS_AFTER, "No search results", "Результатов поиска нет");
-        init(Value.TYPE_QUERY, "Type query:", "Запрос:");
+        init(Value.TYPE_QUERY, "Type query:", "Поиск:");
         init(Value.TYPE_RENAME, "Type new name for '%s':", "Новое название для '%s':");
         init(Value.TYPE_FOLDER, "Type new folder name:", "Название новой директории:");
         init(Value.CD, "cd %s", "переход в %s");
@@ -64,6 +64,28 @@ public class LangMap {
         init(Value.SEARCHED, "Search for '%s': %s entry(s)", "Поиск '%s': %s результат(ов)");
         init(Value.UPLOADED, "File stored '%s'", "Файл сохранён '%s'");
         init(Value.CHECK_ALL, "*", "*");
+        init(Value.NO_GLOBAL_LINK, "No public link", "Нет публичной ссылки");
+        init(Value.NO_PERSONAL_GRANTS, "No personal grants", "Нет личных приглашений");
+        init(Value.LINK, "Link: %s", "Ссылка: %s");
+        init(Value.PASS_RESET, "Reset passw", "Сбросить пароль");
+        init(Value.PASS_SET, "Set passw", "Установить пароль");
+        init(Value.PASS_DROP, "Drop passw", "Удалить пароль");
+        init(Value.PASSWORD_SET, "Password: _set_", "Пароль: _установлен_");
+        init(Value.PASSWORD_SET_TXT, "Password setted", "Пароль установлен");
+        init(Value.PASSWORD_NOT_SET, "Password: _not set_", "Пароль: _не установлен_");
+        init(Value.VALID_ONETIME, "Validity: _one time access_", "Срок действия: _одноразовая ссылка_");
+        init(Value.VALID_UNTILL, "Validity: _open untill %s_", "Срок действия: _ссылка действительна до %s_");
+        init(Value.VALID_CANCEL, "Reset validity", "Удалить срок");
+        init(Value.VALID_NOT_SET, "Validity: _unlimited_", "Срок действия: _без ограничений_");
+        init(Value.VALID_SET_OTU, "Set OneTime", "Сделать одноразовой");
+        init(Value.VALID_SET_UNTILL, "Set expiration", "Установить срок");
+        init(Value.LINK_DELETED, "Link deleted", "Ссылка удалена");
+        init(Value.LINK_SAVED, "Link saved", "Ссылка сохранена");
+        init(Value.TYPE_PASSWORD, "Type password:", "Новый пароль:");
+        init(Value.TYPE_PASSWORD2, "Type password again:", "Новый пароль (повтор):");
+        init(Value.PASSWORD_NOT_MATCH, "Password doesnt match", "Пароль не подходит");
+        init(Value.PASSWORD_CLEARED, "Password removed", "Пароль выключен");
+        init(Value.VALID_CLEARED, "Validity limit removed", "Ограничения сняты");
     }
 
     private static void init(final Value key, final String en, final String ru) {
@@ -74,7 +96,11 @@ public class LangMap {
     public enum Value {
         CMD, DESC, CD_HELP, CD_HELP2, GET_HELP, GET_HELP2, LS_HELP, LS_HELP2, MKD_HELP, MKD_HELP2, MV_HELP, MV_HELP2, PWD_HELP, PWD_HELP2, RM_HELP, RM_HELP2, LBL_HELP,
         LBL_HELP2, ALS_HELP, ALS_HELP2, CANT_MKDIR, CANT_RN_TO, CANT_MKLBL, NO_RESULTS, TYPE_QUERY, TYPE_RENAME, TYPE_FOLDER, CD, PAGE, NORMAL_MODE, EDIT_MODE, DELETED,
-        DELETED_MANY, MOVE_DEST, DESELECTED, SELECTED, MOVED, TYPE_LABEL, SEARCHED, NO_CONTENT, LANG_SWITCHED, NO_RESULTS_AFTER, UPLOADED, None, CHECK_ALL, CMD_LIST
+        DELETED_MANY, MOVE_DEST, DESELECTED, SELECTED, MOVED, TYPE_LABEL, SEARCHED, NO_CONTENT, LANG_SWITCHED, NO_RESULTS_AFTER, UPLOADED, None, CHECK_ALL, NO_GLOBAL_LINK,
+        NO_PERSONAL_GRANTS, CMD_LIST,
+        PASS_RESET, PASS_DROP, PASSWORD_SET, PASSWORD_NOT_SET, VALID_ONETIME, VALID_UNTILL, VALID_CANCEL, VALID_NOT_SET, VALID_SET_OTU, VALID_SET_UNTILL, LINK_DELETED,
+        LINK_SAVED, PASS_SET, TYPE_PASSWORD, TYPE_PASSWORD2, PASSWORD_SET_TXT, PASSWORD_NOT_MATCH, PASSWORD_CLEARED, VALID_CLEARED, LINK
+
     }
 
     public static String v(final Value name, final User user, final Object... args) {

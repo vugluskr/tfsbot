@@ -1,5 +1,6 @@
 package services;
 
+import model.Share;
 import model.TFile;
 import model.User;
 import model.telegram.ContentType;
@@ -27,7 +28,7 @@ public class GUI {
         InlineButton searchButton = new InlineButton(Uni.search, Callback.searchStateInit);
         InlineButton mkDirButton = new InlineButton(Uni.mkdir, Callback.mkDir);
         InlineButton gearButton = new InlineButton(Uni.gear, Callback.gearStateInit);
-        InlineButton cancelButton = new InlineButton(Uni.cancel, Callback.cancel);
+        InlineButton cancelButton = new InlineButton(Uni.cancel, Callback.cancelCb);
         InlineButton goUpButton = new InlineButton(Uni.updir, Callback.goUp);
         InlineButton rewindButton = new InlineButton(Uni.rewind, Callback.rewind);
         InlineButton forwardButton = new InlineButton(Uni.forward, Callback.forward);
@@ -35,7 +36,12 @@ public class GUI {
         InlineButton putButton = new InlineButton(Uni.put, Callback.put);
         InlineButton moveButton = new InlineButton(Uni.move, Callback.move);
         InlineButton dropButton = new InlineButton(Uni.drop, Callback.drop);
-        InlineButton checkAll = new InlineButton(Uni.checkAll, Callback.checkAll);
+        InlineButton checkAllButton = new InlineButton(Uni.checkAll, Callback.checkAll);
+        InlineButton shareButton = new InlineButton(Uni.share, Callback.share);
+        InlineButton mkLinkButton = new InlineButton(Uni.Link, Callback.mkLink);
+        InlineButton mkGrantButton = new InlineButton(Uni.Person, Callback.mkGrant);
+        InlineButton saveButton = new InlineButton(Uni.save, Callback.save);
+
     }
 
     private static final InlineKeyboard fileKbd = new InlineKeyboard();
@@ -55,6 +61,25 @@ public class GUI {
 
     public void makeFileDialog(final TFile entry, final long chatId, final Consumer<Long> dialogIdConsumer) {
         tgApi.sendMedia(entry, entry.getPath(), fileKbd, chatId, dialogIdConsumer);
+    }
+
+    public void makeSharesView(final String mdEscapedBody, final List<Share> scope, final List<InlineButton> upper, final List<InlineButton> bottom,
+                               final User user, final Consumer<Long> sentMsgIdConsumer) {
+        final TextRef box = new TextRef(mdEscapedBody, user.getId()).setMd2();
+
+        if (!isEmpty(upper))
+            upper.forEach(box::headRow);
+
+        if (!isEmpty(scope))
+            scope.stream()
+                    .sorted(Comparator.comparing(Share::getName))
+                    .forEach(s -> box.row(new InlineButton(Uni.Person + "  " + s.getName(), Callback.openEntry + s.getId())));
+
+        if (!bottom.isEmpty())
+            box.row(bottom);
+
+        send(box, user.getLastMessageId(), user, sentMsgIdConsumer);
+
     }
 
     public void makeMovingView(final String mdEscapedBody, final List<TFile> scope, final List<InlineButton> upper, final List<InlineButton> bottom,
@@ -137,7 +162,7 @@ public class GUI {
         send(box, lastMessageId, user, sentMsgIdConsumer);
     }
 
-    private void send(final TextRef box, final long lastMessageId, final User user, final Consumer<Long> sentMsgIdConsumer) {
+    void send(final TextRef box, final long lastMessageId, final User user, final Consumer<Long> sentMsgIdConsumer) {
         tgApi.sendOrUpdate(box.getText(), box.getParseMode(), box.getReplyMarkup(), lastMessageId, user, sentMsgIdConsumer);
     }
 }

@@ -1,6 +1,8 @@
 package model;
 
 import model.telegram.ContentType;
+import utils.BMasked;
+import utils.Optioned;
 
 import static utils.TextUtils.notNull;
 
@@ -9,13 +11,14 @@ import static utils.TextUtils.notNull;
  * 01.05.2020
  * tfs ☭ sweat and blood
  */
-public class TFile implements Comparable<TFile> {
+public class TFile implements Comparable<TFile>, Optioned {
     private long id;
     private long parentId;
     private String refId;
     private ContentType type;
     private String name, path;
     private boolean selected, found;
+    private int options;
 
     public boolean isDir() {
         return type == ContentType.DIR;
@@ -124,5 +127,29 @@ public class TFile implements Comparable<TFile> {
 
     public void setFound(final boolean found) {
         this.found = found;
+    }
+
+    public int getOptions() {
+        return options;
+    }
+
+    public void setOptions(final int options) {
+        this.options = options;
+    }
+
+    public boolean isShared() {
+        return Optz.shared.is(options);
+    }
+
+    public void setUnshared() {
+        Optz.shared.remove(this);
+    }
+
+    public void setShared() {
+        Optz.shared.set(this);
+    }
+
+    enum Optz implements BMasked {
+        shared, locked;
     }
 }

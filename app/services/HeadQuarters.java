@@ -1,17 +1,21 @@
 package services;
 
+import model.Share;
 import model.TFile;
 import model.User;
 import model.telegram.ContentType;
 import model.telegram.api.InlineButton;
 import model.telegram.api.TeleFile;
+import model.telegram.api.TextRef;
 import play.Logger;
-import utils.LangMap;
-import utils.Strings;
-import utils.TFileFactory;
+import utils.*;
 
 import javax.inject.Inject;
+import java.math.BigInteger;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,6 +24,7 @@ import java.util.stream.Collectors;
 import static utils.LangMap.v;
 import static utils.Strings.Callback.*;
 import static utils.Strings.State.*;
+import static utils.Strings.dtf;
 import static utils.TextUtils.*;
 
 /**
@@ -86,7 +91,7 @@ public class HeadQuarters {
                                     eol = true;
                                     makeGearView(user);
                                     break;
-                                case cancel:
+                                case cancelCb:
                                     tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
                                     callbackData = null;
                                     user.switchBack();
@@ -110,6 +115,12 @@ public class HeadQuarters {
                                     eol = true;
                                     makeGearView(user);
                                     break;
+                                case share:
+                                    tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
+                                    callbackData = null;
+                                    user.setState(MkShare);
+                                    user.setFallback(Gear);
+                                    break;
                                 default:
                                     tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
                                     fsService.inversSelection(getLong(callbackData), user);
@@ -124,6 +135,114 @@ public class HeadQuarters {
                             fsService.resetSelection(user);
                             eol = true;
                             makeGearView(user);
+                        }
+                        break;
+                    case PasswWizard:
+                        if (!isEmpty(callbackData)) {
+                            tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
+                            fsService.clearEditedShares(user);
+                            user.switchBack();
+                            callbackData = null;
+                        } else if (!isEmpty(input)) {
+                            final Share share = fsService.getEdited(user);
+
+                            if (share.getSalt() == null) {
+                                share.setSalt(input);
+                                input = null;
+                            } else {
+                                if (share.getSalt().equals(input)) {
+                                    share.setSalt(new BigInteger(130, TextUtils.rnd).toString(32));
+                                    share.setHash(Sha2Digest.hash256(share.getSalt() + input));
+                                    share.setPasswordLock();
+                                    share.clearEdited();
+                                    fsService.updateShare(share);
+
+                                    user.switchBack();
+                                    input = null;
+                                } else {
+                                    final TextRef tf = new TextRef(v(LangMap.Value.PASSWORD_NOT_MATCH, user), user.getId()).setMd2();
+                                    tf.row(GUI.Buttons.cancelButton);
+
+                                    gui.send(tf, 0, user, dlg -> {
+                                        user.setLastDialogId(dlg);
+                                        userService.update(user);
+                                    });
+                                    eol = true;
+                                }
+                            }
+                        } else {
+                            final Share share = fsService.getEdited(user);
+
+                            tgApi.ask(share.getSalt() == null ? LangMap.Value.TYPE_PASSWORD : LangMap.Value.TYPE_PASSWORD2, user, dlg -> {
+                                user.setLastDialogId(dlg);
+                                userService.update(user);
+                            });
+                            eol = true;
+                        }
+                        break;
+                    case PubShareWizard:
+                        if (!isEmpty(callbackData)) {
+                            switch (callbackData) {
+                                case makeOtuValid: // todo
+                                case makeUntillValid: // todo
+                                case resetPassword:
+                                    tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
+                                    user.setState(PasswWizard);
+                                    user.setFallback(PubShareWizard);
+                                    fsService.markGlobForPassEdit(user);
+                                    break;
+                                case dropPassword:
+                                    tgApi.sendCallbackAnswer(LangMap.Value.PASSWORD_CLEARED, callbackId, user);
+                                    fsService.dropPubLinkPassword(user);
+                                    break;
+                                case resetValid:
+                                    tgApi.sendCallbackAnswer(LangMap.Value.VALID_CLEARED, callbackId, user);
+                                    fsService.dropPubLinkVailid(user);
+                                    break;
+                                case drop: {
+                                    fsService.dropPublicLink(user);
+                                    tgApi.sendCallbackAnswer(LangMap.Value.LINK_DELETED, callbackId, user);
+                                    user.switchBack();
+                                    break;
+                                }
+                                case save: {
+                                    fsService.validatePublicLink(user);
+                                    tgApi.sendCallbackAnswer(LangMap.Value.LINK_SAVED, callbackId, user);
+                                    user.switchBack();
+                                    break;
+                                }
+                                default:
+                                    tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
+                                    user.switchBack();
+                                    break;
+                            }
+                            callbackData = null;
+                        } else if (!isEmpty(input)) {
+
+                        } else {
+                            eol = true;
+                            makeShareView(user);
+                        }
+                        break;
+                    case MkShare:
+                        if (!isEmpty(callbackData)) {
+                            switch (callbackData) {
+                                case mkLink:
+                                    callbackData = null;
+                                    user.setState(PubShareWizard);
+                                    user.setFallback(MkShare);
+                                    break;
+                                default:
+                                    tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
+                                    callbackData = null;
+                                    user.switchBack();
+                                    break;
+                            }
+                        } else if (!isEmpty(input)) {
+                        } else {
+                            makeSharesView(user);
+
+                            eol = true;
                         }
                         break;
                     case MkDir:
@@ -194,7 +313,7 @@ public class HeadQuarters {
                                     user.setState(Strings.State.View);
                                     user.setFallback(Strings.State.View);
                                     break;
-                                case cancel:
+                                case cancelCb:
                                     tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
                                     callbackData = null;
                                     user.switchBack();
@@ -313,7 +432,7 @@ public class HeadQuarters {
                                     user.setState(Gear);
                                     user.setFallback(Search);
                                     break;
-                                case cancel:
+                                case cancelCb:
                                     tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
                                     callbackData = null;
                                     user.switchBack();
@@ -370,7 +489,7 @@ public class HeadQuarters {
                                     eol = true;
                                     makeGearSearchView(user);
                                     break;
-                                case cancel:
+                                case cancelCb:
                                     tgApi.sendCallbackAnswer(LangMap.Value.None, callbackId, user);
                                     user.switchBack(); // should be 'Search'
                                     if (!isEmpty(user.getQuery()))
@@ -486,6 +605,94 @@ public class HeadQuarters {
         }
     }
 
+    private void makeShareView(final User user) {
+        try {
+
+            final Share share = fsService.getCreateLinkShare(user);
+
+            final StringBuilder s = new StringBuilder();
+            s.append("*").append(share.getName()).append("*\n");
+            s.append(v(LangMap.Value.LINK, user, escapeMd("https://t.me/telefsbot?start=shared:" + share.getId()))).append("\n\n");
+
+            final List<InlineButton> passRow = new ArrayList<>(2), validRow = new ArrayList<>(1), lastRow = new ArrayList<>(2);
+            if (share.isPersonal()) {
+
+            } else {
+
+                if (share.isPasswordLock()) {
+                    s.append(v(LangMap.Value.PASSWORD_SET, user)).append("\n");
+                    passRow.add(new InlineButton(v(LangMap.Value.PASS_RESET, user), Strings.Callback.resetPassword));
+                    passRow.add(new InlineButton(v(LangMap.Value.PASS_DROP, user), Strings.Callback.dropPassword));
+                } else {
+                    s.append(v(LangMap.Value.PASSWORD_NOT_SET, user)).append("\n");
+                    passRow.add(new InlineButton(v(LangMap.Value.PASS_SET, user), Strings.Callback.resetPassword));
+//                    passRow.add(new InlineButton(v(LangMap.Value.PASS_DROP, user), Strings.Callback.dropPassword));
+                }
+
+                if (share.isOneTime()) {
+                    s.append(v(LangMap.Value.VALID_ONETIME, user)).append("\n");
+                    validRow.add(new InlineButton(v(LangMap.Value.VALID_CANCEL, user), Strings.Callback.resetValid));
+                } else if (share.getUntill() > 0) {
+                    s.append(v(LangMap.Value.VALID_UNTILL, user, dtf.format(LocalDateTime.from(Instant.ofEpochMilli(share.getUntill()))))).append("\n");
+                    validRow.add(new InlineButton(v(LangMap.Value.VALID_CANCEL, user), Strings.Callback.resetValid));
+                } else {
+                    s.append(v(LangMap.Value.VALID_NOT_SET, user)).append("\n");
+                    validRow.add(new InlineButton(v(LangMap.Value.VALID_SET_OTU, user), Strings.Callback.makeOtuValid));
+                    validRow.add(new InlineButton(v(LangMap.Value.VALID_SET_UNTILL, user), Strings.Callback.makeUntillValid));
+                }
+
+                lastRow.add(GUI.Buttons.saveButton);
+                lastRow.add(GUI.Buttons.dropButton);
+                lastRow.add(GUI.Buttons.cancelButton);
+            }
+
+            final TextRef box = new TextRef(s.toString(), user.getId()).setMd2();
+
+            box.row(passRow);
+            box.row(validRow);
+            box.row(lastRow);
+
+            gui.send(box, user.getLastMessageId(), user, msgid -> {
+                if (user.getLastMessageId() != msgid) {
+                    user.setLastMessageId(msgid);
+                    userService.update(user);
+                }
+            });
+        } catch (final Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
+    private void makeSharesView(final User user) {
+        final TFile dir = fsService.get(user.getDirId(), user);
+        final List<Share> shares = dir.isShared() ? fsService.listShares(dir.getId(), user) : Collections.emptyList();
+
+        final List<InlineButton> upper = new ArrayList<>(0), bottom = new ArrayList<>(0);
+
+        upper.add(GUI.Buttons.mkLinkButton);
+        upper.add(GUI.Buttons.mkGrantButton);
+        upper.add(GUI.Buttons.cancelButton);
+
+        final Share glob = shares.stream().filter(s -> s.getSharedTo() == 0).findAny().orElse(null);
+        final long countPers = shares.stream().filter(s -> s.getSharedTo() > 0).count();
+
+        gui.makeSharesView(
+                "*" + dir.getPath() + "*\n\n" +
+                        Strings.Uni.Link + ": _" + escapeMd((glob != null ?
+                        (glob.isPasswordLock() ? Strings.Uni.keyLock : "") + (glob.isOneTime() ? Strings.Uni.uno : "") + " https://t.me/telefsbot?start=shared:" + glob.getId() :
+                        v(LangMap.Value.NO_GLOBAL_LINK, user))) + "_\n" +
+                        Strings.Uni.People + ": _" + (countPers > 0 ? countPers + " " + Strings.Uni.People : escapeMd(v(LangMap.Value.NO_PERSONAL_GRANTS, user))) + "_",
+                shares.stream().filter(s -> s.getSharedTo() > 0).collect(Collectors.toList()),
+                upper, bottom,
+                user,
+                msgId -> {
+                    if (msgId != user.getLastMessageId()) {
+                        user.setLastMessageId(msgId);
+                        userService.update(user);
+                    }
+                });
+    }
+
     private void makeGearSearchView(final User user) {
         final List<TFile> scope = fsService.getFound(user);
         final List<InlineButton> upper = new ArrayList<>(0), bottom = new ArrayList<>(0);
@@ -499,7 +706,7 @@ public class HeadQuarters {
             upper.add(new InlineButton(Strings.Uni.drop + "(" + selection + ")", drop));
         }
 
-        upper.add(GUI.Buttons.checkAll);
+        upper.add(GUI.Buttons.checkAllButton);
         upper.add(GUI.Buttons.cancelButton);
 
         if (user.getSearchOffset() > 0)
@@ -526,7 +733,8 @@ public class HeadQuarters {
         final List<TFile> scope = fsService.getFound(user);
         final List<InlineButton> upper = new ArrayList<>(0), bottom = new ArrayList<>(0);
         upper.add(GUI.Buttons.searchButton);
-        upper.add(GUI.Buttons.gearButton);
+        if (!scope.isEmpty())
+            upper.add(GUI.Buttons.gearButton);
         upper.add(GUI.Buttons.cancelButton);
 
         if (user.getSearchOffset() > 0)
@@ -576,7 +784,10 @@ public class HeadQuarters {
             upper.add(new InlineButton(Strings.Uni.move + "(" + selection + ")", move));
             upper.add(new InlineButton(Strings.Uni.drop + "(" + selection + ")", drop));
         }
-        upper.add(GUI.Buttons.checkAll);
+        if (user.getDirId() > 1)
+            upper.add(GUI.Buttons.shareButton);
+        if (selection > 0)
+            upper.add(GUI.Buttons.checkAllButton);
         upper.add(GUI.Buttons.cancelButton);
 
         if (user.getOffset() > 0)

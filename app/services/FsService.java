@@ -1,13 +1,16 @@
 package services;
 
+import model.Share;
 import model.TFile;
 import model.User;
 import model.telegram.ContentType;
 import org.mybatis.guice.transactional.Transactional;
 import play.Logger;
 import sql.FsMapper;
+import utils.TextUtils;
 
 import javax.inject.Inject;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -21,15 +24,14 @@ public class FsService {
     @Inject
     private FsMapper mapper;
 
+    @Transactional
     public void init(final long userId) {
-        if (!mapper.isFsTableExist(userId)) {
-            mapper.createUserFs(userId);
-            mapper.createRoot(userId);
-        }
-
+        mapper.createUserFs(userId);
+        mapper.createRoot(userId);
         mapper.createTree(userId);
     }
 
+    @Transactional
     public void upload(final TFile file, final User owner) {
         try {
             mapper.dropEntryByName(file.getName(), file.getParentId(), owner.getId());
@@ -39,14 +41,6 @@ public class FsService {
         }
     }
 
-    public void rm(final long id, final User owner) {
-        if (id <= 1)
-            return;
-
-        mapper.dropEntry(id, owner.getId());
-        mapper.dropOrphans(id, owner.getId());
-    }
-
     public TFile get(final long id, final User user) {
         return mapper.getEntry(id, user.getId());
     }
@@ -54,7 +48,7 @@ public class FsService {
     public TFile findAt(final String name, final long dirId, final User user) { return mapper.findEntryAt(name, dirId, user.getId()); }
 
     public void updateMeta(final TFile file, final User user) {
-        mapper.updateEntry(file.getName(), file.getParentId(), file.getId(), user.getId());
+        mapper.updateEntry(file.getName(), file.getParentId(), file.getOptions(), file.getId(), user.getId());
     }
 
     public TFile mkdir(final String name, final long parentId, final long userId) {
@@ -71,7 +65,7 @@ public class FsService {
     }
 
     public void updateMetas(final List<TFile> toMove, final User user) {
-        toMove.forEach(f -> mapper.updateEntry(f.getName(), f.getParentId(), f.getId(), user.getId()));
+        toMove.forEach(f -> mapper.updateEntry(f.getName(), f.getParentId(), f.getOptions(), f.getId(), user.getId()));
     }
 
     public List<TFile> listFolders(final long dirId, final User user) {
@@ -118,5 +112,115 @@ public class FsService {
 
     public void inversFoundSelection(final User user) {
         mapper.inversFoundSelection(user.getId());
+    }
+
+    public List<Share> listShares(final long entryId, final User user) {
+        return mapper.selectSharesByDir(entryId, user.getId());
+    }
+
+    @Transactional
+    public Share getCreateLinkShare(final User user) {
+        final Share exist = mapper.getLinkShare(user.getDirId(), user.getId());
+
+        if (exist != null)
+            return exist;
+
+        final char[] uuid = TextUtils.generateUuid().toString().replace("-", "").toCharArray();
+        String tmp = new String(uuid);
+
+        for (int i = 6; i < uuid.length; i++) {
+            tmp = new String(Arrays.copyOfRange(uuid, 0, i));
+
+            if (mapper.isShareIdAvailable(tmp))
+                break;
+        }
+
+        final Share share = new Share();
+        share.setName(mapper.getEntry(user.getDirId(), user.getId()).getName());
+        share.setId(tmp);
+        share.setOwner(user.getId());
+        share.setEntryId(user.getDirId());
+
+        mapper.insertShare(share);
+
+        return share;
+    }
+
+    @Transactional
+    public void dropPublicLink(final User user) {
+        mapper.deletePublicShare(user.getDirId(), user.getId());
+        final TFile dir = mapper.getEntry(user.getDirId(), user.getId());
+
+        if (mapper.countSharesByDir(user.getDirId()) == 0 && dir.isShared()) {
+            dir.setUnshared();
+            updateMeta(dir, user);
+        }
+    }
+
+    @Transactional
+    public void validatePublicLink(final User user) {
+        final TFile dir = mapper.getEntry(user.getDirId(), user.getId());
+
+        if (!dir.isShared()) {
+            dir.setShared();
+            updateMeta(dir, user);
+        }
+    }
+
+    @Transactional
+    public void dropPubLinkPassword(final User user) {
+        final Share share = mapper.getLinkShare(user.getDirId(), user.getId());
+
+        if (share == null)
+            dropPublicLink(user);
+        else {
+            share.clearPasswordLock();
+            mapper.updateShare(share);
+        }
+    }
+
+    public void dropPubLinkVailid(final User user) {
+        final Share share = mapper.getLinkShare(user.getDirId(), user.getId());
+
+        if (share == null)
+            dropPublicLink(user);
+        else {
+            share.clearValids();
+            mapper.updateShare(share);
+        }
+    }
+
+    public void markGlobForPassEdit(final User user) {
+        final List<Share> mine = mapper.selectSharesByDir(user.getDirId(), user.getId());
+        final Share share = mine.stream().filter(s -> s.getSharedTo() == 0).findAny().orElse(null);
+
+        if (share == null)
+            dropPublicLink(user);
+        else {
+            mine.stream().filter(s -> s.getSharedTo() > 0 && s.isEdited()).forEach(s -> {
+                s.clearEdited();
+                mapper.updateShare(s);
+            });
+            share.setEdited();
+            share.setHash(null);
+            share.setSalt(null);
+            mapper.updateShare(share);
+        }
+    }
+
+    public Share getEdited(final User user) {
+        return mapper.selectSharesByDir(user.getDirId(), user.getId()).stream().filter(Share::isEdited).findAny().orElse(new Share());
+    }
+
+    public void updateShare(final Share share) {
+        mapper.updateShare(share);
+    }
+
+    public void clearEditedShares(final User user) {
+        final List<Share> mine = mapper.selectSharesByDir(user.getDirId(), user.getId());
+        mine.stream().filter(s -> s.getSharedTo() > 0 && s.isEdited()).forEach(s -> {
+            s.clearEdited();
+            mapper.updateShare(s);
+        });
     }
 }

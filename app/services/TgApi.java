@@ -44,6 +44,7 @@ public class TgApi {
             node.put("chat_id", user.getId());
             node.put("text", text);
             node.put("message_id", updateMessageId);
+            node.put("disable_web_page_preview", true);
             if (format != null)
                 node.put("parse_mode", format);
             if (replyMarkup != null)
@@ -53,7 +54,7 @@ public class TgApi {
                     ws.url(apiUrl + "editMessageText")
                             .post(node)
                             .thenApply(wsr -> {
-//                                logger.debug("UpdateMessageText:\nrequest: " + node + "\nresponse: " + wsr.getBody());
+                                logger.debug("UpdateMessageText:\nrequest: " + node + "\nresponse: " + wsr.getBody());
                                 return wsr;
                             })
                             .thenApply(wsr -> wsr.asJson().get("ok").asBoolean() ? wsr.asJson().get("result").get("message_id").asLong() :
@@ -63,6 +64,10 @@ public class TgApi {
                                     sendMessage(text, format, user, replyMarkup, msgIdConsumer);
                                 else
                                     msgIdConsumer.accept(msgId);
+                            })
+                            .exceptionally(e -> {
+                                logger.error(e.getMessage(), e);
+                                return null;
                             }));
         } else
             sendMessage(text, format, user, replyMarkup, msgIdConsumer);

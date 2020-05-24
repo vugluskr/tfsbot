@@ -25,10 +25,14 @@ public class TextRef {
     @JsonProperty("parse_mode")
     private String parseMode;
 
+    @JsonProperty("disable_web_page_preview")
+    private boolean disablePreview;
+
     @JsonProperty("reply_markup")
     private ReplyMarkup replyMarkup;
 
     public TextRef() {
+        disablePreview = true;
     }
 
     public TextRef(final String text, final long chatId) {
@@ -88,6 +92,14 @@ public class TextRef {
     public TextRef withKeyboard(final InlineKeyboard keyboard) {
         setReplyMarkup(keyboard);
         return this;
+    }
+
+    public boolean isDisablePreview() {
+        return disablePreview;
+    }
+
+    public void setDisablePreview(final boolean disablePreview) {
+        this.disablePreview = disablePreview;
     }
 
     public TextRef withForcedReply() {

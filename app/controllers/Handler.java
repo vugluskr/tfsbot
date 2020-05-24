@@ -35,7 +35,7 @@ public class Handler extends Controller {
     public Result post(final Http.Request request) {
         try {
             if (request.hasBody()) {
-//                logger.debug("INCOMING:\n" + request.body().asJson());
+                logger.debug("INCOMING:\n" + Json.stringify(request.body().asJson()));
                 final UpdateRef updateRef = Json.fromJson(request.body().asJson(), UpdateRef.class);
 
                 if (updateRef != null) {
