@@ -6,19 +6,19 @@
         </encoder>
     </appender>
 
-    <appender class="ch.qos.logback.classic.AsyncAppender" name="ASYNCSTDOUT">
-        <appender-ref ref="STDOUT"/>
-    </appender>
+<!--    <appender class="ch.qos.logback.classic.AsyncAppender" name="ASYNCSTDOUT">-->
+<!--        <appender-ref ref="STDOUT"/>-->
+<!--    </appender>-->
 
     <logger level="WARN" name="play"/>
     <logger level="WARN" name="akka"/>
-    <logger level="WARN" name="sql"/>
-    <logger level="OFF" name="org.mybatis"/>
+<!--    <logger level="WARN" name="sql"/>-->
+<!--    <logger level="OFF" name="org.mybatis"/>-->
     <logger level="OFF" name="org.apache"/>
     <logger level="OFF" name="com.zaxxer"/>
 
     <root level="DEBUG">
-        <appender-ref ref="ASYNCSTDOUT"/>
+        <appender-ref ref="STDOUT"/>
     </root>
 
 </configuration>

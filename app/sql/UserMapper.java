@@ -9,9 +9,11 @@ import org.apache.ibatis.annotations.Param;
  * tfs ☭ sweat and blood
  */
 public interface UserMapper {
-    User selectUser(long id);
+    String selectUser(@Param("id") long id);
 
-    void insertUser(User user);
+    void insertUser(@Param("id") long id, @Param("current") String current);
 
-    void update(User user);
+    void update(@Param("id") long id, @Param("current") String current);
+
+    User selectUserOldWay(@Param("id") long id);
 }

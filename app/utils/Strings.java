@@ -3,6 +3,8 @@ package utils;
 
 import java.time.format.DateTimeFormatter;
 
+import static utils.TextUtils.getInt;
+
 /**
  * @author Denis Danilin | denis@danilin.name
  * 19.05.2020
@@ -11,53 +13,19 @@ import java.time.format.DateTimeFormatter;
 public interface Strings {
     DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yy HH:mm");
 
-    interface State {
-        String MkLabel = "MkLabel";
-        String Search = "Search";
-        String MkDir = "MkDir";
-        String Gear = "Gear";
-        String OpenFile = "OpenFile";
-        String View = "View";
-        String SearchGear = "SearchGear";
-        String Move = "Move";
-        String Rename = "Rename";
-        String MkShare = "MkShare";
-        String PubShareWizard = "PubShareWizard";
-        String PasswWizard = "PasswordWizard";
-    }
+    enum Callback {
+        goUp, cancelCb, drop, inversCheck, rewind, forward, put, checkAll, mkLink, mkGrant, save, ok, changeRo, search, rename, move, share, open, mkDir, mkLabel, gearLs;
 
-    interface Callback {
-        // main buttons
-        String goUp = "goUp";
-        String mkLabel = State.MkLabel;
-        String searchStateInit = State.Search;
-        String mkDir = State.MkDir;
-        String gearStateInit = State.Gear;
-        String cancelCb = "cncl";
-        String move = State.Move;
-        String drop = "rm";
+        public static Callback ofString(final String callback) {
+            if (callback.contains(":"))
+                return values()[getInt(callback.substring(0, callback.indexOf(':')))];
 
-        // entry buttons
-        String inversCheck = "ichk_";
-        String openEntry = State.OpenFile + '.';
-        String renameEntry = State.Rename + '.';
+            return null;
+        }
 
-        // flow nav buttons
-        String rewind = "rwd";
-        String forward = "fwd";
-
-        String put = "pt";
-        String checkAll = "ca";
-
-        String share = "sha";
-        String mkLink = "lnk";
-        String mkGrant = "grnt";
-        String resetPassword = "rpss";
-        String dropPassword = "dpss";
-        String save = "sv";
-        String resetValid = "vld_rst";
-        String makeOtuValid = "vld_otu";
-        String makeUntillValid = "vld_unt";
+        public String toString() {
+            return ordinal() + ":";
+        }
     }
 
     interface Uni {

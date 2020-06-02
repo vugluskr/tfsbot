@@ -37,11 +37,11 @@ public class TgApi {
         apiUrl = config.getString("service.bot.api_url");
     }
 
-    public void sendOrUpdate(final String text, final String format, final ReplyMarkup replyMarkup, final long updateMessageId, final User user,
+    public void sendOrUpdate(final String text, final String format, final ReplyMarkup replyMarkup, final long updateMessageId, final long chatId,
                              final Consumer<Long> msgIdConsumer) {
         if (updateMessageId > 0) {
             final ObjectNode node = Json.newObject();
-            node.put("chat_id", user.getId());
+            node.put("chat_id", chatId);
             node.put("text", text);
             node.put("message_id", updateMessageId);
             node.put("disable_web_page_preview", true);
@@ -61,7 +61,7 @@ public class TgApi {
                                     wsr.asJson().get("description").asText().contains("are exactly the same") ? updateMessageId : 0)// небольшой хак, если тг отвечает, что сообщение одинаковое - просто ничо делать не будем
                             .thenAccept(msgId -> {
                                 if (msgId <= 0)
-                                    sendMessage(text, format, user, replyMarkup, msgIdConsumer);
+                                    sendMessage(text, format, chatId, replyMarkup, msgIdConsumer);
                                 else
                                     msgIdConsumer.accept(msgId);
                             })
@@ -70,7 +70,7 @@ public class TgApi {
                                 return null;
                             }));
         } else
-            sendMessage(text, format, user, replyMarkup, msgIdConsumer);
+            sendMessage(text, format, chatId, replyMarkup, msgIdConsumer);
     }
 
     public void deleteMessage(final long messageId, final long userId) {
@@ -92,16 +92,16 @@ public class TgApi {
     }
 
     public void ask(final LangMap.Value question, final User user, final Consumer<Long> msgIdConsumer, final Object... args) {
-        sendMessage(v(question, user, args), null, user, new ForceReply(), msgIdConsumer);
+        sendMessage(v(question, user, args), null, user.getId(), new ForceReply(), msgIdConsumer);
     }
 
     public void sendPlainText(final LangMap.Value value, final User user, final Consumer<Long> msgIdConsumer, final Object... args) {
-        sendMessage(v(value, user, args), null, user, null, msgIdConsumer);
+        sendMessage(v(value, user, args), null, user.getId(), null, msgIdConsumer);
     }
 
-    private void sendMessage(final String text, final String format, final User user, final ReplyMarkup replyMarkup, final Consumer<Long> msgIdConsumer) {
+    private void sendMessage(final String text, final String format, final long chatId, final ReplyMarkup replyMarkup, final Consumer<Long> msgIdConsumer) {
         final ObjectNode node = Json.newObject();
-        node.put("chat_id", user.getId());
+        node.put("chat_id", chatId);
         node.put("text", text);
         if (format != null)
             node.put("parse_mode", format);

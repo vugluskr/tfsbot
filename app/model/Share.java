@@ -1,34 +1,35 @@
 package model;
 
-import utils.BMasked;
-import utils.Optioned;
+import java.util.UUID;
 
 /**
  * @author Denis Danilin | denis@danilin.name
  * 24.05.2020
  * tfs ☭ sweat and blood
  */
-public class Share implements Optioned {
+public class Share {
     private String id;
 
-    private String name;
-    private long entryId, owner, sharedTo;
+    private String name, fromName;
+    private UUID entryId;
+    private long owner, sharedTo;
 
-    private int options;
-    private long untill;
+    private boolean readWrite;
 
-    private String salt, hash;
-
-    public boolean isPersonal() {
-        return sharedTo > 0;
+    public String getFromName() { // todo
+        return fromName;
     }
 
-    public long getSharedTo() {
-        return sharedTo;
+    public void setFromName(final String fromName) {
+        this.fromName = fromName;
     }
 
-    public void setSharedTo(final long sharedTo) {
-        this.sharedTo = sharedTo;
+    public boolean isReadWrite() {
+        return readWrite;
+    }
+
+    public void setReadWrite(final boolean readWrite) {
+        this.readWrite = readWrite;
     }
 
     public long getOwner() {
@@ -37,14 +38,6 @@ public class Share implements Optioned {
 
     public void setOwner(final long owner) {
         this.owner = owner;
-    }
-
-    public int getOptions() {
-        return options;
-    }
-
-    public void setOptions(final int options) {
-        this.options = options;
     }
 
     public String getId() {
@@ -63,78 +56,23 @@ public class Share implements Optioned {
         this.name = name;
     }
 
-    public long getEntryId() {
+    public UUID getEntryId() {
         return entryId;
     }
 
-    public void setEntryId(final long entryId) {
+    public void setEntryId(final UUID entryId) {
         this.entryId = entryId;
-    }
-
-    public long getUntill() {
-        return untill;
-    }
-
-    public void setUntill(final long untill) {
-        this.untill = untill;
-    }
-
-    public String getSalt() {
-        return salt;
-    }
-
-    public void setSalt(final String salt) {
-        this.salt = salt;
-    }
-
-    public String getHash() {
-        return hash;
-    }
-
-    public void setHash(final String hash) {
-        this.hash = hash;
     }
 
     public boolean isGlobal() {
         return sharedTo == 0;
     }
 
-    public boolean isPasswordLock() {
-        return Optz.PassLock.is(this);
+    public long getSharedTo() {
+        return sharedTo;
     }
 
-    public boolean isOneTime() {
-        return Optz.OneTime.is(this);
-    }
-
-    public void clearPasswordLock() {
-        Optz.PassLock.remove(this);
-        salt = null;
-        hash = null;
-    }
-
-    public void clearValids() {
-        Optz.OneTime.remove(this);
-        untill = 0;
-    }
-
-    public boolean isEdited() {
-        return Optz.Edited.is(this);
-    }
-
-    public void clearEdited() {
-        Optz.Edited.remove(this);
-    }
-
-    public void setEdited() {
-        Optz.Edited.set(this);
-    }
-
-    public void setPasswordLock() {
-        Optz.PassLock.set(this);
-    }
-
-    enum Optz implements BMasked {
-        PassLock, OneTime, Edited;
+    public void setSharedTo(final long sharedTo) {
+        this.sharedTo = sharedTo;
     }
 }

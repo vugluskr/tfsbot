@@ -4,6 +4,8 @@ import model.User;
 
 import java.util.EnumMap;
 
+import static utils.TextUtils.notNull;
+
 /**
  * @author Denis Danilin | denis@danilin.name
  * 15.05.2020
@@ -38,28 +40,26 @@ public class LangMap {
         init(Value.ALS_HELP, "alias <als>=<cmd>", "alias <псевдоним>=<команда>");
         init(Value.ALS_HELP2, "Alias any command", "Создать псевдоним для любой команды");
 
-        init(Value.CANT_MKDIR, "cannot create directory ‘%s’: File exists", "Невозможно создать директорию '%s': файл с таким именем уже существует");
-        init(Value.CANT_RN_TO, "cannot rename to ‘%s’: File exists", "Невозможно переименовать в '%s': файл с таким именем уже существует");
+        init(Value.CANT_MKDIR, "cannot create directory ‘%s’: File exists", "Невозможно создать папку '%s': файл уже существует");
+        init(Value.CANT_RN_TO, "cannot rename to ‘%s’: File exists", "Невозможно переименовать в '%s': файл уже существует");
         init(Value.CANT_MKLBL, "cannot create label ‘%s’: File exists", "Невозможно создать заметку '%s': файл уже существует");
         init(Value.NO_RESULTS, "Nothing found for ‘%s’", "Ничего не найдено по запросу '%s'");
         init(Value.NO_RESULTS_AFTER, "No search results", "Результатов поиска нет");
         init(Value.TYPE_QUERY, "Type query:", "Поиск:");
         init(Value.TYPE_RENAME, "Type new name for '%s':", "Новое название для '%s':");
-        init(Value.TYPE_FOLDER, "Type new folder name:", "Название новой директории:");
+        init(Value.TYPE_FOLDER, "Type new folder name:", "Название новой папки:");
         init(Value.CD, "cd %s", "переход в %s");
         init(Value.PAGE, "page #%s", "страница #'%s'");
         init(Value.NORMAL_MODE, "Normal mode", "Нормальный режим");
-        init(Value.EDIT_MODE, "Edit mode. Select entries to move or delete. Hit '" + Strings.Uni.cancel + "' to cancel.", "Режим редактирования. Можно отметить файлы и/или директории для " +
-                "их удаления или переноса. Кликнуть '" + Strings.Uni.cancel + "' для возврата в нормальный режим.");
+        init(Value.EDIT_MODE, "Edit mode.", "Режим редактирования.");
         init(Value.DELETED_MANY, "%s entry(s) deleted", "%s файл(ов) удалено");
         init(Value.DELETED, "Entry deleted", "Файл удалён");
-        init(Value.MOVE_DEST, "Choose destination folder. Hit '" + Strings.Uni.cancel + "' to cancel moving. Hit '" + Strings.Uni.put + "' to put files in current dir.", "Необходимо выбрать " +
-                "директорию для переноса. Клик на '" + Strings.Uni.cancel + "' для отмены переноса. Клик на '" + Strings.Uni.put + "' для размещения файлов в текущей директории.");
+        init(Value.MOVE_DEST, "Choose destination folder.", "Необходимо выбрать папку для переноса.");
         init(Value.DESELECTED, "deselected", "Отмена выбора");
         init(Value.SELECTED, "selected", "Файл(ы) выбран(ы)");
         init(Value.MOVED, "Moved %s entry(s)", "Перенесено %s файл(ов)");
         init(Value.TYPE_LABEL, "Type label:", "Текст заметки:");
-        init(Value.NO_CONTENT, "No content here yet. Send me some files.", "В этой директории пока ничего нет.");
+        init(Value.NO_CONTENT, "No content here yet. Send me some files.", "В этой папке пока ничего нет.");
         init(Value.LANG_SWITCHED, "Switched to English", "Используется русский язык");
         init(Value.SEARCHED, "Search for '%s': %s entry(s)", "Поиск '%s': %s результат(ов)");
         init(Value.UPLOADED, "File stored '%s'", "Файл сохранён '%s'");
@@ -86,6 +86,22 @@ public class LangMap {
         init(Value.PASSWORD_NOT_MATCH, "Password doesnt match", "Пароль не подходит");
         init(Value.PASSWORD_CLEARED, "Password removed", "Пароль выключен");
         init(Value.VALID_CLEARED, "Validity limit removed", "Ограничения сняты");
+        init(Value.OTU_SET, "Validity limited up to one time", "Ссылка ограничена одним срабатыванием");
+        init(Value.DROP_PUBLINK_DIR, "%s\n\nRemove public share link for this folder?", "%s\n\nУдалить публичную ссылку на эту папку?");
+        init(Value.DROP_PUBLINK_FILE, "%s\n\nRemove public share link for this file?", "%s\n\nУдалить публичную ссылку на этот файл?");
+        init(Value.CREATE_PUBLINK_DIR, "%s\n\nCreate public share link for this folder?", "%s\n\nСоздать публичную ссылку на эту папку?");
+        init(Value.SEND_CONTACT_DIR, "%s\n\nSend me a contact of the person you want to grant access to this folder",
+                "%s\n\nПришли мне контакт того, кому хочешь предоставить доступ к этой папке");
+        init(Value.CREATE_PUBLINK_FILE, "%s\n\nCreate public share link for this file?", "%s\n\nСоздать публичную ссылку на этот файл?");
+        init(Value.SEND_CONTACT_FILE, "%s\n\nSend me a contact of the person you want to grant access to this file",
+                "%s\n\nПришли мне контакт того, кому хочешь предоставить доступ к этому файлу");
+        init(Value.CANT_GRANT, "Access already granted to %s", "%s: доступ уже предоставлен");
+        init(Value.SHARE_ACCESS, Strings.Uni.Person + " %s [Read/Write]", Strings.Uni.Person + " %s [полный доступ]");
+        init(Value.SHARE_ACCESS_RO, Strings.Uni.Person + " %s [Read only]", Strings.Uni.Person + " %s [только чтение]");
+        init(Value.SHARES, Strings.Uni.share + " network", Strings.Uni.share + " сеть");
+        init(Value.SHARES_ANONYM, "common", "общие");
+        init(Value.NOT_ALLOWED, "You're not allowed to do it here", "Это действие запрещено в текущей папке");
+        init(Value.NOT_ALLOWED_THIS, "You're not allowed to do it to this entry", "Это действие запрещено в для данного элемента");
     }
 
     private static void init(final Value key, final String en, final String ru) {
@@ -99,16 +115,20 @@ public class LangMap {
         DELETED_MANY, MOVE_DEST, DESELECTED, SELECTED, MOVED, TYPE_LABEL, SEARCHED, NO_CONTENT, LANG_SWITCHED, NO_RESULTS_AFTER, UPLOADED, None, CHECK_ALL, NO_GLOBAL_LINK,
         NO_PERSONAL_GRANTS, CMD_LIST,
         PASS_RESET, PASS_DROP, PASSWORD_SET, PASSWORD_NOT_SET, VALID_ONETIME, VALID_UNTILL, VALID_CANCEL, VALID_NOT_SET, VALID_SET_OTU, VALID_SET_UNTILL, LINK_DELETED,
-        LINK_SAVED, PASS_SET, TYPE_PASSWORD, TYPE_PASSWORD2, PASSWORD_SET_TXT, PASSWORD_NOT_MATCH, PASSWORD_CLEARED, VALID_CLEARED, LINK
+        LINK_SAVED, PASS_SET, TYPE_PASSWORD, TYPE_PASSWORD2, PASSWORD_SET_TXT, PASSWORD_NOT_MATCH, PASSWORD_CLEARED, VALID_CLEARED, OTU_SET, DROP_PUBLINK_DIR, DROP_PUBLINK_FILE, CREATE_PUBLINK_DIR, SEND_CONTACT_DIR, CREATE_PUBLINK_FILE, SEND_CONTACT_FILE, CANT_GRANT, SHARE_ACCESS, SHARE_ACCESS_RO, SHARES, SHARES_ANONYM, NOT_ALLOWED, NOT_ALLOWED_THIS, LINK
 
     }
 
     public static String v(final Value name, final User user, final Object... args) {
+        return v(name, notNull(user.getLang(), "ru"), args);
+    }
+
+    public static String v(final Value name, final String langTag, final Object... args) {
         try {
             if (name == Value.None)
                 return "";
 
-            final String value = (user.getLang().equalsIgnoreCase("ru") ? ruData : enData).getOrDefault(name, name.name());
+            final String value = (langTag.equalsIgnoreCase("ru") ? ruData : enData).getOrDefault(name, name.name());
 
             return TextUtils.isEmpty(args) ? value : String.format(value, args);
         } catch (final Exception ignore) { }

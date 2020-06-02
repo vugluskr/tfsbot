@@ -1,8 +1,13 @@
 package model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import model.telegram.ContentType;
 import utils.BMasked;
 import utils.Optioned;
+
+import java.util.UUID;
 
 import static utils.TextUtils.notNull;
 
@@ -11,14 +16,18 @@ import static utils.TextUtils.notNull;
  * 01.05.2020
  * tfs ☭ sweat and blood
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TFile implements Comparable<TFile>, Optioned {
-    private long id;
-    private long parentId;
+    private UUID id, parentId;
+    private long owner;
     private String refId;
     private ContentType type;
     private String name, path;
-    private boolean selected, found;
     private int options;
+    private boolean rw;
+
+    public volatile boolean selected;
 
     public boolean isDir() {
         return type == ContentType.DIR;
@@ -26,8 +35,7 @@ public class TFile implements Comparable<TFile>, Optioned {
 
     @Override
     public int compareTo(final TFile o) {
-        final int res = Long.compare(parentId, o.parentId);
-        return res != 0 ? res : name.compareTo(o.name);
+        return id.compareTo(o.id);
     }
 
     @Override
@@ -37,15 +45,12 @@ public class TFile implements Comparable<TFile>, Optioned {
 
         final TFile file = (TFile) o;
 
-        if (parentId != file.parentId) return false;
-        return name.equals(file.name);
+        return id.equals(file.id);
     }
 
     @Override
     public int hashCode() {
-        int result = (int) (parentId ^ (parentId >>> 32));
-        result = 31 * result + name.hashCode();
-        return result;
+        return id.hashCode();
     }
 
     @Override
@@ -61,19 +66,21 @@ public class TFile implements Comparable<TFile>, Optioned {
     }
 
     //    getters/setters
-    public long getId() {
+
+
+    public UUID getId() {
         return id;
     }
 
-    public void setId(final long id) {
+    public void setId(final UUID id) {
         this.id = id;
     }
 
-    public long getParentId() {
+    public UUID getParentId() {
         return parentId;
     }
 
-    public void setParentId(final long parentId) {
+    public void setParentId(final UUID parentId) {
         this.parentId = parentId;
     }
 
@@ -113,22 +120,6 @@ public class TFile implements Comparable<TFile>, Optioned {
         return type == ContentType.LABEL;
     }
 
-    public boolean isSelected() {
-        return selected;
-    }
-
-    public void setSelected(final boolean selected) {
-        this.selected = selected;
-    }
-
-    public boolean isFound() {
-        return found;
-    }
-
-    public void setFound(final boolean found) {
-        this.found = found;
-    }
-
     public int getOptions() {
         return options;
     }
@@ -137,19 +128,69 @@ public class TFile implements Comparable<TFile>, Optioned {
         this.options = options;
     }
 
+    public long getOwner() {
+        return owner;
+    }
+
+    public void setOwner(final long owner) {
+        this.owner = owner;
+    }
+
+    public boolean isRw() {
+        return rw;
+    }
+
+    public void setRw(final boolean rw) {
+        this.rw = rw;
+    }
+
+    @JsonIgnore
     public boolean isShared() {
         return Optz.shared.is(options);
     }
 
+    @JsonIgnore
     public void setUnshared() {
         Optz.shared.remove(this);
     }
 
+    @JsonIgnore
     public void setShared() {
         Optz.shared.set(this);
     }
 
+    @JsonIgnore
+    public void setLocked() {
+        Optz.locked.set(this);
+    }
+
+    @JsonIgnore
+    public boolean isSharable() {
+        return !isSharesRoot() && !isShared() && !isShareFor() && rw;
+    }
+
+    @JsonIgnore
+    public boolean isSharesRoot() {
+        return Optz.sharesRoot.is(this);
+    }
+
+    @JsonIgnore
+    public void setSharesRoot() {
+        Optz.sharesRoot.set(this);
+    }
+
+    @JsonIgnore
+    public void setShareFor(final long shareOwner) {
+        Optz.shareFor.set(this);
+        refId = String.valueOf(shareOwner);
+    }
+
+    @JsonIgnore
+    public boolean isShareFor() {
+        return Optz.shareFor.is(this);
+    }
+
     enum Optz implements BMasked {
-        shared, locked;
+        shared, locked, sharesRoot, shareFor;
     }
 }

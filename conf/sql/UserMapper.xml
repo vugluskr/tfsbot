@@ -2,51 +2,33 @@
 
 <mapper namespace="sql.UserMapper">
     <insert id="insertUser">
-        insert into users(id, dir_id, last_message, last_dialog, ls_offset, last_search, current, fallback, search_offset, search_count, lang)
-        VALUES (#{id} , #{dirId} , #{lastMessageId} , #{lastDialogId} , 0, null, #{state} , #{fallback} , 0, 0, #{lang} )
+        insert into users(id, current)
+        VALUES (#{id}, #{current})
     </insert>
 
-    <select id="selectUser" resultMap="UserMap">
-        select u.id,
-               u.dir_id,
-               u.last_message,
-               u.last_dialog,
-               u.ls_offset,
-               u.last_search,
-               u.current,
-               u.fallback,
-               u.search_offset,
-               u.search_count,
-               u.lang
+    <select id="selectUser" resultType="String">
+        select u.current
         from users u
         where u.id = #{id}
     </select>
 
-    <resultMap id="UserMap" type="model.User">
-        <id column="id" property="id"/>
-        <result property="dirId" column="dir_id"/>
-        <result property="lastMessageId" column="last_message"/>
-        <result property="lastDialogId" column="last_dialog"/>
-        <result property="offset" column="ls_offset"/>
-        <result property="query" column="last_search"/>
-        <result property="state" column="current"/>
-        <result property="fallback" column="fallback"/>
-        <result property="searchOffset" column="search_offset"/>
-        <result property="searchCount" column="search_count"/>
-        <result property="lang" column="lang"/>
-    </resultMap>
-
     <update id="update">
         update users
-        set current       = #{state} ,
-            fallback      = #{fallback} ,
-            dir_id        = #{dirId} ,
-            last_message  = #{lastMessageId} ,
-            last_dialog   = #{lastDialogId} ,
-            ls_offset     = #{offset} ,
-            last_search   = #{query} ,
-            search_offset = #{searchOffset} ,
-            search_count  = #{searchCount}
+        set current = #{current}
         where id = #{id}
     </update>
+
+    <select id="selectUserOldWay" resultType="model.User">
+        select u.id,
+               u.last_message as "lastMessageId",
+               u.last_dialog as "lastDialogId",
+               u.ls_offset as "offset",
+               u.last_search as "query",
+               u.current as "state",
+               u.fallback,
+               u.search_offset as "searchOffset",
+               u.lang
+        from users u
+        where u.id = #{id}
+    </select>
 </mapper>

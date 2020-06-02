@@ -3,12 +3,14 @@ package modules;
 import com.google.inject.name.Names;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import play.db.Database;
-import sql.FsMapper;
+import sql.TFileSystem;
+import utils.UUIDTypeHandler;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 
 /**
@@ -26,8 +28,11 @@ public class BatisModule extends org.mybatis.guice.MyBatisModule {
                 to(true);
         bindDataSourceProviderType(PlayDataSourceProvider.class);
         bindTransactionFactoryType(JdbcTransactionFactory.class);
+        addTypeHandlerClass(UUIDTypeHandler.class);
+        addSimpleAlias(UUIDTypeHandler.class);
+        addSimpleAlias(UUID.class);
         Executors.newScheduledThreadPool(3);
-        addMapperClasses(FsMapper.class.getPackage().getName());
+        addMapperClasses(TFileSystem.class.getPackage().getName());
     }
 
     @Singleton

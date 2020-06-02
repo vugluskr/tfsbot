@@ -3,6 +3,8 @@ package model.telegram.api;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import model.telegram.ContentType;
 
+import static utils.TextUtils.notNull;
+
 /**
  * @author Denis Danilin | denis@danilin.name
  * 26.10.2017 09:23
@@ -10,6 +12,7 @@ import model.telegram.ContentType;
  */
 public class ContactRef implements TeleFile {
     private long id;
+
     @JsonProperty("is_bot")
     private boolean bot;
 
@@ -18,7 +21,9 @@ public class ContactRef implements TeleFile {
 
     @JsonProperty("last_name")
     private String lastName;
+
     private String username;
+
     @JsonProperty("language_code")
     private String languageCode;
 
@@ -112,15 +117,7 @@ public class ContactRef implements TeleFile {
         return phoneNumber;
     }
 
-    @Override
-    public String toString() {
-        return "ContactRef{" +
-                "id=" + id +
-                ", bot=" + bot +
-                ", firstName='" + firstName + '\'' +
-                ", lastName='" + lastName + '\'' +
-                ", username='" + username + '\'' +
-                ", phoneNumber='" + phoneNumber + '\'' +
-                '}';
+    public String name() {
+        return notNull((notNull(firstName) + " " + notNull(lastName)), notNull(username, notNull(phoneNumber, "u" + id)));
     }
 }

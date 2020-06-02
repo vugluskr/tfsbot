@@ -2,6 +2,8 @@ package model.telegram.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import model.Callback;
+import utils.Strings;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -20,9 +22,13 @@ public class InlineButton {
     public InlineButton() {
     }
 
-    public InlineButton(final String text, final Object callbackData) {
+    public InlineButton(final String text, final Strings.Callback callbackData) {
+        this(text, callbackData.toString());
+    }
+
+    public InlineButton(final String text, final String callbackData) {
         this.text = text;
-        this.callbackData = String.valueOf(callbackData);
+        this.callbackData = callbackData;
     }
 
     public String getInlineQuery() {

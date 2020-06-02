@@ -1,0 +1,67 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sql.ShareMapper">
+    <delete id="dropGlobalShareByEntry">
+        delete
+        from shares where entry_id = #{entryId} and owner = #{owner}
+    </delete>
+
+    <select id="selectSharesByDir" resultMap="ShareMap">
+        select *
+        from shares
+        where entry_id = #{entryId}
+          and owner = #{owner}
+    </select>
+
+    <select id="isShareIdAvailable" resultType="_boolean">
+        select not exists(select 1 from shares where id = #{id})
+    </select>
+
+    <select id="selectShareExist" resultType="_boolean">
+        select exists(select 1 from shares where entry_id = #{entryId} and shared_to = #{sharedTo} and owner = #{owner})
+    </select>
+
+    <select id="selectShare" resultMap="ShareMap">
+        select *
+        from shares where id = #{id}
+    </select>
+
+    <insert id="insertShare">
+        insert INTO shares(id, name, entry_id, owner, rw, shared_to)
+        VALUES (#{id}, #{name}, #{entryId}, #{owner}, #{readWrite}, #{sharedTo})
+    </insert>
+
+    <delete id="dropShare">
+        delete
+        from shares
+        where id = #{id}
+    </delete>
+
+    <update id="changeShareRo">
+        update shares
+        set rw = not rw
+        where owner = #{owner}
+          and id = #{shareId}
+    </update>
+
+    <select id="isAnyShareExist" resultType="_boolean">
+        select exists(select 1 from shares where owner = #{owner} and entry_id = #{entryId})
+    </select>
+
+    <select id="selectPublicShare" resultMap="ShareMap">
+        select *
+        from shares
+        where id = #{id}
+          and shared_to = 0
+    </select>
+
+    <resultMap id="ShareMap" type="model.Share">
+        <id property="id" column="id"/>
+        <result column="name" property="name"/>
+        <result property="entryId" column="entry_id" typeHandler="utils.UUIDTypeHandler"/>
+        <result property="owner" column="owner"/>
+        <result property="sharedTo" column="shared_to"/>
+        <result property="readWrite" column="rw"/>
+    </resultMap>
+
+</mapper>
