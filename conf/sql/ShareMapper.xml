@@ -3,13 +3,13 @@
 <mapper namespace="sql.ShareMapper">
     <delete id="dropGlobalShareByEntry">
         delete
-        from shares where entry_id = #{entryId} and owner = #{owner}
+        from shares where entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler} and owner = #{owner}
     </delete>
 
     <select id="selectSharesByDir" resultMap="ShareMap">
         select *
         from shares
-        where entry_id = #{entryId}
+        where entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
           and owner = #{owner}
     </select>
 
@@ -18,7 +18,7 @@
     </select>
 
     <select id="selectShareExist" resultType="_boolean">
-        select exists(select 1 from shares where entry_id = #{entryId} and shared_to = #{sharedTo} and owner = #{owner})
+        select exists(select 1 from shares where entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler} and shared_to = #{sharedTo} and owner = #{owner})
     </select>
 
     <select id="selectShare" resultMap="ShareMap">
@@ -28,7 +28,7 @@
 
     <insert id="insertShare">
         insert INTO shares(id, name, entry_id, owner, rw, shared_to)
-        VALUES (#{id}, #{name}, #{entryId}, #{owner}, #{readWrite}, #{sharedTo})
+        VALUES (#{share.id}, #{share.name}, #{share.entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, #{share.owner}, #{share.readWrite}, #{share.sharedTo})
     </insert>
 
     <delete id="dropShare">
@@ -45,7 +45,7 @@
     </update>
 
     <select id="isAnyShareExist" resultType="_boolean">
-        select exists(select 1 from shares where owner = #{owner} and entry_id = #{entryId})
+        select exists(select 1 from shares where owner = #{owner} and entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
     </select>
 
     <select id="selectPublicShare" resultMap="ShareMap">

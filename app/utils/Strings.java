@@ -11,10 +11,8 @@ import static utils.TextUtils.getInt;
  * tfs ☭ sweat and blood
  */
 public interface Strings {
-    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yy HH:mm");
-
     enum Callback {
-        goUp, cancelCb, drop, inversCheck, rewind, forward, put, checkAll, mkLink, mkGrant, save, ok, changeRo, search, rename, move, share, open, mkDir, mkLabel, gearLs;
+        goUp, cancel, drop, inversCheck, rewind, forward, put, checkAll, mkLink, mkGrant, save, ok, changeRo, search, rename, move, share, open, mkDir, mkLabel, gear, Void;
 
         public static Callback ofString(final String callback) {
             if (callback.contains(":"))

@@ -16,7 +16,7 @@ public interface TFileSystem {
 
     void createIndex(@Param("tableName") String tableName, @Param("indexName") String indexName, @Param("fields") String fields);
 
-    void createShareView(@Param("viewName") String viewName, @Param("shareId") String shareId, @Param("shareEntryId") UUID shareEntryId, @Param("shareDirId") UUID shareDirId,
+    void createShareView(@Param("viewName") String viewName, @Param("shareId") String shareId, @Param("shareEntryId") String shareEntryId, @Param("shareDirId") String shareDirId,
                          @Param("shareOwnerTableName") String shareOwnerTableName);
 
     void createFsView(@Param("viewName") String viewName, @Param("ownerId") long ownerId, @Param("rootTableName") String rootTableName, @Param("shares") List<String> sharedViewsNames);
@@ -41,44 +41,12 @@ public interface TFileSystem {
 
     void dropEntry(@Param("name") String name, @Param("parentId") UUID parentId, @Param("owner") long owner, @Param("viewName") String viewName);
 
-    boolean isIndexMissed(@Param("indexName") String indexName);
-
-    boolean isTableMissed(@Param("tableName") String tableName);
-
-    boolean isViewMissed(@Param("viewName") String viewName);
-
     TFile findRoot(@Param("fsViewName") String fsViewName, @Param("treeViewName") String treeViewName);
 
     List<TFile> listChilds(@Param("parentId") UUID parentId, @Param("viewName") String viewName, @Param("treeViewName") String treeViewName);
 
-    List<Map<String, Object>> getRawTable(@Param("tableName") String tableName);
-
     void updateEntry(@Param("name") String name, @Param("parentId") UUID parentId, @Param("options") int options, @Param("id") UUID id, @Param("owner") long owner,
                      @Param("tableName") String tableName);
-
-//    old timers
-
-    void addUuid(@Param("tableName") String tableName);
-    void addUuidParent(@Param("tableName") String tableName);
-
-    void update2uuids(@Param("oldId") long oldId, @Param("uuid") UUID uuid, @Param("tableName") String tableName);
-
-    void old0(@Param("uid") long uid);
-    void old1(@Param("uid") long uid);
-    void old2(@Param("uid") long uid);
-    void old3(@Param("uid") long uid);
-    void old4(@Param("uid") long uid);
-    void old5(@Param("uid") long uid);
-    void old6(@Param("uid") long uid);
-    void old65(@Param("uid") long uid);
-    void old7(@Param("uid") long uid);
-    void old8(@Param("uid") long uid);
-    void old10(@Param("uid") long uid);
-    void old11(@Param("uid") long uid);
-    void old12(@Param("uid") long uid);
-    void old13(@Param("uid") long uid);
-    void old14(@Param("uid") long uid);
-    void old15(@Param("uid") long uid);
 
     boolean isEntryExist(@Param("name") String name, @Param("parentId") UUID parentId, @Param("viewName") String viewName);
 
@@ -91,4 +59,14 @@ public interface TFileSystem {
     List<TFile> getPredictors(@Param("id") UUID id, @Param("viewName") String viewName);
 
     List<TFile> search(@Param("query") String query, @Param("fromDirId") final UUID fromDirId, @Param("viewName") String viewName, @Param("treeViewName") String treeViewName);
+
+    List<Long> selectServiceWindows(@Param("userId") long userId);
+
+    void deleteServiceWindows(@Param("userId") long userId);
+
+    void addServiceWin(@Param("messageId") long messageId, @Param("userId") long userId);
+
+    void updateLastMessageId(@Param("lastMessageId") long lastMessageId, @Param("userId") long userId);
+
+    List<TFile> selectByIds(@Param("uuids") Collection<UUID> uuids, @Param("viewName") String viewName, @Param("treeViewName") String treeViewName);
 }

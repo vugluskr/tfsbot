@@ -13,18 +13,11 @@ public interface BMasked {
     }
 
     default int set(final int options) {
-        int o = options;
-        o |= bitmask();
-
-        return o;
+        return options | bitmask();
     }
 
     default int remove(final int options) {
-        int o = options;
-
-        o &= ~bitmask();
-
-        return o;
+        return options & ~bitmask();
     }
 
     default boolean is(final int options) {

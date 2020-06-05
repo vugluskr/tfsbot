@@ -1,86 +1,62 @@
 package model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import utils.BMasked;
+import utils.Optioned;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static utils.TextUtils.notNull;
+import java.util.Collection;
+import java.util.TreeSet;
+import java.util.UUID;
 
 /**
  * @author Denis Danilin | denis@danilin.name
  * 01.05.2020
  * tfs ☭ sweat and blood
  */
-@JsonInclude(JsonInclude.Include.NON_EMPTY)
-public class User {
+public class User implements Optioned, InputWait, Stater {
+    // not changed never ever
     private long id;
-    private String lang;
+    private UUID rootId;
+
+    // runtime data
     private long lastMessageId;
-    private long lastDialogId;
-    private String state;
-    private String fallback, query;
-    private int offset,
-            searchOffset;
-    private String name;
+    private UUID currentDirId;
+    private String query;
+    private int viewOffset;
+    private int options;
 
-    public TFile current, parent;
-    public List<TFile> selection, searchResults;
+    public TreeSet<UUID> selection = new TreeSet<>();
 
-    public List<Object> view;
+    // not saved
+    public String lang;
+    public String name;
 
-    @JsonIgnore
-    public volatile boolean skipTail;
-
-    public User() {
-        selection = new ArrayList<>();
-        searchResults = new ArrayList<>();
-        view = new ArrayList<>(0);
+    @Override
+    public String toString() {
+        return "User{" +
+                "lastMessageId=" + lastMessageId +
+                ", currentDirId=" + currentDirId +
+                ", query='" + query + '\'' +
+                ", viewOffset=" + viewOffset +
+                ", selection=" + selection +
+                ", options=\n"+Optz.printOut(this)+"}";
     }
 
-    public List<Object> getView() {
-        return view;
+    public boolean isOnTop() {
+        return currentDirId.equals(rootId);
     }
 
-    public void setView(final List<Object> view) {
-        this.view = view;
+    public void deltaSearchOffset(final int delta) {
+        viewOffset = Math.max(0, viewOffset + delta);
     }
 
-    public TFile getCurrent() {
-        return current;
-    }
+    // getters/setters
 
-    public void setCurrent(final TFile current) {
-        this.current = current;
-    }
-
-    public TFile getParent() {
-        return parent;
-    }
-
-    public void setParent(final TFile parent) {
-        this.parent = parent;
-    }
-
-    public String getPath() {
-        return notNull(current == null ? null : current.getPath(), "/");
-    }
-
-    public List<TFile> getSelection() {
+    public TreeSet<UUID> getSelection() {
         return selection;
     }
 
-    public void setSelection(final List<TFile> selection) {
-        this.selection = selection;
-    }
-
-    public List<TFile> getSearchResults() {
-        return searchResults;
-    }
-
-    public void setSearchResults(final List<TFile> searchResults) {
-        this.searchResults = searchResults;
+    public void setSelection(final Collection<UUID> selection) {
+        this.selection = selection == null ? new TreeSet<>() : new TreeSet<>(selection);
     }
 
     public long getId() {
@@ -91,22 +67,6 @@ public class User {
         this.id = id;
     }
 
-    public long getLastMessageId() {
-        return lastMessageId;
-    }
-
-    public void setLastMessageId(final long lastMessageId) {
-        this.lastMessageId = lastMessageId;
-    }
-
-    public long getLastDialogId() {
-        return lastDialogId;
-    }
-
-    public void setLastDialogId(final long lastDialogId) {
-        this.lastDialogId = lastDialogId;
-    }
-
     public String getLang() {
         return lang;
     }
@@ -115,12 +75,28 @@ public class User {
         this.lang = lang;
     }
 
-    public String getState() {
-        return state;
+    public UUID getRootId() {
+        return rootId;
     }
 
-    public void setState(final String state) {
-        this.state = state;
+    public void setRootId(final UUID rootId) {
+        this.rootId = rootId;
+    }
+
+    public long getLastMessageId() {
+        return lastMessageId;
+    }
+
+    public void setLastMessageId(final long lastMessageId) {
+        this.lastMessageId = lastMessageId;
+    }
+
+    public UUID getCurrentDirId() {
+        return currentDirId;
+    }
+
+    public void setCurrentDirId(final UUID currentDirId) {
+        this.currentDirId = currentDirId;
     }
 
     public String getQuery() {
@@ -131,62 +107,44 @@ public class User {
         this.query = query;
     }
 
-    public int getOffset() {
-        return offset;
+    public int getViewOffset() {
+        return viewOffset;
     }
 
-    public void deltaOffset(final int delta) {
-        offset = Math.max(0, offset + delta);
+    public void setViewOffset(final int viewOffset) {
+        this.viewOffset = viewOffset;
     }
 
-    public void setOffset(final int offset) {
-        this.offset = offset;
+    @Override
+    public int getOptions() {
+        return options;
     }
 
-    public int getSearchOffset() {
-        return searchOffset;
+    @Override
+    public void setOptions(final int options) {
+        this.options = options;
     }
 
-    public void setSearchOffset(final int searchOffset) {
-        this.searchOffset = searchOffset;
+    public void setWaitFileGranting() { Optz.GrantFileWait.set(this); }
+    public void unsetWaitFileGranting() { Optz.GrantFileWait.remove(this); }
+    public boolean isWaitFileGranting() { return Optz.GrantFileWait.is(this); }
+
+    public void cancelWaiting() {
+        Optz.GrantFileWait.remove(this);
+        resetInputWait();
     }
 
-    public void deltaSearchOffset(final int delta) {
-        searchOffset = Math.max(0, searchOffset + delta);
-    }
+    enum Optz implements BMasked {
+        RenameInputWait, DirInputWait, LabelInputWait, GrantFileWait, StateSharing, StateMoving, StateGearing, StateSearching, SearchInputWait, StateFileViewing;
 
-    public String getFallback() {
-        return fallback;
-    }
+        public static String printOut(final User user) {
+            final StringBuilder s = new StringBuilder();
 
-    public void setFallback(final String fallback) {
-        this.fallback = fallback;
-    }
+            for (final Optz o : values())
+                if (o.is(user))
+                    s.append(o.name()).append(", ");
 
-    public boolean hasMovable() {
-        return !selection.isEmpty() && selection.stream().anyMatch(f -> f.getOwner() == id && f.isSharable());
-    }
-
-    public void setName(final String name) {
-        this.name = name;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void newView() {
-        view.clear();
-    }
-
-    public void viewAdd(final Object o) {
-        if (o == null)
-            return;
-
-        view.add(o);
-    }
-
-    public int viewIdx() {
-        return view.isEmpty() ? 0 : view.size() - 1;
+            return s.toString();
+        }
     }
 }

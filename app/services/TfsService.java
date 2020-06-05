@@ -13,7 +13,6 @@ import utils.TextUtils;
 
 import javax.inject.Inject;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -27,7 +26,7 @@ import static utils.TextUtils.*;
  */
 public class TfsService {
     private static final Logger.ALogger logger = Logger.of(TfsService.class);
-    private final static String tablePrefix = "fs_struct_", userFsPrefix = "fs_view_", treePrefix = "fs_tree_", sharePrefix = "fs_share_";
+    private final static String tablePrefix = "fs_data_", userFsPrefix = "fs_user_", treePrefix = "fs_paths_", sharePrefix = "fs_share_";
 
     @Inject
     private TFileSystem fs;
@@ -35,58 +34,8 @@ public class TfsService {
     @Inject
     private ShareMapper shared;
 
-    public void validateFs(final long userId) {
-        if (fs.isTableMissed(tablePrefix + userId)) {
-            fs.createRootTable(tablePrefix + userId);
-            fs.makeEntry(generateUuid(), "", null, ContentType.DIR, null, 0, tablePrefix + userId);
-        } else {
-            final List<Map<String, Object>> rows = fs.getRawTable(tablePrefix + userId);
-
-            if (rows.isEmpty() || !rows.get(0).containsKey("options")) {
-                fs.addUuid(tablePrefix + userId);
-                fs.addUuidParent(tablePrefix + userId);
-                final Map<Long, UUID> id2uuid = new HashMap<>(0);
-                final Map<Long, Object> id2parent = new HashMap<>(0);
-
-                rows.forEach(map -> id2uuid.put((Long) map.get("id"), TextUtils.generateUuid()));
-
-                for (final Long oldId : id2uuid.keySet())
-                    try {
-                        fs.update2uuids(oldId, id2uuid.get(oldId), tablePrefix + userId);
-                    } catch (final Exception e) {
-                        logger.error(e.getMessage(), e);
-                    }
-
-                fs.old0(userId);
-                fs.old1(userId);
-                fs.old2(userId);
-                fs.old5(userId);
-                fs.old4(userId);
-                fs.old6(userId);
-                fs.old65(userId);
-                fs.old7(userId);
-                fs.old8(userId);
-                fs.old10(userId);
-                fs.old11(userId);
-                fs.old12(userId);
-                fs.old13(userId);
-                fs.old14(userId);
-                fs.old15(userId);
-            }
-        }
-
-        if (fs.isIndexMissed(tablePrefix + userId + "_names"))
-            fs.createIndex(tablePrefix + userId, tablePrefix + userId + "_names", "name");
-
-        if (fs.isViewMissed(userFsPrefix + userId))
-            fs.createFsView(userFsPrefix + userId, userId, tablePrefix + userId, Collections.emptyList());
-
-        if (fs.isViewMissed(treePrefix + userId))
-            fs.createFsTree(treePrefix + userId, userFsPrefix + userId);
-    }
-
     @Transactional
-    public void initUser(final long userId) {
+    public void initUserTables(final long userId) {
         fs.createRootTable(tablePrefix + userId);
         fs.createIndex(tablePrefix + userId, tablePrefix + userId + "_names", "name");
 
@@ -131,11 +80,11 @@ public class TfsService {
     }
 
     @Transactional
-    public void applyShareByLink(final Share share, final User consumer) {
+    public TFile applyShareByLink(final Share share, final User consumer) {
         if (!share.isGlobal())
-            return;
+            return null;
 
-        applyShare(share, v(LangMap.Value.SHARES_ANONYM, consumer), consumer.getLang(), consumer.getId());
+        return applyShare(share, v(LangMap.Value.SHARES_ANONYM, consumer), consumer.getLang(), consumer.getId());
     }
 
     @Transactional
@@ -143,16 +92,17 @@ public class TfsService {
         if (share.isGlobal())
             return;
 
-        applyShare(share, producer.getName(), langTag, consumerId);
+        applyShare(share, producer.name, langTag, consumerId);
     }
 
-    private void applyShare(final Share share, final String dirName, final String langTag, final long consumerId) {
+    private TFile applyShare(final Share share, final String dirName, final String langTag, final long consumerId) {
         final String tableName = tablePrefix + consumerId;
         final List<TFile> rootDirs = fs.selectRootDirs(tableName);
 
         final TFile sharesDir = rootDirs.stream().filter(TFile::isSharesRoot).findFirst().orElseGet(() -> {
             final TFile dir = new TFile();
             dir.setSharesRoot();
+            dir.setUnsharable();
 
             return makeSysDir(v(LangMap.Value.SHARES, langTag), fs.findRoot(userFsPrefix + consumerId, treePrefix + consumerId).getId(), null, dir.getOptions(), consumerId);
         });
@@ -162,6 +112,7 @@ public class TfsService {
         final TFile shareParentDir = subs.stream().filter(d -> d.isShareFor() && getLong(d.getRefId()) == share.getOwner()).findAny().orElseGet(() -> {
             final TFile dir = new TFile();
             dir.setShareFor(share.getOwner());
+            dir.setUnsharable();
 
             return makeSysDir(dirName, sharesDir.getId(), dir.getRefId(), dir.getOptions(), consumerId);
         });
@@ -169,11 +120,13 @@ public class TfsService {
         fs.createShareView(
                 sharePrefix + consumerId + "_" + share.getOwner() + "_" + share.getId(),
                 share.getId(),
-                share.getEntryId(),
-                shareParentDir.getId(),
+                share.getEntryId().toString(),
+                shareParentDir.getId().toString(),
                 tablePrefix + share.getOwner());
 
         fs.createFsView(userFsPrefix + consumerId, consumerId, tablePrefix + consumerId, fs.selectShareViewsLike(ownerShareViews(consumerId)));
+
+        return shareParentDir;
     }
 
     @Transactional
@@ -183,9 +136,11 @@ public class TfsService {
         if (shareViews.isEmpty())
             return;
 
-        final Map<Long, List<String>> byOwners = shareViews.stream().collect(Collectors.groupingBy(name -> getLong(name.split(Pattern.quote("_"))[1])));
+        // имя шары: fs_share_КомуВыданаШара_КемВыдана_ИдШары
+        //           0 _ 1   _ 2            _ 3       _ 4
+        final Map<Long, List<String>> byConsumers = shareViews.stream().collect(Collectors.groupingBy(name -> getLong(name.split(Pattern.quote("_"))[2])));
 
-        byOwners.forEach((key, value) -> {
+        byConsumers.forEach((key, value) -> {
             value.forEach(name -> fs.dropView(name));
             fs.createFsView(userFsPrefix + key, key, tablePrefix + key, fs.selectShareViewsLike(ownerShareViews(key)));
         });
@@ -206,11 +161,13 @@ public class TfsService {
     }
 
     private String shareSharesViews(final String shareId) {
+        // имя шары: prefix_КомуВыданаШара_КемВыдана_ИдШары
         return sharePrefix + "%_" + shareId;
     }
 
     private String ownerShareViews(final long ownerId) {
-        return sharePrefix + ownerId + "_%";
+        // имя шары: prefix_КомуВыданаШара_КемВыдана_ИдШары
+        return sharePrefix + "%_" + ownerId + "_%";
     }
 
     private TFile makeSysDir(final String name0, final UUID parentId, final String refId, final int options, final long userId) {
@@ -228,10 +185,6 @@ public class TfsService {
         return fs.findEntry(name, parentId, userId, userFsPrefix + userId, treePrefix + userId);
     }
 
-    public TFile getRoot(final User user) {
-        return fs.findRoot(userFsPrefix + user.getId(), treePrefix + user.getId());
-    }
-
     public Share getPublicShare(final String id) {
         return shared.selectPublicShare(id);
     }
@@ -239,42 +192,33 @@ public class TfsService {
     public List<TFile> list(final User user) {
         final String fsName = userFsPrefix + user.getId(), treeName = treePrefix + user.getId();
 
-        return fs.listChilds(user.current.getId(), fsName, treeName);
+        return fs.listChilds(user.getCurrentDirId(), fsName, treeName);
     }
 
     public boolean entryExist(final String name, final User user) {
-        return fs.isEntryExist(name, user.current.getId(), userFsPrefix + user.getId());
+        return fs.isEntryExist(name, user.getCurrentDirId(), userFsPrefix + user.getId());
     }
 
     public TFile get(final UUID id, final User user) {
         return fs.getEntry(id, userFsPrefix + user.getId(), treePrefix + user.getId());
     }
 
-    public int rmSelected(final User user) {
-        final Map<Long, List<TFile>> byOwner = user.selection.stream()
+    public void rmSelected(final User user) {
+        final Map<Long, List<TFile>> byOwner = getSelection(user).stream()
                 .filter(TFile::isRw)
                 .collect(Collectors.groupingBy(TFile::getOwner));
-        final AtomicInteger counter = new AtomicInteger(0);
-        byOwner.forEach((userId, tFiles) -> {
-            fs.dropEntries(tFiles.stream().map(TFile::getId).collect(Collectors.toList()), tablePrefix + userId);
-            counter.addAndGet(tFiles.size());
-        });
 
-        return counter.get();
+        byOwner.forEach((userId, tFiles) -> fs.dropEntries(tFiles.stream().map(TFile::getId).collect(Collectors.toList()), tablePrefix + userId));
     }
 
     public List<TFile> listFolders(final User user) {
         final String fsName = userFsPrefix + user.getId(), treeName = treePrefix + user.getId();
 
-        return fs.listTypedChilds(user.current.getId(), ContentType.DIR, fsName, treeName);
+        return fs.listTypedChilds(user.getCurrentDirId(), ContentType.DIR, fsName, treeName);
     }
 
     public List<TFile> getPredictors(final User user) {
-        return fs.getPredictors(user.current.getId(), userFsPrefix + user.getId());
-    }
-
-    public void updateMetas(final List<TFile> list) {
-        list.stream().filter(TFile::isRw).forEach(f -> fs.updateEntry(f.getName(), f.getParentId(), f.getOptions(), f.getId(), f.getOwner(), tablePrefix + f.getOwner()));
+        return fs.getPredictors(user.getCurrentDirId(), userFsPrefix + user.getId());
     }
 
     public void changeShareRo(final String shareId, final User user) {
@@ -295,22 +239,31 @@ public class TfsService {
         return shared.selectSharesByDir(entryId, user.getId());
     }
 
-    public void search(final String rawQuery, final User user) {
-        user.searchResults.clear();
-
+    public List<TFile> search(final String rawQuery, final User user) {
         if (isEmpty(rawQuery))
-            return;
+            return Collections.emptyList();
 
-        user.searchResults.addAll(fs.search("%"+rawQuery.trim()+"%", user.current.getId(), userFsPrefix + user.getId(), treePrefix + user.getId()));
+        return fs.search("%"+rawQuery.trim()+"%", user.getCurrentDirId(), userFsPrefix + user.getId(), treePrefix + user.getId());
     }
 
     public boolean isGlobalShareMissed(final UUID entryId, final User user) {
-        return shared.selectSharesByDir(entryId, user.getId()) == null;
+        return isEmpty(shared.selectSharesByDir(entryId, user.getId()));
     }
 
     public void dropGlobalShareByEntry(final UUID entryId, final User user) {
         shared.dropGlobalShareByEntry(entryId, user.getId());
     }
 
+    public TFile findRoot(final long userId) {
+        return fs.findRoot(userFsPrefix + userId, treePrefix + userId);
+    }
+
+    public List<TFile> getSelection(final User user) {
+        return fs.selectByIds(user.getSelection(), userFsPrefix + user.getId(), treePrefix + user.getId());
+    }
+
+    public void bulkUpdate(final List<TFile> selection) {
+        selection.stream().filter(TFile::isRw).forEach(file -> fs.updateEntry(file.getName(), file.getParentId(), file.getOptions(), file.getId(), file.getOwner(), tablePrefix + file.getOwner()));
+    }
 }
 

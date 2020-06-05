@@ -16,13 +16,7 @@ import java.util.stream.Collectors;
  * single-auth ☭ sweat and blood
  */
 public class TextUtils {
-    private static final Logger.ALogger logger = Logger.of(TextUtils.class);
     public static final SecureRandom rnd;
-    private static final Pattern
-            singleQuotes = Pattern.compile("'?( |$)(?=(([^']*'){2})*[^']*$)'?"),
-            doubleQuotes = Pattern.compile("\"?( |$)(?=(([^\"]*\"){2})*[^\"]*$)\"?"),
-            winQuotes = Pattern.compile("«?( |$)(?=(«[^«»]*»)*[^»]*$)»?"),
-            spaces = Pattern.compile("\\s+");
 
     static {
         rnd = new SecureRandom();
@@ -119,36 +113,6 @@ public class TextUtils {
             return ((Map<?, ?>) o).isEmpty();
 
         return notNull(o).isEmpty();
-    }
-
-    public static List<String> strings2paths(final String current, final String... parts) {
-        return strings2paths(Paths.get(current), parts);
-    }
-
-    public static List<String> strings2paths(final Path current, final String... parts) {
-        return Arrays.stream(parts)
-                .filter(p -> !isEmpty(p))
-                .map(s -> {
-                    try {
-                        final Path p = Paths.get(s);
-
-                        return Paths.get((p.isAbsolute() ? p : current.resolve(p)).toFile().getCanonicalPath()).toString();
-                    } catch (final Exception ignore) { }
-
-                    return null;
-                })
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-    }
-
-    public static String validatePath(final String raw, final String current) {
-        try {
-            final Path p = Paths.get(raw);
-
-            return Paths.get((p.isAbsolute() ? p : Paths.get(current).resolve(p)).toFile().getCanonicalPath()).toString();
-        } catch (final Exception ignore) { }
-
-        return null;
     }
 
     private static long _toLong(byte[] buffer, int offset) {

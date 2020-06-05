@@ -1,26 +1,25 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import model.Callback;
-import model.telegram.api.ContactRef;
-import model.telegram.api.TeleFile;
-import model.telegram.api.UpdateRef;
+import model.TFile;
+import model.User;
+import model.telegram.ContentType;
 import play.Logger;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
+import services.GUI;
 import services.HeadQuarters;
-import services.MemStore;
+import services.TgApi;
+import services.UserService;
 import utils.Strings;
-import utils.TextUtils;
 
 import javax.inject.Inject;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 
-import static utils.TextUtils.getInt;
-import static utils.TextUtils.isEmpty;
+import static utils.TextUtils.notNull;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -34,7 +33,13 @@ public class Handler extends Controller {
     private HeadQuarters hq;
 
     @Inject
-    private MemStore memStore;
+    private TgApi tgApi;
+
+    @Inject
+    private GUI gui;
+
+    @Inject
+    private UserService userService;
 
     public Result get() {
         return ok();
@@ -42,51 +47,126 @@ public class Handler extends Controller {
 
     public Result post(final Http.Request request) {
         try {
-//            final JsonNode;
-            if (request.hasBody()) {
+            final JsonNode js;
+            if (request.hasBody() && (js = request.body().asJson()) != null) {
+                if (js.has("callback_query")) {
+                    CompletableFuture.runAsync(() -> {
+                        tgApi.sendCallbackAnswer("", js.get("callback_query").get("id").asLong(), false, 0);
+                        final String cb = js.get("callback_query").get("data").asText();
+                        final User preUser = preUser(js.get("callback_query").get("from"));
 
+                        if (cb.equals(Strings.Callback.Void.name())) // close dialogs
+                            return;
 
-                logger.debug("INCOMING:\n" + Json.stringify(request.body().asJson()));
-                final UpdateRef update = Json.fromJson(request.body().asJson(), UpdateRef.class);
+                        CompletableFuture.runAsync(() -> hq.callback(cb, userService.resolveUser(preUser)))
+                                .exceptionally(e -> {
+                                    logger.error("Callback: " + e.getMessage(), e);
+                                    return null;
+                                });
+                    });
+                } else if (js.has("message")) {
+                    CompletableFuture.runAsync(() -> tgApi.deleteMessage(js.get("message").get("message_id").asLong(), js.get("message").get("from").get("id").asLong()));
 
-                if (update != null) {
-                    final ContactRef cr;
-                    if (update.getMessage() != null)
-                        cr = update.getMessage().getContactRef();
-                    else if (update.getCallback() != null)
-                        cr = update.getCallback().getFrom();
-                    else
-                        cr = update.getEditedMessage().getContactRef();
+                    final JsonNode msg = js.get("message");
+                    final String text = msg.has("text") ? msg.get("text").asText() : null;
 
-                    final long id = update.getMessage() != null ? update.getMessage().getMessageId() : 0;
-                    final String text = update.getMessage() != null ? update.getMessage().getText() : null;
-                    final String callback = update.getCallback() != null ? TextUtils.notNull(update.getCallback().getData()) : null;
-                    final long callbackId = callback == null ? 0 : update.getCallback().getId();
-                    final TeleFile file = update.getMessage() != null ? update.getMessage().getTeleFile() : null;
+                    if (text != null)
+                        CompletableFuture.runAsync(() -> hq.text(text, userService.resolveUser(preUser(msg.get("from")))))
+                                .exceptionally(e -> {
+                                    logger.error("Text: " + e.getMessage(), e);
+                                    return null;
+                                });
+                    else {
+                        final JsonNode attachNode;
+                        final TFile file = new TFile();
 
-                    final AtomicReference<Callback> cbRef = new AtomicReference<>(null);
-                    if (!isEmpty(callback))
-                        try {
-                            final Strings.Callback cbs = Strings.Callback.ofString(callback);
-                            if (cbs != null) {
-                                cbRef.set(new Callback(cbs, callbackId, callback.indexOf(':') < callback.length() - 1 ? getInt(callback.substring(callback.indexOf(':') + 1)) : -1));
+                        if (msg.has("photo") && msg.get("photo").size() > 0) {
+                            if (msg.get("photo").size() == 1)
+                                attachNode = msg.get("photo").get(0);
+                            else {
+                                final TreeMap<Long, JsonNode> map = new TreeMap<>();
+
+                                for (int i = 0; i < msg.get("photo").size(); i++)
+                                    map.put(msg.get("photo").get(i).get("file_size").asLong(), msg.get("photo").get(i));
+
+                                attachNode = map.lastEntry().getValue();
                             }
-                        } catch (final Exception ignore) {
-                            logger.debug(ignore.getMessage(), ignore);
+                            file.type = ContentType.PHOTO;
+                        } else if (msg.has("video")) {
+                            attachNode = msg.get("video");
+                            file.type = ContentType.VIDEO;
+                        } else if (msg.has("document")) {
+                            attachNode = msg.get("document");
+                            file.name = attachNode.get("file_name").asText();
+                            file.type = ContentType.DOCUMENT;
+                        } else if (msg.has("audio")) {
+                            attachNode = msg.get("audio");
+                            file.type = ContentType.AUDIO;
+                        } else if (msg.has("voice")) {
+                            attachNode = msg.get("voice");
+                            file.type = ContentType.VOICE;
+                        } else if (msg.has("sticker")) {
+                            attachNode = msg.get("sticker");
+                            file.type = ContentType.STICKER;
+                        } else if (msg.has("contact")) {
+                            attachNode = msg.get("contact");
+                            file.type = ContentType.CONTACT;
+
+                            // dirty simple hack :)
+                            final JsonNode c = msg.get("contact");
+                            file.setOwner(c.get("user_id").asLong());
+                            final String f = c.has("first_name") ? c.get("first_name").asText() : "";
+                            final String l = c.has("last_name") ? c.get("last_name").asText() : "";
+                            final String u = c.has("username") ? c.get("username").asText() : "";
+                            final String p = c.has("phone_number") ? c.get("phone_number").asText() : "";
+                            file.uniqId = file.refId = p;
+                            file.name = notNull((notNull(f) + " " + notNull(l)), notNull(u, notNull(p, "u" + c.get("user_id").asText())));
+                        } else {
+                            file.type = null;
+                            attachNode = null;
+                            logger.debug("Необслуживаемый тип сообщения");
                         }
 
-                    CompletableFuture.runAsync(() -> memStore.getUser(cr).thenAccept(user ->
-                            hq.accept(user, file, file != null ? update.getMessage().getCaption() : text, cbRef.get(), id))
-                                              .exceptionally(throwable -> {
-                                                  logger.error(throwable.getMessage(), throwable);
-                                                  return null;
-                                              }));
-                }
+                        if (file.type != null && attachNode != null) {
+                            if (file.refId == null) file.refId = attachNode.get("file_id").asText();
+                            if (file.uniqId == null) file.uniqId = attachNode.get("file_unique_id").asText();
+
+                            if (file.name == null)
+                                file.name = msg.has("caption") && !msg.get("caption").asText().trim().isEmpty()
+                                        ? msg.get("caption").asText().trim()
+                                        : file.type.name().toLowerCase() + "_" + file.uniqId;
+
+                            CompletableFuture.runAsync(() -> hq.file(file, userService.resolveUser(preUser(msg.get("from")))))
+                                    .exceptionally(e -> {
+                                        logger.error("File: " + e.getMessage(), e);
+                                        return null;
+                                    });
+                        }
+                    }
+                } else
+                    logger.debug("Необслуживаемый тип сообщения");
             }
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
         }
 
         return ok();
+    }
+
+    private User preUser(final JsonNode node) {
+        final String f = node.has("first_name") ? node.get("first_name").asText() : null;
+        final String l = node.has("last_name") ? node.get("last_name").asText() : null;
+        final String n = node.has("username") ? node.get("username").asText() : null;
+
+        final User user = new User();
+        user.setId(node.get("id").asLong());
+        user.setLang(node.has("language_code") ? node.get("language_code").asText() : "en");
+        user.name = notNull((notNull(f) + " " + notNull(l)), notNull(n, "u" + user.getId()));
+
+        try {
+            return user;
+        } finally {
+            gui.cleanup(user);
+        }
     }
 }

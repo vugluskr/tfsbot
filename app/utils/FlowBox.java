@@ -1,14 +1,7 @@
 package utils;
 
-import model.TFile;
-import model.User;
-import model.telegram.ContentType;
-import model.telegram.api.InlineButton;
 import services.GUI;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import services.TgApi;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -18,10 +11,10 @@ import java.util.List;
 public class FlowBox {
     public String format = null;
     public final StringBuilder body = new StringBuilder(16);
-    public final List<List<InlineButton>> rows = new ArrayList<>(0);
+    public final GUI.Keyboard kbd = new GUI.Keyboard();
 
     public FlowBox md2() {
-        format = "MarkdownV2";
+        format = TgApi.formatMd2;
 
         return this;
     }
@@ -33,26 +26,23 @@ public class FlowBox {
     }
 
     public FlowBox row() {
-        rows.add(new ArrayList<>(0));
+        kbd.newLine();
 
         return this;
     }
 
-    public FlowBox button(final InlineButton button) {
-        if (rows.isEmpty())
-            row();
-
-        rows.get(rows.size() - 1).add(button);
+    public FlowBox button(final GUI.Button button) {
+        kbd.button(button);
 
         return this;
     }
 
     public FlowBox setListing(final boolean hasLess, final boolean hasMore) {
-        row();
+        kbd.newLine();
         if (hasLess)
-            button(GUI.Buttons.rewindButton);
+            kbd.button(GUI.Buttons.rewindButton);
         if (hasMore)
-            button(GUI.Buttons.forwardButton);
+            kbd.button(GUI.Buttons.forwardButton);
 
         return this;
     }

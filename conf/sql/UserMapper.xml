@@ -2,33 +2,62 @@
 
 <mapper namespace="sql.UserMapper">
     <insert id="insertUser">
-        insert into users(id, current)
-        VALUES (#{id}, #{current})
+        insert into users(id,  root_id, last_message_id, current_dir_id, query, view_offset, options)
+        VALUES (#{id}, #{rootId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, 0,
+                #{rootId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, '', 0, 0)
+    </insert>
+    <insert id="selectEntries">
+        insert into user_selection(user_id, uuid) VALUES
+        <foreach collection="uuids" item="uuid" separator=",">
+            (#{id}, #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
+        </foreach>
     </insert>
 
-    <select id="selectUser" resultType="String">
-        select u.current
+    <select id="getUser" resultMap="UserMap">
+        select u.*, us.uuid
         from users u
+                 left join user_selection us on u.id = us.user_id
         where u.id = #{id}
     </select>
 
-    <update id="update">
+    <update id="updateUser">
         update users
-        set current = #{current}
+        set current_dir_id = #{currentDirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler},
+            query          = #{query},
+            view_offset    = #{viewOffset},
+            options        = #{options}
         where id = #{id}
     </update>
 
-    <select id="selectUserOldWay" resultType="model.User">
-        select u.id,
-               u.last_message as "lastMessageId",
-               u.last_dialog as "lastDialogId",
-               u.ls_offset as "offset",
-               u.last_search as "query",
-               u.current as "state",
-               u.fallback,
-               u.search_offset as "searchOffset",
-               u.lang
-        from users u
-        where u.id = #{id}
-    </select>
+    <insert id="selectEntry">
+        insert into user_selection(user_id, uuid)
+        VALUES (#{id}, #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
+    </insert>
+
+    <delete id="deselectEntry">
+        delete
+        from user_selection
+        where user_id = #{id}
+          and uuid = #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+    </delete>
+
+    <delete id="resetSelection">
+        delete
+        from user_selection
+        where user_id = #{id}
+    </delete>
+
+    <resultMap id="UserMap" type="model.User">
+        <id column="id" property="id"/>
+        <result property="rootId" column="root_id" typeHandler="utils.UUIDTypeHandler"/>
+        <result property="lastMessageId" column="last_message_id"/>
+        <result property="currentDirId" column="current_dir_id" typeHandler="utils.UUIDTypeHandler"/>
+        <result property="query" column="query"/>
+        <result property="viewOffset" column="view_offset"/>
+        <result property="options" column="options"/>
+
+        <collection property="selection" notNullColumn="uuid" javaType="java.util.UUID">
+            <result column="uuid" typeHandler="utils.UUIDTypeHandler"/>
+        </collection>
+    </resultMap>
 </mapper>

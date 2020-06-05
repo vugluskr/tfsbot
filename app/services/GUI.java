@@ -1,22 +1,27 @@
 package services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import model.TFile;
 import model.User;
-import model.telegram.api.InlineButton;
-import model.telegram.api.InlineKeyboard;
-import model.telegram.api.TextRef;
+import play.libs.Json;
+import sql.TFileSystem;
 import utils.FlowBox;
 import utils.LangMap;
 import utils.Strings.Callback;
 import utils.Strings.Uni;
+import utils.TextUtils;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 import static utils.LangMap.v;
+import static utils.TextUtils.isEmpty;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -25,102 +30,156 @@ import static utils.LangMap.v;
  */
 public class GUI {
     public interface Buttons {
-        InlineButton mkLabelButton = new InlineButton(Uni.label, Callback.mkLabel);
-        InlineButton searchButton = new InlineButton(Uni.search, Callback.search);
-        InlineButton mkDirButton = new InlineButton(Uni.mkdir, Callback.mkDir);
-        InlineButton gearButton = new InlineButton(Uni.gear, Callback.gearLs);
-        InlineButton cancelButton = new InlineButton(Uni.cancel, Callback.cancelCb);
-        InlineButton goUpButton = new InlineButton(Uni.updir, Callback.goUp);
-        InlineButton rewindButton = new InlineButton(Uni.rewind, Callback.rewind);
-        InlineButton forwardButton = new InlineButton(Uni.forward, Callback.forward);
-        InlineButton renameButton = new InlineButton(Uni.rename, Callback.rename);
-        InlineButton putButton = new InlineButton(Uni.put, Callback.put);
-        InlineButton moveButton = new InlineButton(Uni.move, Callback.move);
-        InlineButton dropButton = new InlineButton(Uni.drop, Callback.drop);
-        InlineButton checkAllButton = new InlineButton(Uni.checkAll, Callback.checkAll);
-        InlineButton shareButton = new InlineButton(Uni.share, Callback.share);
-        InlineButton mkLinkButton = new InlineButton(Uni.Link, Callback.mkLink);
-        InlineButton mkGrantButton = new InlineButton(Uni.Person, Callback.mkGrant);
-        InlineButton saveButton = new InlineButton(Uni.save, Callback.save);
-        InlineButton okButton = new InlineButton(Uni.put, Callback.ok);
-
+        Button mkLabelButton = new Button(Uni.label, Callback.mkLabel);
+        Button searchButton = new Button(Uni.search, Callback.search);
+        Button mkDirButton = new Button(Uni.mkdir, Callback.mkDir);
+        Button gearButton = new Button(Uni.gear, Callback.gear);
+        Button cancelButton = new Button(Uni.cancel, Callback.cancel);
+        Button goUpButton = new Button(Uni.updir, Callback.goUp);
+        Button rewindButton = new Button(Uni.rewind, Callback.rewind);
+        Button forwardButton = new Button(Uni.forward, Callback.forward);
+        Button renameButton = new Button(Uni.rename, Callback.rename);
+        Button putButton = new Button(Uni.put, Callback.put);
+        Button moveButton = new Button(Uni.move, Callback.move);
+        Button dropButton = new Button(Uni.drop, Callback.drop);
+        Button checkAllButton = new Button(Uni.checkAll, Callback.checkAll);
+        Button shareButton = new Button(Uni.share, Callback.share);
+        Button mkLinkButton = new Button(Uni.Link, Callback.mkLink);
+        Button mkGrantButton = new Button(Uni.Person, Callback.mkGrant);
+        Button okButton = new Button(Uni.put, Callback.ok);
+        Button voidButton = new Button(Uni.cancel, Callback.Void);
     }
 
-    private static final InlineKeyboard fileKbd = new InlineKeyboard();
+    private static final Keyboard fileKbd = new Keyboard(), voidKbd = new Keyboard(), yesNoKbd = new Keyboard();
 
     static {
-        final List<InlineButton> fileKbdRow = new ArrayList<>(3);
-        fileKbdRow.add(Buttons.renameButton);
-        fileKbdRow.add(Buttons.moveButton);
-        fileKbdRow.add(Buttons.dropButton);
-        fileKbdRow.add(Buttons.cancelButton);
+        fileKbd.button(Buttons.renameButton,
+                Buttons.moveButton,
+                Buttons.dropButton,
+                Buttons.cancelButton);
 
-        fileKbd.setKeyboard(Collections.singletonList(fileKbdRow));
+        voidKbd.button(Buttons.voidButton);
+
+        yesNoKbd.button(Buttons.okButton, Buttons.voidButton);
     }
 
     @Inject
     private TgApi tgApi;
 
+    @Inject
+    private TFileSystem fs;
+
+    public void cleanup(final User user) {
+        try {
+            fs.selectServiceWindows(user.getId())
+                    .forEach(msgId -> CompletableFuture.runAsync(() -> tgApi.deleteMessage(msgId, user.getId())));
+        } finally {
+            fs.deleteServiceWindows(user.getId());
+        }
+    }
+
     public void yesNoPrompt(final LangMap.Value question, final User user, final Object... args) {
-        final List<InlineButton> buttons = new ArrayList<>(0);
-        buttons.add(Buttons.okButton);
-        buttons.add(Buttons.cancelButton);
-
-        tgApi.sendOrUpdate(v(question, user, args), "MarkdownV2",
-                new InlineKeyboard(Collections.singletonList(buttons)), 0, user.getId(), dlgId -> {
-                    if (user.getLastDialogId() > 0)
-                        tgApi.deleteMessage(user.getLastDialogId(), user.getId());
-
-                    user.setLastDialogId(dlgId);
-                });
+        CompletableFuture.runAsync(() -> tgApi.sendMessage(TextUtils.escapeMd(v(question, user, args)), TgApi.formatMd2, user.getId(), yesNoKbd.toJson())
+                .thenAccept(reply -> fs.addServiceWin(reply.messageId, user.getId())));
     }
 
-    public void dialog(final LangMap.Value question, final User user, final Object... args) {
-        tgApi.ask(question, user, dlgId -> {
-            if (user.getLastDialogId() > 0)
-                tgApi.deleteMessage(user.getLastDialogId(), user.getId());
-
-            user.setLastDialogId(dlgId);
-        }, args);
-    }
-
-    public void notify(final LangMap.Value text, final User user, final Object... args) {
-        tgApi.sendPlainText(text, user, dlgId -> {
-            if (user.getLastDialogId() > 0)
-                tgApi.deleteMessage(user.getLastDialogId(), user.getId());
-
-            user.setLastDialogId(dlgId);
-        }, args);
+    public void dialog(final LangMap.Value text, final User user, final Object... args) {
+        CompletableFuture.runAsync(() -> tgApi.sendMessage(TextUtils.escapeMd(v(text, user, args)), TgApi.formatMd2, user.getId(), voidKbd.toJson())
+                .thenAccept(reply -> fs.addServiceWin(reply.messageId, user.getId())));
     }
 
 
     public void makeFileDialog(final TFile entry, final User user) {
-        tgApi.sendMedia(entry, (entry.isShared() ? Uni.share + " " : "") + entry.getPath(), fileKbd, user.getId(), dlg -> {
-            if (user.getLastDialogId() > 0)
-                tgApi.deleteMessage(user.getLastDialogId(), user.getId());
+        CompletableFuture.runAsync(() ->
+                tgApi.sendMedia(entry, entry.getPath(), fileKbd.toJson(), user.getId())
+                        .thenAccept(reply -> fs.addServiceWin(reply.messageId, user.getId())));
+    }
 
-            user.setLastDialogId(dlg);
+    public void sendBox(final FlowBox box, final User user) {
+        CompletableFuture.runAsync(() -> {
+            if (user.getLastMessageId() > 0)
+                tgApi.editMessageText(user.getId(), user.getLastMessageId(), box.body.toString(), box.format, box.kbd.toJson())
+                        .thenApply(reply -> {
+                            if (reply.ok)
+                                return true;
+
+                            fs.addServiceWin(user.getLastMessageId(), user.getId());
+                            user.setLastMessageId(0);
+                            fs.updateLastMessageId(user.getLastMessageId(), user.getId());
+                            return false;
+                        })
+                        .thenAccept(wasOk -> {
+                            if (!wasOk)
+                                tgApi.sendMessage(box.body.toString(), box.format, user.getId(), box.kbd.toJson())
+                                .thenAccept(reply -> {
+                                    if (reply.ok) {
+                                        user.setLastMessageId(reply.messageId);
+                                        fs.updateLastMessageId(user.getLastMessageId(), user.getId());
+                                    }
+                                }).toCompletableFuture().join();
+                        });
+            else
+                tgApi.sendMessage(box.body.toString(), box.format, user.getId(), box.kbd.toJson())
+                        .thenAccept(reply -> {
+                            if (reply.ok) {
+                                user.setLastMessageId(reply.messageId);
+                                fs.updateLastMessageId(user.getLastMessageId(), user.getId());
+                            }
+                        });
         });
     }
 
-    @SuppressWarnings("ConstantConditions")
-    public void sendBox(final FlowBox box, final User user) {
-        final TextRef ref = new TextRef();
-        ref.setParseMode(box.format);
-        ref.setText(box.body.toString());
+    public static class Keyboard {
+        private final List<List<Button>> buttons = new ArrayList<>(1);
 
-
-        if (!box.rows.isEmpty()) {
-            while (box.rows.get(box.rows.size() - 1).isEmpty())
-                box.rows.remove(box.rows.size() - 1);
-
-            if (!box.rows.isEmpty())
-                ref.setReplyMarkup(new InlineKeyboard(box.rows));
+        {
+            buttons.add(new ArrayList<>(1));
         }
-        send(ref, user.getLastMessageId(), user.getId(), user::setLastMessageId);
+
+        public void newLine() {
+            buttons.add(new ArrayList<>(0));
+        }
+
+        public void button(final Button... button) {
+            Arrays.stream(button).filter(Objects::nonNull).forEach(b -> button(b, false));
+        }
+
+        public void button(final Button button, final boolean newLine) {
+            if (button == null)
+                return;
+
+            if (newLine)
+                buttons.add(new ArrayList<>(1));
+
+            buttons.get(buttons.size() - 1).add(button);
+        }
+
+        public JsonNode toJson() {
+            final ObjectNode node = Json.newObject();
+
+            buttons.stream().filter(r -> !isEmpty(r)).forEach(row -> {
+                final ArrayNode rowNode = node.withArray("inline_keyboard").addArray();
+                row.forEach(b -> {
+                    final ObjectNode bNode = rowNode.addObject();
+                    bNode.put("text", b.text);
+                    bNode.put("callback_data", b.data);
+                });
+            });
+
+            return node;
+        }
     }
 
-    public void send(final TextRef box, final long lastMessageId, final long chatId, final Consumer<Long> sentMsgIdConsumer) {
-        tgApi.sendOrUpdate(box.getText(), box.getParseMode(), box.getReplyMarkup(), lastMessageId, chatId, sentMsgIdConsumer);
+    public static class Button {
+        private final String text, data;
+
+        public Button(final String text, final Callback data) {
+            this(text, data.toString());
+        }
+
+        public Button(final String text, final String data) {
+            this.text = text;
+            this.data = data;
+        }
     }
 }

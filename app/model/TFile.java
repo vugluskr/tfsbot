@@ -19,11 +19,13 @@ import static utils.TextUtils.notNull;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TFile implements Comparable<TFile>, Optioned {
+    public String uniqId;
     private UUID id, parentId;
     private long owner;
-    private String refId;
-    private ContentType type;
-    private String name, path;
+    public String refId;
+    public ContentType type;
+    public String name;
+    private String path;
     private int options;
     private boolean rw;
 
@@ -166,7 +168,7 @@ public class TFile implements Comparable<TFile>, Optioned {
 
     @JsonIgnore
     public boolean isSharable() {
-        return !isSharesRoot() && !isShared() && !isShareFor() && rw;
+        return parentId != null && rw && !Optz.Unsharable.is(this);
     }
 
     @JsonIgnore
@@ -190,7 +192,11 @@ public class TFile implements Comparable<TFile>, Optioned {
         return Optz.shareFor.is(this);
     }
 
+    public void setUnsharable() {
+        Optz.Unsharable.set(this);
+    }
+
     enum Optz implements BMasked {
-        shared, locked, sharesRoot, shareFor;
+        shared, locked, sharesRoot, shareFor, Unsharable;
     }
 }

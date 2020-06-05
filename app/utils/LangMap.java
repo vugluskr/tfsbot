@@ -46,8 +46,8 @@ public class LangMap {
         init(Value.NO_RESULTS, "Nothing found for ‘%s’", "Ничего не найдено по запросу '%s'");
         init(Value.NO_RESULTS_AFTER, "No search results", "Результатов поиска нет");
         init(Value.TYPE_QUERY, "Type query:", "Поиск:");
-        init(Value.TYPE_RENAME, "Type new name for '%s':", "Новое название для '%s':");
-        init(Value.TYPE_FOLDER, "Type new folder name:", "Название новой папки:");
+        init(Value.TYPE_RENAME, "Type new name for '%s':", "Напиши новое имя для '%s':");
+        init(Value.TYPE_FOLDER, "Type new folder name:", "Напиши имя новой папки");
         init(Value.CD, "cd %s", "переход в %s");
         init(Value.PAGE, "page #%s", "страница #'%s'");
         init(Value.NORMAL_MODE, "Normal mode", "Нормальный режим");

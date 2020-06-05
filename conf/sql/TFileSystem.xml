@@ -6,13 +6,17 @@
         values (#{name}, #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, #{type}, #{refId}, #{options},
                 #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
     </insert>
+    <insert id="addServiceWin">
+        insert into service_windows(user_id, message_id)
+        VALUES (#{userId}, #{messageId})
+    </insert>
     <update id="createRootTable">
         create table ${tableName}
         (
-            id        bigserial not null primary key,
-            parent_id bigint    not null,
+            id        uuid not null primary key,
+            parent_id uuid,
             name      text,
-            type      text      not null,
+            type      text not null,
             ref_id    text,
             options   int default 0
         )
@@ -26,6 +30,11 @@
         set uuid = #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
         where id = #{oldId}
     </update>
+    <update id="updateLastMessageId">
+        update users
+        set last_message_id = #{lastMessageId}
+        where id = #{userId}
+    </update>
     <delete id="dropEntry">
         delete
         from ${viewName} f
@@ -38,37 +47,12 @@
         where id in
         <foreach collection="ids" item="id" open="(" close=")" separator=",">#{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}</foreach>
     </delete>
+    <delete id="deleteServiceWindows">
+        delete
+        from service_windows
+        where user_id = #{userId}
+    </delete>
 
-    <select id="isIndexMissed" resultType="_boolean">
-        select not exists(select 1
-                          from pg_class t,
-                               pg_class i,
-                               pg_index ix,
-                               pg_attribute a
-                          where t.oid = ix.indrelid
-                            and i.oid = ix.indexrelid
-                            and a.attrelid = t.oid
-                            and a.attnum = ANY (ix.indkey)
-                            and t.relkind = 'r'
-                            and i.relname = #{indexName}
-
-                          order by t.relname,
-                                   i.relname)
-    </select>
-    <select id="isTableMissed" resultType="_boolean">
-        SELECT not EXISTS(SELECT 1
-                          FROM information_schema.tables
-                          WHERE table_schema = 'public'
-                            AND table_name = #{tableName}
-            )
-    </select>
-    <select id="isViewMissed" resultType="_boolean">
-        SELECT not EXISTS(SELECT 1
-                          FROM information_schema.views
-                          WHERE table_schema = 'public'
-                            AND table_name = #{viewName}
-            )
-    </select>
     <select id="listChilds" resultMap="EntryMap">
         select f.*, fp.path
         from ${viewName} f
@@ -76,10 +60,6 @@
         where f.parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
     </select>
 
-    <select id="getRawTable" resultType="java.util.Map">
-        select *
-        from ${tableName}
-    </select>
     <select id="isEntryExist" resultType="_boolean">
         select exists(select 1 from ${viewName} where name = #{name} and parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
     </select>
@@ -131,49 +111,24 @@
             SELECT id
             FROM tree)
     </select>
-    <update id="addUuidParent">
-        alter table ${tableName}
-            add if not exists parent_uuid uuid
-    </update>
-    <update id="addUuid">
-        alter table ${tableName}
-            add if not exists uuid uuid
-    </update>
+    <select id="selectServiceWindows" resultType="_long">
+        select message_id
+        from service_windows
+        where user_id = #{userId}
+    </select>
+    <select id="selectByIds" resultMap="EntryMap">
+        select f.*, fp.path
+        from ${viewName} f
+        left join ${treeViewName} fp on (f.id = fp.id)
+        where f.id in
+        <foreach collection="uuids" item="uuid" open="(" close=")" separator=",">#{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}</foreach>
+    </select>
     <update id="createShareView">
-        create or replace view ${viewName} (id, name, type, parent_id, ref_id, options, owner, rw) as
-        (
-        WITH RECURSIVE tree AS
-                           (
-                               SELECT id,
-                                      name,
-                                      type,
-                                      cast(#{shareDirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler} as uuid) as parent_id,
-                                      options,
-                                      ref_id
-                               FROM ${shareOwnerTableName}
-                               WHERE id = #{shareEntryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-                               UNION ALL
-                               SELECT si.id,
-                                      si.name,
-                                      si.type,
-                                      si.parent_id,
-                                      si.options,
-                                      si.ref_id
-                               FROM ${shareOwnerTableName} As si
-                                        JOIN
-                                    tree AS sp
-                                    ON (si.parent_id = sp.id)
-                           )
-        SELECT tree.id,
-               tree.name,
-               tree.type,
-               tree.parent_id,
-               tree.ref_id,
-               tree.options,
-               share.owner,
-               share.rw
-        FROM tree
-                 left join shares share on share.id = #{shareId})
+        select  dotree(#{viewName},
+                      #{shareDirId},
+                      #{shareEntryId},
+                      #{shareOwnerTableName},
+                      #{shareId})
     </update>
 
     <update id="createFsView">
@@ -214,7 +169,7 @@
     </update>
 
     <update id="dropView">
-        drop view if exists ${viewName}
+        drop view if exists ${viewName} cascade
     </update>
     <select id="selectShareViewsLike" resultType="java.lang.String">
         SELECT table_name
@@ -253,7 +208,8 @@
         select f.*, fp.path
         from ${fsViewName} f
                  left join ${treeViewName} fp on (f.id = fp.id)
-        where f.parent_id is null and f.type = 'DIR'
+        where f.parent_id is null
+          and f.type = 'DIR'
         limit 1
     </select>
 
@@ -276,69 +232,5 @@
         <result property="owner" column="owner"/>
         <result property="rw" column="rw"/>
     </resultMap>
-
-    <!-- old timers -->
-
-    <update id="old0">
-        update fs_struct_${uid}
-        set parent_uuid = subquery.uuid
-
-        from (select id, uuid, parent_id from fs_struct_${uid}) as subquery
-        where fs_struct_${uid}.parent_id = subquery.id;
-    </update>
-    <update id="old1">
-        alter table fs_struct_${uid}
-            drop column parent_id;
-    </update>
-    <update id="old2">
-        alter table fs_struct_${uid}
-            alter column uuid set not null;
-    </update>
-    <update id="old3">
-        alter table fs_struct_${uid}
-            alter column parent_uuid set not null;
-    </update>
-    <update id="old4">
-        alter table fs_struct_${uid}
-            add if not exists options int default 0
-    </update>
-    <update id="old5">
-        alter table fs_struct_${uid}
-            drop constraint fs_struct_${uid}_pkey;
-    </update>
-    <update id="old6">
-        alter table fs_struct_${uid}
-            drop column id;
-    </update>
-    <update id="old65">
-        alter table fs_struct_${uid}
-            rename column uuid to id;
-    </update>
-    <update id="old7">
-        alter table fs_struct_${uid}
-            add constraint fs_struct_${uid}_pkey primary key (id);
-    </update>
-    <update id="old8">
-        alter table fs_struct_${uid}
-            rename column parent_uuid to parent_id;
-    </update>
-    <update id="old10">
-        alter table fs_struct_${uid} alter column ref_id drop not null
-    </update>
-    <update id="old11">
-        alter table fs_struct_${uid} alter column ref_id drop default
-    </update>
-    <update id="old12">
-        alter table fs_struct_${uid} drop column if exists selected
-    </update>
-    <update id="old13">
-        alter table fs_struct_${uid} drop column if exists found
-    </update>
-    <update id="old14">
-        alter table fs_struct_${uid} drop column if exists uuid
-    </update>
-    <update id="old15">
-        alter table fs_struct_${uid} drop column if exists size
-    </update>
 
 </mapper>
