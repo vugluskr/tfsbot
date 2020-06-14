@@ -46,8 +46,8 @@ public class LangMap {
                         escapeMd("First of all file's body is shown. Below is file's path, after that control buttons are:\n" +
                                 Strings.Uni.goUp + " - go to the parent folder.\n" +
                                 Strings.Uni.share + " - go to the access share management.\n" +
-                                Strings.Uni.edit + " - rename the file. ") + mdItalic("you have to type new file's name after click. Beware that file wont be actually renamed in" +
-                        " a cloud. Only display name will be changed after that.\n") +
+                                Strings.Uni.edit + " - rename the file. ") + mdItalic("you have to type new file's name after click. Be aware that file wont be actually renamed " +
+                        "in a cloud. Only display name will be changed after that.\n") +
                         escapeMd(Strings.Uni.drop + " - drop the file. ") + mdItalic("File will be permanently deleted."),
                 mdBold("Режим просмотра файла\n") +
                         escapeMd("Первым отображается тело самого файла. Ниже указан путь файла, затем идёт ряд кнопок управления:\n" +
@@ -60,7 +60,7 @@ public class LangMap {
                         escapeMd("Search query and search folder are show at first, followed by search results quantity.\nNext is button " + Strings.Uni.goUp + ": exit search - " +
                                 "after click you will get into 'view mode' of the element where you started searching.\n\nIf bot found more than nothing then all results are " +
                                 "shown as buttons. Each button is signed with entry's relative path, relative to the your current folder\n\n") +
-                        mdItalic("Beware that found notes, unlike the 'view mode', are also shown with buttons.\n\n") +
+                        mdItalic("Be aware that found notes, unlike the 'view mode', are also shown with buttons.\n\n") +
                         escapeMd("Click to any result button takes you to the view mode according to the element's type, but return button (" + Strings.Uni.goUp + ") will " +
                                 "lead back to the search results.\n"),
                 mdBold("Просмотр результатов поиска\n") +
@@ -70,7 +70,31 @@ public class LangMap {
                         mdItalic("Обратите внимание, что найденные заметки, в отличие от обычного режима, здесь показываются тоже кнопками, наравне с файлами и папками.\n\n") +
                         escapeMd("Нажатие на любую кнопку приводит к переходу в режим обычного просмотра выбранного элемента, согласно его типу, но в этом просмотре кнопка выхода " +
                                 "из просмотра (" + Strings.Uni.goUp + ") будет вести обратно к результатам поиска.\n"));
-        init(Value.ROOT_HELP, "Change directory", // todo english
+        init(Value.ROOT_HELP, mdBold("Root folder\n") +
+                        escapeMd("You are in the root folder of the TeleFS.\n\n" +
+                                "Bot allows to create, edit and delete folders and files just like you do it on your home PC, only hierarchy is available immediately via all " +
+                                "your devices with your telegram account.\n" +
+                                "Physically files are in the telegram's cloud and its real content is unaccessible to neither bot nor somebody else, untill you decide to share " +
+                                "it.\n" +
+                                "Bot follows 'one window' policy, that means, that any time you see single message from it where content depends on your mode and " +
+                                "performed commands; e.g. if you searched for something then you see search results, if you changed a folder - you see folder's content in same " +
+                                "message and so on.\n\n" +
+                                "Regardless of modes and actions, four actions are available to you at any given time:\n") +
+                        mdBold("1. ") + mdItalic("files upload") + escapeMd(" bot's main goal is to keep access to your folders and files according to your structure. Any time " +
+                        "you can extend your collection just simple send any number of files, all of it will be stored in a current folder, where you are while send it.. " +
+                        "No special command or action is required, just send files to bot and thats it. ") + mdItalic(
+                                "Be aware, simple 'documents' are saved with original filenames, but its not so for media files - unfortunately, telegram loses its filenames, so" +
+                                        " bot have to construct it from the file's types.\n" +
+                        "Hint: if you will apply a comment while sending a file, then bot will use it as filename\n\n") +
+                        mdBold("2. ") + escapeMd("'/reset' command - reset bot's state if it is unconscious and takes you here, to the root folder.\n\n") +
+                        mdBold("3. ") + escapeMd("'/help' - context help, reflects on your actions and current position. If you're missed and dont know what to do - use this " +
+                        "command.\n\n") +
+                        mdBold("4. ") + mdItalic("search by filename") + escapeMd(" - you can start search anywhere at full hierarchy depth from where you are, just send a " +
+                        "query text. ") + mdItalic("The search is always case-insensitive and for any part of the name\n\n") +
+                        escapeMd("These buttons are available at the root folder:\n") +
+                        escapeMd(Strings.Uni.label + " - make a note. ") + mdItalic("you will have to type a note's text after click") + "\n" +
+                        escapeMd(Strings.Uni.mkdir + " - make a subfolder. ") + mdItalic("you will have to type a new subfolder's name after click") + "\n" +
+                        escapeMd(Strings.Uni.gear + " - go to the 'notes manage mode'. ") + mdItalic("you will be able to manage existed notes in the root folder"),
                 mdBold("Домашняя папка\n") +
                         escapeMd("Вы находитесь в домашней папке вашей файловой системы TeleFS.\n\n" +
                                 "Бот позволяет создавать, изменять и удалять папки и файлы также, как вы делаете это на своём компьютере, только эта иерархия сразу доступна на всех" +
@@ -99,7 +123,19 @@ public class LangMap {
                         escapeMd(Strings.Uni.mkdir + " - создание подпапки в текущей папке. ") + mdItalic("после нажатия нужно будет ввести имя новой папки") + "\n" +
                         escapeMd(Strings.Uni.gear + " - переход в режим управления метками. ") + mdItalic("предоставляет доступ к редактированию и удалению меток в домашней папке")
             );
-        init(Value.SHARE_DIR_HELP, "get <file>", // todo english
+        init(Value.SHARE_DIR_HELP, mdBold("Manage folder's access sharing\n") +
+                        escapeMd("In TeleFS you can share folder in two ways: public anonymous link and personal grants..\n\n" +
+                                "Anonymous access is granted via public http-link. You can achieve it with click on " + Strings.Uni.link + " button. Second click removes public " +
+                                        "link." +
+                                "With clicking on this link a user achieves a 'read-only' access to your folder.\n\n" +
+                                "Personal access is granted individually for every user. If you click a " + Strings.Uni.mkGrant + " button, then bot will ask you to share with " +
+                                "it contact of the person you want grant access to. It means that a person must be telegram user and you must have him in contacts. " +
+                                "After contact received bot will display a button with person's name in a share management list.\n" +
+                                "Personal access can be 'read-only' or 'full'. 'Full' means that a person could change or even delete your folder's entire content, be careful " +
+                                "with it. You can change access type with simple clicking person's button.\n" +
+                                "Right of each personal access's button there is drop button with " + Strings.Uni.drop + " icon - if you click it this person's access will be " +
+                                "immediately removed.\n" +
+                                Strings.Uni.cancel + " - return to the folder view mode."),
                 mdBold("Управление доступом к папке\n") +
                         escapeMd("В TeleFS вы можете предоставлять доступ к своим папкам и файлам двумя способами: публичная ссылка и персональный доступ.\n\n" +
                                 "Публичный анонимный доступ предоставляется путём создания http-ссылки на папку. Это делается нажатием на кнопку " + Strings.Uni.link +
@@ -115,7 +151,19 @@ public class LangMap {
                                 "данной папке для данного пользователя будет сразу же аннулирован.\n" +
                                 Strings.Uni.cancel + " - кнопка возврата к режиму просмотра папки.")
             );
-        init(Value.SHARE_FILE_HELP, "get <file>", // todo english
+        init(Value.SHARE_FILE_HELP, mdBold("Manage file's access sharing\n") +
+                        escapeMd("In TeleFS you can share file in two ways: public anonymous link and personal grants..\n\n" +
+                                "Anonymous access is granted via public http-link. You can achieve it with click on " + Strings.Uni.link + " button. Second click removes public " +
+                                "link." +
+                                "With clicking on this link a user achieves a 'read-only' access to your file.\n\n" +
+                                "Personal access is granted individually for every user. If you click a " + Strings.Uni.mkGrant + " button, then bot will ask you to share with " +
+                                "it contact of the person you want grant access to. It means that a person must be telegram user and you must have him in contacts. " +
+                                "After contact received bot will display a button with person's name in a share management list.\n" +
+                                "Personal access can be 'read-only' or 'full'. 'Full' means that a person could change or even delete your file, be careful " +
+                                "with it. You can change access type with simple clicking person's button.\n" +
+                                "Right of each personal access's button there is drop button with " + Strings.Uni.drop + " icon - if you click it this person's access will be " +
+                                "immediately removed.\n" +
+                                Strings.Uni.cancel + " - return to the file view mode."),
                 mdBold("Управление доступом к файлу\n") +
                         escapeMd("В TeleFS вы можете предоставлять доступ к своим папкам и файлам двумя способами: публичная ссылка и персональный доступ.\n\n" +
                                 "Публичный анонимный доступ предоставляется путём создания http-ссылки на файл. Это делается нажатием на кнопку " + Strings.Uni.link +
@@ -131,7 +179,15 @@ public class LangMap {
                                 "данному файлу для данного пользователя будет сразу же аннулирован.\n" +
                                 Strings.Uni.cancel + " - кнопка возврата к режиму просмотра файла.")
             );
-        init(Value.GEAR_HELP, "Get previously stored file", // todo english
+        init(Value.GEAR_HELP, mdBold("Folder manage mode\n") +
+                        escapeMd("Navigation is unavailable in this mode, only folder's management.\n\nFirst row is a control buttons:" +
+                                Strings.Uni.share + " - share folder's access.\n" +
+                                Strings.Uni.edit + " - rename the folder. ") + mdItalic("you will have to type new folder's name after click.\n") +
+                        escapeMd(Strings.Uni.drop + " - delete the folder. ") + mdItalicU("folder will be deleted after click " + mdBold("with its entire content\n")) +
+                        escapeMd(Strings.Uni.cancel + " - back to the view mode\n\n" +
+                                        "If notes are found in the folder it will be displayed with buttons, below control buttons.\n" +
+                                        "Click on the note button will take you in the note's management mode."
+                                ),
                 mdBold("Режим управления папкой\n") +
                         escapeMd("В данном режиме недоступна навигация ни вверх ни вниз по иерархии.\n\nВ первой строке находятся кнопки управления самой папкой:" +
                                 Strings.Uni.share + " - управление правами доступа к папке.\n" +
@@ -141,7 +197,11 @@ public class LangMap {
                                         "Если в папке имеются заметки, то они будут отображены кнопками, ниже ряда кнопок управления.\n" +
                                         "Клик по кнопке заметки приводит к переходу в режим управления этой заметкой."
                                 ));
-        init(Value.LABEL_HELP, "mkdir <name>", // todo english
+        init(Value.LABEL_HELP, mdBold("Note management mode\n") +
+                        escapeMd("Here you can edit or delete a note with these buttons:\n" +
+                                Strings.Uni.edit + " - edit note. ") + mdItalic("You will have to type new note's text after click\n") +
+                        escapeMd(Strings.Uni.drop + " - delete note. ") + mdItalic("Note will be permanently deleted after click.\n") +
+                        escapeMd(Strings.Uni.goUp + " - back to the parent's folder view mode. "),
                 mdBold("Режим управления заметкой\n") +
                         escapeMd("Здесь вы можете отредактировать или удалить заметку, с помощью соответствующих кнопок:\n" +
                                 Strings.Uni.edit + " - редактирование заметки. ") + mdItalic("После нажатия нужно будет ввести новый текст заметки\n") +
