@@ -1,14 +1,9 @@
 package utils;
 
-import play.Logger;
-
 import java.lang.reflect.Array;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -115,17 +110,15 @@ public class TextUtils {
         return notNull(o).isEmpty();
     }
 
-    private static long _toLong(byte[] buffer, int offset) {
-        long l1 = _toInt(buffer, offset);
-        long l2 = _toInt(buffer, offset + 4);
-        return (l1 << 32) + ((l2 << 32) >>> 32);
+    private static long tol(final byte[] buf, final int shift) {
+        return (toi(buf, shift) << 32) + ((toi(buf, shift + 4) << 32) >>> 32);
     }
 
-    private static long _toInt(byte[] buffer, int offset) {
-        return (buffer[offset] << 24)
-                + ((buffer[++offset] & 0xFF) << 16)
-                + ((buffer[++offset] & 0xFF) << 8)
-                + (buffer[++offset] & 0xFF);
+    private static long toi(final byte[] buf, int shift) {
+        return (buf[shift] << 24)
+                + ((buf[++shift] & 0xFF) << 16)
+                + ((buf[++shift] & 0xFF) << 8)
+                + (buf[++shift] & 0xFF);
     }
 
     public static UUID generateUuid() {
@@ -138,8 +131,8 @@ public class TextUtils {
     private static UUID generateUuid(final byte[] buffer) {
         long r1, r2;
 
-        r1 = _toLong(buffer, 0);
-        r2 = _toLong(buffer, 1);
+        r1 = tol(buffer, 0);
+        r2 = tol(buffer, 1);
 
         r1 &= ~0xF000L;
         r1 |= 4 << 12;
@@ -149,10 +142,33 @@ public class TextUtils {
         return new UUID(r1, r2);
     }
 
-    private static final Pattern md = Pattern.compile("([=#\\.\\(\\)\\*\\[\\]\"`'~_-])");
+    private static final Pattern md = Pattern.compile("([!=#\\.\\(\\)\\*\\[\\]\"`'~_-])");
 
     public static String escapeMd(final String s) {
         return md.matcher(s).replaceAll("\\\\$1");
     }
 
+    public static String mdBold(final Object o) {
+        return wrap(o, '*');
+    }
+
+    public static String mdBoldU(final Object o) {
+        return wrapU(o, '*');
+    }
+
+    public static String mdItalic(final Object o) {
+        return wrap(o, '_');
+    }
+
+    public static String mdItalicU(final Object o) {
+        return wrapU(o, '_');
+    }
+
+    private static String wrapU(final Object v, final char with) {
+        return with + String.valueOf(v) + with;
+    }
+
+    private static String wrap(final Object v, final char with) {
+        return with + escapeMd(String.valueOf(v)) + with;
+    }
 }

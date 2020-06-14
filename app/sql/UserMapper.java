@@ -3,8 +3,6 @@ package sql;
 import model.User;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.Collection;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -17,14 +15,13 @@ public interface UserMapper {
 
     void insertUser(@Param("id") long id, @Param("rootId") UUID rootId);
 
-    void updateUser(@Param("currentDirId") UUID currentDirId, @Param("query") String query, @Param("viewOffset") int viewOffset, @Param("options") int options,
+    void updateUser(@Param("subjectId") UUID subjectId,
+                    @Param("query") String query,
+                    @Param("searchDirId") UUID searchDirId,
+                    @Param("viewOffset") int viewOffset,
+                    @Param("options") int options,
+                    @Param("lastRefId") String lastRefId,
+                    @Param("lastText") String lastText,
+                    @Param("lastKbd") String lastKeyboard,
                     @Param("id") long id);
-
-    void selectEntry(@Param("uuid") UUID uuid, @Param("id") long id);
-
-    void deselectEntry(@Param("uuid") UUID uuid, @Param("id") long id);
-
-    void resetSelection(@Param("id") long id);
-
-    void selectEntries(@Param("uuids") Collection<UUID> selection, @Param("id") long id);
 }

@@ -10,6 +10,43 @@
         insert into service_windows(user_id, message_id)
         VALUES (#{userId}, #{messageId})
     </insert>
+
+    <delete id="dropEntry">
+        delete
+        from ${viewName} f
+        where f.name = #{name}
+          and f.parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+          and f.owner = #{owner}
+    </delete>
+    <delete id="dropEntriesByParent">
+        delete
+        from ${tableName}
+        where id in (
+            WITH RECURSIVE tree AS
+                               (
+                                   SELECT id,
+                                          parent_id, rw
+                                   FROM ${treeViewName}
+                                   WHERE rw = true
+                                     and (id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+                                       or parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
+                                   UNION ALL
+                                   SELECT si.id,
+                                          si.parent_id, si.rw
+                                   FROM ${treeViewName} As si
+                                            JOIN
+                                        tree AS sp
+                                        ON (si.parent_id = sp.id and sp.rw = true)
+                               )
+            SELECT id
+            FROM tree)
+    </delete>
+    <delete id="deleteServiceWindows">
+        delete
+        from service_windows
+        where user_id = #{userId}
+    </delete>
+
     <update id="createRootTable">
         create table ${tableName}
         (
@@ -21,37 +58,66 @@
             options   int default 0
         )
     </update>
-
     <update id="createIndex">
         create index ${indexName} on ${tableName} (${fields})
-    </update>
-    <update id="update2uuids">
-        update ${tableName}
-        set uuid = #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-        where id = #{oldId}
     </update>
     <update id="updateLastMessageId">
         update users
         set last_message_id = #{lastMessageId}
         where id = #{userId}
     </update>
-    <delete id="dropEntry">
-        delete
-        from ${viewName} f
-        where f.name = #{name}
-          and f.parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-          and f.owner = #{owner}
-    </delete>
-    <delete id="dropEntries">
-        delete from ${tableName}
-        where id in
-        <foreach collection="ids" item="id" open="(" close=")" separator=",">#{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}</foreach>
-    </delete>
-    <delete id="deleteServiceWindows">
-        delete
-        from service_windows
-        where user_id = #{userId}
-    </delete>
+    <update id="createShareView">
+        select dotree(#{viewName},
+                      #{shareDirId},
+                      #{shareEntryId},
+                      #{shareOwnerTableName},
+                      #{shareId})
+    </update>
+    <update id="createFsView">
+        create or replace view ${viewName} as (
+        select id, parent_id, name, type, ref_id, options, cast(${ownerId} as bigint) as "owner", true as "rw" from ${rootTableName}
+        <foreach collection="shares" item="shareView">
+            union all
+            select id, parent_id, name, type, ref_id, options, owner, rw from ${shareView}
+        </foreach>
+        )
+    </update>
+    <update id="createFsTree">
+        create or replace view ${viewName} (id, parent_id, owner, path) as
+        (
+        WITH RECURSIVE tree AS
+                           (
+                               SELECT id,
+                                      name,
+                                      parent_id,
+                                      owner,
+                                      ARRAY [name] AS fpath
+                               FROM ${consolidatedViewName}
+                               WHERE parent_id is null
+                               UNION ALL
+                               SELECT si.id,
+                                      si.name,
+                                      si.parent_id,
+                                      si.owner,
+                                      sp.fpath || si.name As fpath
+                               FROM ${consolidatedViewName} As si
+                                        JOIN
+                                    tree AS sp
+                                    ON (si.parent_id = sp.id and si.owner = sp.owner)
+                           )
+        SELECT id, parent_id, owner, array_to_string(fpath, '/')
+        FROM tree)
+    </update>
+    <update id="dropView">
+        drop view if exists ${viewName} cascade
+    </update>
+    <update id="updateEntry">
+        update ${tableName}
+        set name      = #{name},
+            parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler},
+            options   = #{options}
+        where id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+    </update>
 
     <select id="listChilds" resultMap="EntryMap">
         select f.*, fp.path
@@ -59,7 +125,6 @@
                  left join ${treeViewName} fp on (f.id = fp.id)
         where f.parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
     </select>
-
     <select id="isEntryExist" resultType="_boolean">
         select exists(select 1 from ${viewName} where name = #{name} and parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
     </select>
@@ -74,6 +139,7 @@
         from ${viewName} f
                  left join ${treeViewName} fp on (f.id = fp.id)
         where f.type = #{type}
+          and f.parent_id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
     </select>
     <select id="getPredictors" resultType="model.TFile">
         with recursive a as (
@@ -116,68 +182,12 @@
         from service_windows
         where user_id = #{userId}
     </select>
-    <select id="selectByIds" resultMap="EntryMap">
-        select f.*, fp.path
-        from ${viewName} f
-        left join ${treeViewName} fp on (f.id = fp.id)
-        where f.id in
-        <foreach collection="uuids" item="uuid" open="(" close=")" separator=",">#{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}</foreach>
-    </select>
-    <update id="createShareView">
-        select  dotree(#{viewName},
-                      #{shareDirId},
-                      #{shareEntryId},
-                      #{shareOwnerTableName},
-                      #{shareId})
-    </update>
-
-    <update id="createFsView">
-        create or replace view ${viewName} as (
-        select id, parent_id, name, type, ref_id, options, cast(${ownerId} as bigint) as "owner", true as "rw" from ${rootTableName}
-        <foreach collection="shares" item="shareView">
-            union all
-            select id, parent_id, name, type, ref_id, options, owner, rw from ${shareView}
-        </foreach>
-        )
-    </update>
-
-    <update id="createFsTree">
-        create or replace view ${viewName} (id, parent_id, owner, path) as
-        (
-        WITH RECURSIVE tree AS
-                           (
-                               SELECT id,
-                                      name,
-                                      parent_id,
-                                      owner,
-                                      ARRAY [name] AS fpath
-                               FROM ${consolidatedViewName}
-                               WHERE parent_id is null
-                               UNION ALL
-                               SELECT si.id,
-                                      si.name,
-                                      si.parent_id,
-                                      si.owner,
-                                      sp.fpath || si.name As fpath
-                               FROM ${consolidatedViewName} As si
-                                        JOIN
-                                    tree AS sp
-                                    ON (si.parent_id = sp.id and si.owner = sp.owner)
-                           )
-        SELECT id, parent_id, owner, array_to_string(fpath, '/')
-        FROM tree)
-    </update>
-
-    <update id="dropView">
-        drop view if exists ${viewName} cascade
-    </update>
     <select id="selectShareViewsLike" resultType="java.lang.String">
         SELECT table_name
         FROM information_schema.views
         WHERE table_schema = 'public'
           AND table_name like #{query}
     </select>
-
     <select id="selectRootDirs" resultType="model.TFile">
         select id, name, options
         from ${tableName}
@@ -193,7 +203,6 @@
     <select id="isNameBusy" resultType="_boolean">
         select exists(select 1 from ${tableName} where name = #{name} and parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
     </select>
-
     <select id="findEntry" resultMap="EntryMap">
         select f.*, fp.path
         from ${viewName} f
@@ -203,7 +212,6 @@
           and f.owner = #{owner}
         limit 1
     </select>
-
     <select id="findRoot" resultMap="EntryMap">
         select f.*, fp.path
         from ${fsViewName} f
@@ -212,14 +220,6 @@
           and f.type = 'DIR'
         limit 1
     </select>
-
-    <update id="updateEntry">
-        update ${tableName}
-        set name      = #{name},
-            parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler},
-            options   = #{options}
-        where id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-    </update>
 
     <resultMap id="EntryMap" type="model.TFile">
         <id column="id" property="id" typeHandler="utils.UUIDTypeHandler"/>
@@ -232,5 +232,4 @@
         <result property="owner" column="owner"/>
         <result property="rw" column="rw"/>
     </resultMap>
-
 </mapper>

@@ -1,24 +1,22 @@
 package services;
 
 import com.typesafe.config.Config;
-import model.Callback;
-import model.Share;
-import model.TFile;
-import model.User;
+import model.*;
 import model.telegram.ContentType;
-import play.Logger;
-import utils.*;
+import model.telegram.ParseMode;
+import utils.LangMap;
+import utils.Strings;
+import utils.TFileFactory;
 
 import javax.inject.Inject;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static utils.LangMap.v;
-import static utils.Strings.Callback.drop;
-import static utils.Strings.Callback.move;
 import static utils.TextUtils.*;
 
 /**
@@ -26,8 +24,10 @@ import static utils.TextUtils.*;
  * 16.05.2020
  * tfs ☭ sweat and blood
  */
+@SuppressWarnings("unchecked")
 public class HeadQuarters {
-    private static final Logger.ALogger logger = Logger.of(HeadQuarters.class);
+    private enum ViewKind {subjectShares, gearSubject, none, viewDir, viewFile, viewLabel, viewSearchedDir, viewSearchedFile, viewSearchedLabel, searchResults}
+
     private static final Comparator<TFile> sorter = (o1, o2) -> {
         final int res = Boolean.compare(o2.isDir(), o1.isDir());
         return res != 0 ? res : o1.getName().compareTo(o2.getName());
@@ -43,475 +43,493 @@ public class HeadQuarters {
     private UserService userService;
 
     @Inject
-    private GUI gui;
+    private TgApi api;
 
-    public void callback(final String callbackData, final User user) {
-        try {
-            boolean shouldUpdate = false, fallToView = true;
+    public void doCommand(final Command command, final User user) {
+        TFile subject = fsService.get(user.getSubjectId(), user), parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
+        ViewKind viewKind = ViewKind.none;
 
-            final int idx = callbackData.indexOf(':');
-
-            if (idx < 1)
-                logger.debug("Неизвестный науке коллбек: " + callbackData);
-            else {
-                final Callback c = new Callback(Strings.Callback.ofString(callbackData), idx < callbackData.length() - 1 ? getInt(callbackData.substring(idx + 1)) : -1);
-                final TFile meantEntry = c.idx == -1 || user.isSharing() ? null : scope(user).stream().filter(scopeFilter(user)).sorted(sorter).toArray(TFile[]::new)[c.idx];
-                final Share meantShare = c.idx == -1 || !user.isSharing() ? null : scopeShares(user).stream().filter(s -> !s.isGlobal()).sorted(Comparator.comparing(Share::getName)).toArray(Share[]::new)[c.idx];
-                final TFile selected = meantEntry == null && !user.selection.isEmpty() ? fsService.get(user.selection.first(), user) : null;
-                final TFile current = fsService.get(user.getCurrentDirId(), user);
-
-                switch (c.type) {
-                    case cancel:
-                        if (user.isWaitInput())
-                            user.cancelWaiting();
-                        else if (user.isGearing())
-                            user.unsetGearing();
-                        else if (user.isSearching())
-                            user.unsetSearching();
-                        else if (user.isFileViewing())
-                            user.unsetFileViewing();
-                        else if (user.isSharing())
-                            user.unsetSharing();
-                        else if (user.isMoving())
-                            user.unsetMoving();
-
-                        shouldUpdate = true;
-                        break;
-                    case changeRo:
-                        if (meantShare != null)
-                            fsService.changeShareRo(meantShare.getId(), user);
-                        break;
-                    case checkAll:
-                        userService.bulkSelection(scope(user), user);
-                        break;
-                    case drop:
-                        if (user.isSharing()) {
-                            if (meantShare != null)
-                                fsService.dropShare(meantShare.getId(), user);
-
-                            if (selected != null && fsService.noSharesExist(user.selection.first(), user)) {
-                                selected.setUnshared();
-                                fsService.updateMeta(selected, user);
-                            }
-                        } else {
-                            fsService.rmSelected(user);
-                            userService.resetSelection(user);
-                        }
-                        break;
-                    case forward:
-                        userService.pageUp(user);
-                        break;
-                    case gear:
-                        user.setGearing();
-                        userService.update(user);
-                        break;
-                    case goUp:
-                        if (!user.isOnTop())
-                            userService.dirChange(fsService.get(user.getCurrentDirId(), user).getParentId(), user);
-                        break;
-                    case inversCheck:
-                        if (meantEntry != null)
-                            userService.entryInversSelection(meantEntry, user);
-                        break;
-                    case mkDir:
-                        gui.dialog(LangMap.Value.TYPE_FOLDER, user);
-                        user.setWaitDirInput();
-                        shouldUpdate = true;
-                        fallToView = false;
-                        break;
-                    case mkGrant:
-                        if (selected != null) {
-                            gui.dialog(selected.isDir() ? LangMap.Value.SEND_CONTACT_DIR : LangMap.Value.SEND_CONTACT_FILE, user, selected.getPath());
-                            user.setWaitFileGranting();
-                            shouldUpdate = true;
-                            fallToView = false;
-                        }
-                        break;
-                    case mkLabel:
-                        gui.dialog(LangMap.Value.TYPE_LABEL, user);
-                        user.setWaitLabelInput();
-                        shouldUpdate = true;
-                        fallToView = false;
-                        break;
-                    case mkLink:
-                        final TFile entry = fsService.get(user.selection.first(), user);
-                        final Share share = fsService.listShares(entry.getId(), user).stream().filter(Share::isGlobal).findAny().orElse(null);
-
-                        gui.yesNoPrompt(share == null
-                                        ? (entry.isDir() ? LangMap.Value.CREATE_PUBLINK_DIR : LangMap.Value.CREATE_PUBLINK_FILE)
-                                        : (entry.isDir() ? LangMap.Value.DROP_PUBLINK_DIR : LangMap.Value.DROP_PUBLINK_FILE),
-                                user, TextUtils.escapeMd(entry.getPath()));
-
-                        fallToView = false;
-                        break;
-                    case move:
-                        user.setMoving();
-                        shouldUpdate = true;
-                        break;
-                    case ok:
-                        if (selected != null) {
-                            if (fsService.isGlobalShareMissed(selected.getId(), user)) {
-                                fsService.makeShare(selected.getName(), user, selected.getId(), 0, null);
-
-                                if (!selected.isShared()) {
-                                    selected.setShared();
-                                    fsService.updateMeta(selected, user);
-                                }
-                            } else {
-                                fsService.dropGlobalShareByEntry(selected.getId(), user);
-                                if (fsService.noSharesExist(selected.getId(), user)) {
-                                    selected.setUnshared();
-                                    fsService.updateMeta(selected, user);
-                                }
-                            }
-                        }
-                        break;
-                    case open:
-                        if (meantEntry != null && meantEntry.isDir())
-                            userService.dirChange(meantEntry.getId(), user);
-                        else {
-                            gui.makeFileDialog(meantEntry, userService.entrySelectedSolo(meantEntry, user));
-                            user.setFileViewing();
-                            shouldUpdate = true;
-                            fallToView = false;
-                        }
-                        break;
-                    case put:
-                        if (!current.isRw()) {
-                            gui.dialog(LangMap.Value.NOT_ALLOWED, user);
-                            fallToView = false;
-                        } else {
-                            final Set<UUID> predictors = fsService.getPredictors(user).stream().map(TFile::getId).collect(Collectors.toSet());
-                            final List<TFile> selection = fsService.getSelection(user);
-                            final AtomicInteger counter = new AtomicInteger(0);
-                            selection.stream()
-                                    .filter(f -> f.isRw() && (!f.isDir() || !predictors.contains(f.getId()))).peek(e -> counter.incrementAndGet()).forEach(f -> f.setParentId(current.getId()));
-
-                            fsService.bulkUpdate(selection);
-                            user.unsetMoving();
-                            shouldUpdate = true;
-                        }
-                        break;
-                    case rename:
-                        gui.dialog(LangMap.Value.TYPE_RENAME, user, fsService.get(user.selection.first(), user).getName());
-                        user.setWaitRenameInput();
-                        shouldUpdate = true;
-                        fallToView = false;
-                        break;
-                    case rewind:
-                        userService.pageDown(user);
-                        break;
-                    case search:
-                        gui.dialog(LangMap.Value.TYPE_QUERY, user);
-                        user.setWaitSearchInput();
-                        shouldUpdate = true;
-                        fallToView = false;
-                        break;
-                    case share:
-                        user.setSharing();
-                        shouldUpdate = true;
-                        break;
+        switch (command.type) {
+            case backToSearch:
+                subject = fsService.get(user.getSearchDirId(), user);
+                parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
+                viewKind = ViewKind.searchResults;
+                break;
+            case cancelShare:
+            case cancelSearch:
+                viewKind = subject.isDir() ? ViewKind.viewDir : subject.isLabel() ? ViewKind.viewLabel : ViewKind.viewFile;
+                user.resetState();
+                break;
+            case changeRo:
+                fsService.changeShareRo(((Share) byIdx(command.elementIdx, subject, user)).getId(), user);
+                viewKind = ViewKind.subjectShares;
+                break;
+            case doSearch:
+                user.setQuery(command.input);
+                user.setViewOffset(0);
+                user.resetState();
+                user.setSearching();
+                if (!subject.isDir()) {
+                    user.setSubjectId(user.getRootId());
+                    subject = parent = fsService.findRoot(user.getId());
                 }
-            }
+                user.setSearchDirId(subject.getId());
+                viewKind = ViewKind.searchResults;
+                break;
+            case dropFile:
+            case dropDir:
+            case dropLabel: // может объединить?
+                fsService.rm(subject, user);
+                user.setSubjectId(parent.getId());
+                user.setViewOffset(0);
+                user.resetState();
+                subject = parent;
+                parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
+                viewKind = ViewKind.viewDir;
+                break;
+            case dropGlobLink:
+                fsService.dropGlobalShareByEntry(subject.getId(), user);
+                if (subject.isShared() && fsService.noSharesExist(subject.getId(), user)) {
+                    subject.setUnshared();
+                    fsService.updateMeta(subject, user);
+                }
+                viewKind = ViewKind.subjectShares;
+                break;
+            case dropShare:
+                fsService.dropShare(((Share) byIdx(command.elementIdx, subject, user)).getId(), user);
 
-            if (shouldUpdate)
-                userService.update(user);
-
-            if (fallToView)
-                doView(user);
-            else
-                logger.debug(user.toString());
-        } catch (final Exception e) {
-            logger.error("Callback fuckup: " + e.getMessage(), e);
-        }
-    }
-
-    public void text(final String input, final User user) {
-        try {
-            boolean fallToView = true;
-
-            if (input.equalsIgnoreCase("/start") || input.equalsIgnoreCase("/reset")) {
-                user.setOptions(0);
-                user.setCurrentDirId(user.getRootId());
-            } else if (notNull(input).startsWith("/start shared-")) {
-                final String id = notNull(input).substring(14);
-
+                if (fsService.noSharesExist(subject.getId(), user)) {
+                    subject.setUnshared();
+                    fsService.updateMeta(subject, user);
+                }
+                viewKind = ViewKind.subjectShares;
+                break;
+            case editLabel:
+                if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
+                    subject.setName(command.input);
+                    subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
+                    fsService.updateMeta(subject, user);
+                }
+                user.resetState();
+                viewKind = ViewKind.viewLabel;
+                break;
+            case rewind:
+            case forward:
+                user.deltaSearchOffset(command.type == CommandType.rewind ? -10 : 10);
+                viewKind = user.isSearching() ? ViewKind.searchResults : ViewKind.viewDir;
+                break;
+            case gear:
+                user.setGearing();
+                viewKind = ViewKind.gearSubject;
+                break;
+            case openParent:
+                user.resetState();
+                user.setSubjectId(parent.getId());
+                user.setViewOffset(0);
+                subject = parent;
+                parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
+                viewKind = ViewKind.viewDir;
+                break;
+            case joinPublicShare:
                 final Share share;
-                if (!id.isEmpty() && (share = fsService.getPublicShare(id)) != null && share.getOwner() != user.getId()) {
-                    user.resetState();
-                    user.resetInputWait();
-
+                if (!isEmpty(command.input) && (share = fsService.getPublicShare(command.input)) != null && share.getOwner() != user.getId()) {
                     final TFile dir = fsService.applyShareByLink(share, user);
 
-                    if (dir != null)
-                        userService.dirChange(dir.getId(), user);
+                    if (dir != null) {
+                        user.setSubjectId(dir.getId());
+                        user.setViewOffset(0);
+                        subject = dir;
+                        parent = fsService.get(subject.getParentId(), user);
+                    }
                 }
-            } else {
-                if (user.isWaitDirInput()) {
-                    if (!fsService.get(user.getCurrentDirId(), user).isRw()) {
-                        gui.dialog(LangMap.Value.NOT_ALLOWED, user, input);
-                        fallToView = false;
-                    } else if (fsService.entryExist(input, user)) {
-                        gui.dialog(LangMap.Value.CANT_MKDIR, user, input);
-                        fallToView = false;
-                    } else
-                        fsService.mk(TFileFactory.dir(input, user.getCurrentDirId(), user.getId()));
-                } else if (user.isWaitLabelInput()) {
-                    if (!fsService.get(user.getCurrentDirId(), user).isRw()) {
-                        gui.dialog(LangMap.Value.NOT_ALLOWED, user, input);
-                        fallToView = false;
-                    } else if (fsService.entryExist(input, user)) {
-                        gui.dialog(LangMap.Value.CANT_MKLBL, user, input);
-                        fallToView = false;
-                    } else
-                        fsService.mk(TFileFactory.label(input, user.getCurrentDirId(), user.getId()));
-                } else if (user.isWaitRenameInput()) {
-                    if (fsService.entryExist(input, user)) {
-                        gui.dialog(LangMap.Value.CANT_RN_TO, user, input);
-                        fallToView = false;
-                    }
+                user.resetState();
+                viewKind = ViewKind.viewDir;
+                break;
+            case makeGlobLink:
+                fsService.makeShare(subject.getName(), user, subject.getId(), 0, null);
 
-                    final TFile entry;
-                    if (!user.selection.isEmpty() && !(entry = fsService.get(user.selection.first(), user)).getName().equals(input)) {
-                        if (!entry.isRw()) {
-                            gui.dialog(LangMap.Value.NOT_ALLOWED_THIS, user, input);
-                            fallToView = false;
+                if (!subject.isShared()) {
+                    subject.setShared();
+                    fsService.updateMeta(subject, user);
+                }
+                viewKind = ViewKind.subjectShares;
+                break;
+            case mkDir:
+                user.resetState();
+                if (!isEmpty(command.input)) {
+                    if (fsService.entryMissed(command.input, user)) {
+                        final TFile n = fsService.mk(TFileFactory.dir(command.input, subject.getId(), user.getId()));
+
+                        if (n != null) {
+                            parent = subject;
+                            subject = n;
+                            user.setViewOffset(0);
+                            user.setSubjectId(subject.getId());
+                            user.resetState();
                         }
-
-                        entry.setName(input);
-                        entry.setPath(Paths.get(entry.getPath()).getParent().resolve(input).toString());
-                        fsService.updateMeta(entry, user);
-                        userService.resetSelection(user);
                     }
-                } else
-                    userService.searched(notNull(input), user);
-
-                user.resetInputWait();
-            }
-
-            userService.update(user);
-
-            if (fallToView)
-                doView(user);
-            else
-                logger.debug(user.toString());
-        } catch (final Exception e) {
-            logger.error("Input fuckup: " + e.getMessage(), e);
-        }
-    }
-
-    public void file(final TFile file, final User user) {
-        try {
-            boolean fallToView = true;
-
-            if (user.isWaitFileGranting() && file.getType() == ContentType.CONTACT) {
+                } else {
+                    api.dialog(LangMap.Value.TYPE_FOLDER, user);
+                    user.setWaitDirInput();
+                    viewKind = ViewKind.none;
+                }
+                break;
+            case mkGrant:
+                api.dialog(subject.isDir() ? LangMap.Value.SEND_CONTACT_DIR : LangMap.Value.SEND_CONTACT_FILE, user, subject.getName());
+                user.setWaitFileGranting();
+                viewKind = ViewKind.none;
+                break;
+            case grantAccess:
                 final User contact = new User();
-                contact.setId(file.getOwner());
-                contact.name = file.getName();
+                contact.setId(command.file.getOwner());
+                contact.name = command.file.getName();
                 contact.setLang(user.getLang());
 
                 final User target = userService.resolveUser(contact);
-                final TFile entry = fsService.get(user.selection.first(), user);
 
-                if (fsService.shareExist(entry.getId(), target.getId(), user)) {
-                    gui.dialog(LangMap.Value.CANT_GRANT, user, file.getName());
-                    fallToView = false;
-                } else {
-                    fsService.makeShare(file.getName(), user, entry.getId(), target.getId(), notNull(target.getLang(), "en"));
-                    if (!entry.isShared()) {
-                        entry.setShared();
-                        fsService.updateMeta(entry, user);
+                if (!fsService.shareExist(subject.getId(), target.getId(), user)) {
+                    fsService.makeShare(command.file.getName(), user, subject.getId(), target.getId(), notNull(target.getLang(), "en"));
+
+                    if (!subject.isShared()) {
+                        subject.setShared();
+                        fsService.updateMeta(subject, user);
                     }
                 }
-            } else {
-                file.setOwner(user.getId());
-                file.setParentId(user.getCurrentDirId());
-
-                fsService.mk(file);
-            }
-
-            user.unsetWaitFileGranting();
-            user.resetState();
-            userService.update(user);
-
-            if (fallToView)
-                doView(user);
-            else
-                logger.debug(user.toString());
-        } catch (final Exception e) {
-            logger.error("File fuckup: " + e.getMessage(), e);
-        }
-    }
-
-    private Predicate<TFile> scopeFilter(final User user) {
-        return
-                (user.isSearching() && !user.isGearing()) || user.isJustWatching()
-                        ? file -> file.getType() != ContentType.LABEL
-                        : file -> true;
-    }
-
-    private List<TFile> scope(final User user) {
-        return user.isMoving()
-                ? fsService.listFolders(user)
-                : user.isSearching()
-                ? fsService.search(user.getQuery(), user)
-                : fsService.list(user);
-    }
-
-    private List<Share> scopeShares(final User user) {
-        return fsService.listShares(user.selection.first(), user);
-    }
-
-    private void doView(final User user) {
-        if (user.isSharing()) {
-            doShareView(user);
-            return;
-        }
-
-        final TFile current = fsService.get(user.getCurrentDirId(), user);
-        final List<TFile> scope = scope(user);
-
-        final FlowBox box = new FlowBox().md2();
-
-        stateBody(current, scope, box, user);
-        stateButtons(current, scope, box, user);
-
-        final AtomicInteger indexer = new AtomicInteger(0);
-
-        scope.stream().filter(scopeFilter(user))
-                .sorted(sorter)
-                .skip(user.getViewOffset())
-                .limit(10)
-                .forEach(f -> stateItemBox(f, current, box, user, indexer));
-
-        gui.sendBox(box.setListing(user.getViewOffset() > 0, user.getViewOffset() + 10 < scope.stream().filter(scopeFilter(user)).count()), user);
-
-        logger.debug(user.toString());
-    }
-
-    private void stateButtons(final TFile current, final List<TFile> scope, final FlowBox box, final User user) {
-        if (user.isGearing()) {
-            if (!isEmpty(user.selection)) {
-                if (user.selection.size() == 1)
-                    scope.stream().filter(e -> e.getId().equals(user.selection.first())).findAny().ifPresent(file -> {
-                        if (file.isSharable()) box.button(GUI.Buttons.shareButton);
-                        box.button(GUI.Buttons.renameButton);
-                    });
-
-                final long count = user.selection.isEmpty() ? 0 : scope.stream().filter(f -> f.isRw() && user.selection.contains(f.getId())).count();
-
-                if (count > 0) {
-                    box
-                            .button(new GUI.Button(Strings.Uni.move + "(" + count + ")", move))
-                            .button(new GUI.Button(Strings.Uni.drop + "(" + user.selection.size() + ")", drop));
+                viewKind = ViewKind.subjectShares;
+                break;
+            case mkLabel:
+                user.resetState();
+                if (!isEmpty(command.input)) {
+                    if (fsService.entryMissed(command.input, user))
+                        fsService.mk(TFileFactory.label(command.input, subject.getId(), user.getId()));
+                } else {
+                    api.dialog(LangMap.Value.TYPE_LABEL, user);
+                    user.setWaitLabelInput();
+                    viewKind = ViewKind.none;
                 }
+                break;
+            case openDir:
+                user.resetState();
+                final TFile dir = byIdx(command.elementIdx, subject, user);
+                parent = subject;
+                subject = dir;
+                user.setViewOffset(0);
+                user.setSubjectId(subject.getId());
+                viewKind = ViewKind.viewDir;
+                break;
+            case openFile:
+                user.resetState();
+                final TFile file = byIdx(command.elementIdx, subject, user);
+                parent = subject;
+                subject = file;
+                user.setSubjectId(subject.getId());
+                viewKind = ViewKind.viewFile;
+                break;
+            case openLabel:
+                final TFile label = byIdx(command.elementIdx, subject, user);
+                user.resetState();
+                parent = subject;
+                subject = label;
+                user.setSubjectId(subject.getId());
+                viewKind = ViewKind.viewLabel;
+                break;
+            case openSearchedDir:
+                final TFile sd = byIdx(command.elementIdx, subject, user);
+                parent = subject;
+                subject = sd;
+                user.setViewOffset(0);
+                user.setSubjectId(subject.getId());
+                viewKind = ViewKind.viewSearchedDir;
+                break;
+            case openSearchedFile:
+                final TFile sf = byIdx(command.elementIdx, subject, user);
+                parent = subject;
+                subject = sf;
+                user.setSubjectId(subject.getId());
+                viewKind = ViewKind.viewSearchedFile;
+                break;
+            case openSearchedLabel:
+                final TFile sl = byIdx(command.elementIdx, subject, user);
+                parent = subject;
+                subject = sl;
+                user.setSubjectId(subject.getId());
+                viewKind = ViewKind.viewSearchedLabel;
+                break;
+            case renameDir:
+                user.resetState();
+                if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
+                    subject.setName(command.input);
+                    subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
+                    fsService.updateMeta(subject, user);
+                }
+                viewKind = ViewKind.viewDir;
+                break;
+            case renameFile:
+                user.resetState();
+                if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
+                    subject.setName(command.input);
+                    subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
+                    fsService.updateMeta(subject, user);
+                }
+                viewKind = ViewKind.viewFile;
+                break;
+            case resetToRoot:
+                user.resetState();
+                user.resetInputWait();
+                user.setSubjectId(user.getRootId());
+                subject = parent = fsService.findRoot(user.getId());
+                viewKind = ViewKind.viewDir;
+                break;
+            case share:
+                user.resetState();
+                user.setSharing();
+                viewKind = ViewKind.subjectShares;
+                break;
+            case uploadFile:
+                command.file.setParentId(subject.isDir() ? subject.getId() : parent.getId());
+                command.file.setOwner(user.getId());
 
-                if (count > 1)
-                    box.button(GUI.Buttons.checkAllButton);
+                fsService.mk(command.file);
+
+                viewKind = subject.isDir() ? ViewKind.viewDir : ViewKind.none;
+                break;
+            case contextHelp:
+                doHelp(subject, user);
+                break;
+        }
+
+        if (viewKind != ViewKind.none)
+            doView(subject, parent, viewKind, user);
+
+        userService.update(user);
+    }
+
+    private void doHelp(final TFile subject, final User user) {
+        if (user.isSearching())
+            api.dialogUnescaped(LangMap.Value.SEARCHED_HELP, user, TgApi.voidKbd);
+        else if (user.isSharing())
+            api.dialogUnescaped(subject.isDir() ? LangMap.Value.SHARE_DIR_HELP : LangMap.Value.SHARE_FILE_HELP, user, TgApi.voidKbd);
+        else if (user.isGearing() && !user.isOnTop())
+            api.dialogUnescaped(LangMap.Value.GEAR_HELP, user, TgApi.voidKbd);
+        else if (subject.isLabel())
+            api.dialogUnescaped(LangMap.Value.LABEL_HELP, user, TgApi.voidKbd);
+        else if (subject.isFile())
+            api.dialogUnescaped(LangMap.Value.FILE_HELP, user, TgApi.voidKbd);
+        else if (user.isOnTop())
+            api.dialogUnescaped(LangMap.Value.ROOT_HELP, user, TgApi.voidKbd);
+        else
+            api.dialogUnescaped(LangMap.Value.LS_HELP, user, TgApi.voidKbd);
+    }
+
+    private void doView(final TFile subject, final TFile parent, final ViewKind viewKind, final User user) {
+        final TgApi.Keyboard kbd = new TgApi.Keyboard();
+        final StringBuilder body = new StringBuilder(16);
+        TFile file = null;
+        String format = ParseMode.md2;
+
+        try {
+            switch (viewKind) {
+                case gearSubject: {
+                    final List<TFile> scope = scope(subject, user);
+                    body.append(escapeMd(v(LangMap.Value.GEARING, user, notNull(subject.getPath(), "/"))));
+
+                    if (!user.isOnTop()) {
+                        kbd.button(CommandType.share.b());
+                        kbd.button(CommandType.renameDir.b());
+                        kbd.button(CommandType.dropDir.b());
+                    }
+
+                    kbd.button(CommandType.cancelShare.b());
+
+                    for (int i = 0; i < scope.size(); i++) {
+                        kbd.newLine();
+                        kbd.button(scope.get(i).toButton(i));
+                    }
+                }
+                break;
+                case searchResults: {
+                    final List<TFile> scope = scope(subject, user);
+
+                    body.append(escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), notNull(subject.getPath(), "/"))));
+                    kbd.button(CommandType.cancelSearch.b());
+
+                    if (scope.isEmpty())
+                        body.append("\n_").append(v(LangMap.Value.NO_RESULTS, user)).append("_");
+                    else {
+                        body.append("\n_").append(escapeMd(v(LangMap.Value.RESULTS_FOUND, user, scope.size()))).append("_");
+
+                        final List<TFile> sorted = scope.stream().sorted(sorter).collect(Collectors.toList());
+                        final int skip = notNull(subject.getPath(), "/").length();
+
+                        for (int i = user.getViewOffset(); i < Math.min(user.getViewOffset() + 10, sorted.size()); i++) {
+                            kbd.newLine();
+                            kbd.button(sorted.get(i).toSearchedButton(skip, scope.indexOf(sorted.get(i))));
+                        }
+
+                        if (user.getViewOffset() > 0 || scope.stream().filter(e -> e.getType() != ContentType.LABEL).count() > 10) {
+                            kbd.newLine();
+
+                            if (user.getViewOffset() > 0)
+                                kbd.button(CommandType.rewind.b());
+                            if (scope.stream().filter(e -> e.getType() != ContentType.LABEL).count() > 10)
+                                kbd.button(CommandType.forward.b());
+                        }
+                    }
+                }
+                break;
+                case subjectShares: {
+                    final List<Share> scope = subject.isShared() ? scope(subject, user) : Collections.emptyList();
+                    final Share glob = scope.stream().filter(s -> s.getSharedTo() == 0).findAny().orElse(null);
+                    final long countPers = scope.stream().filter(s -> s.getSharedTo() > 0).count();
+
+                    body.append(v(subject.isDir() ? LangMap.Value.DIR_ACCESS : LangMap.Value.FILE_ACCESS, user, "*" + escapeMd(subject.getPath()) + "*"))
+                            .append("\n\n")
+                            .append(Strings.Uni.link).append(": ").append("_")
+                            .append(escapeMd((glob != null ? "https://t.me/" + config.getString("service.bot.nick") + "?start=shared-" + glob.getId() :
+                                    v(LangMap.Value.NO_GLOBAL_LINK, user)))).append("_\n");
+
+                    if (countPers <= 0)
+                        body.append(Strings.Uni.People + ": _").append(escapeMd(v(LangMap.Value.NO_PERSONAL_GRANTS, user))).append("_");
+
+                    kbd.button(glob != null ? CommandType.dropGlobLink.b() : CommandType.makeGlobLink.b());
+                    kbd.button(CommandType.mkGrant.b());
+                    kbd.button(CommandType.cancelShare.b());
+
+                    final AtomicInteger counter = new AtomicInteger(0);
+
+                    scope.stream()
+                            .filter(s -> !s.isGlobal())
+                            .sorted(Comparator.comparing(Share::getName))
+                            .forEach(s -> {
+                                kbd.newLine();
+                                kbd.button(CommandType.changeRo.b(v(s.isReadWrite() ? LangMap.Value.SHARE_RW : LangMap.Value.SHARE_RO, user, s.getName()), counter.get()));
+                                kbd.button(CommandType.dropShare.b(counter.getAndIncrement()));
+                            });
+                }
+                break;
+                case viewDir: {
+                    final List<TFile> scope = scope(subject, user);
+                    body.append(notNull(escapeMd(subject.getPath()), "/"));
+
+                    final StringBuilder ls = new StringBuilder();
+                    scope.stream().filter(TFile::isLabel).sorted(Comparator.comparing(TFile::getName)).forEach(l -> ls.append('\n').append("```\n").append(escapeMd(l.name)).append("```\n"));
+
+                    if (ls.length() > 0)
+                        body.append(ls.toString());
+                    else if (scope.isEmpty())
+                        body.append("\n_").append(escapeMd(v(LangMap.Value.NO_CONTENT, user))).append("_");
+
+                    if (!user.isOnTop())
+                        kbd.button(CommandType.openParent.b());
+                    kbd.button(CommandType.mkLabel.b());
+                    kbd.button(CommandType.mkDir.b());
+                    kbd.button(CommandType.gear.b());
+
+                    final List<TFile> toButtons = scope.stream().sorted(sorter).filter(e -> e.getType() != ContentType.LABEL)
+                            .collect(Collectors.toList());
+
+                    for (int i = user.getViewOffset(); i < Math.min(user.getViewOffset() + 10, toButtons.size()); i++) {
+                        kbd.newLine();
+                        kbd.button(toButtons.get(i).toButton(scope.indexOf(toButtons.get(i))));
+                    }
+
+                    if (user.getViewOffset() > 0 || scope.stream().filter(e -> e.getType() != ContentType.LABEL).count() > 10) {
+                        kbd.newLine();
+
+                        if (user.getViewOffset() > 0)
+                            kbd.button(CommandType.rewind.b());
+                        if (scope.stream().filter(e -> e.getType() != ContentType.LABEL).count() > 10)
+                            kbd.button(CommandType.forward.b());
+                    }
+                }
+                break;
+                case viewFile: {
+                    file = subject;
+
+                    body.append(notNull(escapeMd(file.getPath()), "/"));
+
+                    kbd.button(CommandType.openParent.b(), CommandType.share.b(), CommandType.renameFile.b(), CommandType.dropFile.b());
+                }
+                break;
+                case viewLabel: {
+                    body.append('*').append(notNull(escapeMd(parent.getPath()), "/")).append("*\n\n").append(escapeMd(subject.name));
+
+                    kbd.button(CommandType.openParent.b(), CommandType.editLabel.b(), CommandType.dropLabel.b());
+                }
+                break;
+                case viewSearchedDir: {
+                    final List<TFile> scope = fsService.list(subject.getId(), user);
+
+                    body.append("_").append(escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), parent.getPath()))).append("_\n");
+                    body.append(escapeMd(subject.getName()));
+
+                    final StringBuilder ls = new StringBuilder();
+                    scope.stream().filter(TFile::isLabel).sorted(Comparator.comparing(TFile::getName)).forEach(l -> ls.append('\n').append("```\n").append(escapeMd(l.name)).append("```\n"));
+
+                    if (ls.length() > 0)
+                        body.append(ls.toString());
+                    else if (scope.isEmpty())
+                        body.append("\n_").append(escapeMd(v(LangMap.Value.NO_CONTENT, user))).append("_");
+
+                    kbd.button(CommandType.backToSearch.b());
+                    kbd.button(CommandType.mkLabel.b());
+                    kbd.button(CommandType.mkDir.b());
+                    kbd.button(CommandType.gear.b());
+
+                    final List<TFile> toButtons = scope.stream().sorted(sorter).filter(e -> e.getType() != ContentType.LABEL)
+                            .collect(Collectors.toList());
+
+                    for (int i = user.getViewOffset(); i < Math.min(user.getViewOffset() + 10, toButtons.size()); i++) {
+                        kbd.newLine();
+                        kbd.button(toButtons.get(i).toButton(scope.indexOf(toButtons.get(i))));
+                    }
+
+                    if (user.getViewOffset() > 0 || scope.stream().filter(e -> e.getType() != ContentType.LABEL).count() > 10) {
+                        kbd.newLine();
+
+                        if (user.getViewOffset() > 0)
+                            kbd.button(CommandType.rewind.b());
+                        if (scope.stream().filter(e -> e.getType() != ContentType.LABEL).count() > 10)
+                            kbd.button(CommandType.forward.b());
+                    }
+                }
+                break;
+                case viewSearchedFile: {
+                    file = subject;
+
+                    body.append("_").append(escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), parent.getPath()))).append("_\n");
+                    body.append(escapeMd(subject.getName()));
+
+                    kbd.button(CommandType.backToSearch.b(), CommandType.share.b(), CommandType.renameFile.b(), CommandType.dropFile.b());
+                }
+                break;
+                case viewSearchedLabel: {
+                    body.append("_").append(escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), parent.getPath()))).append("_\n");
+                    body.append("```\n").append(subject.name).append("\n```");
+
+                    kbd.button(CommandType.backToSearch.b(), CommandType.editLabel.b(), CommandType.dropLabel.b());
+                }
+                break;
             }
-
-            box.button(GUI.Buttons.cancelButton);
-        } else if (user.isMoving()) {
-            if (!user.isOnTop())
-                box.button(GUI.Buttons.goUpButton);
-
-            box.button(GUI.Buttons.putButton)
-                    .button(GUI.Buttons.cancelButton);
-        } else if (user.isSearching()) {
-            box.button(GUI.Buttons.searchButton);
-            if (!scope.isEmpty())
-                box.button(GUI.Buttons.gearButton);
-            box.button(GUI.Buttons.cancelButton);
-        } else {
-            if (!user.isOnTop())
-                box.button(GUI.Buttons.goUpButton);
-
-            if (current.isRw())
-                box.button(GUI.Buttons.mkLabelButton)
-                        .button(GUI.Buttons.mkDirButton);
-
-            box.button(GUI.Buttons.searchButton);
-//            if (current.isRw()) box.button(GUI.Buttons.gearButton);
-            /*if (file.isSharable()) */box.button(GUI.Buttons.shareButton);
-            box.button(GUI.Buttons.renameButton);
-            box.button(GUI.Buttons.dropButton);
+        } finally {
+            api.sendContent(file, body.toString(), format, kbd, user);
         }
     }
 
-    private void stateBody(final TFile current, final List<TFile> scope, final FlowBox box, final User user) {
-        box.body(notNull(escapeMd(current.getPath()), "/") + "\n");
+    private <T> List<T> scope(final TFile subject, final User user) {
+        if (user.isSharing())
+            return (List<T>) fsService.listShares(subject.getId(), user).stream().sorted(Comparator.comparing(Share::getName)).collect(Collectors.toList());
 
-        if (user.isGearing()) {
-            if (user.isSearching())
-                box.body("\n_" + escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), scope.size())) + "_");
-            else if (scope.isEmpty())
-                box.body("\n_" + escapeMd(v(LangMap.Value.NO_CONTENT, user)) + "_");
-        } else if (user.isSearching()) {
-            box.body("\n" + escapeMd(v(scope.isEmpty() ? LangMap.Value.NO_RESULTS : LangMap.Value.SEARCHED, user, user.getQuery(), scope.size())));
+        if (user.isSearching())
+            return (List<T>) fsService.search(user).stream().sorted(sorter).collect(Collectors.toList());
 
-            if (scope.stream().anyMatch(e -> e.getType() == ContentType.LABEL)) {
-                box.body("\n");
-                scope.stream().filter(e -> e.getType() == ContentType.LABEL).forEach(e -> box.body('`' + escapeMd(e.getName()) + "`\n\n"));
-            }
-        } else {
-            if (scope.isEmpty())
-                box.body("\n_" + escapeMd(v(LangMap.Value.NO_CONTENT, user)) + "_");
+        if (user.isGearing())
+            return (List<T>) fsService.listTyped(subject.getId(), ContentType.LABEL, user);
 
-            if (scope.stream().anyMatch(e -> e.getType() == ContentType.LABEL)) {
-                box.body("\n");
-                scope.stream().filter(e -> e.getType() == ContentType.LABEL).forEach(e -> box.body('`' + escapeMd(e.getName()) + "`\n\n"));
-            }
-        }
+        return (List<T>) fsService.list(subject.getId(), user);
     }
 
-    private void stateItemBox(final TFile f, final TFile currentDir, final FlowBox box, final User user, final AtomicInteger indexer) {
-        if (user.isGearing()) {
-            box.row().button(new GUI.Button(
-                    (f.isShared() ? Strings.Uni.share + " " : "")
-                            + (f.isDir() ? Strings.Uni.folder + " " : "")
-                            + (user.isSearching() ? f.getPath().substring(currentDir.getPath().length()) : f.getName())
-                            + (user.selection.contains(f.getId()) ? " " + Strings.Uni.checked : ""),
-                    Strings.Callback.inversCheck.toString() + indexer.getAndIncrement()));
-        } else if (user.isSearching()) {
-            box.row().button(new GUI.Button((f.isDir() ? Strings.Uni.folder + " " : "") + f.getPath().substring(currentDir.getPath().length()),
-                    Strings.Callback.open.toString() + indexer.getAndIncrement()));
-        } else
-            box.row().button(new GUI.Button((f.isDir() ? Strings.Uni.folder + " " : "") + f.getName(), Strings.Callback.open.toString() + indexer.getAndIncrement()));
-    }
-
-    private void doShareView(final User user) {
-        final TFile dir = fsService.get(user.selection.first(), user);
-        final List<Share> scope = dir.isShared() ? fsService.listShares(dir.getId(), user) : Collections.emptyList();
-        final Share glob = scope.stream().filter(s -> s.getSharedTo() == 0).findAny().orElse(null);
-        final long countPers = scope.stream().filter(s -> s.getSharedTo() > 0).count();
-
-        final FlowBox box = new FlowBox()
-                .md2()
-                .body("*" + escapeMd(dir.getPath()) + "*\n\n")
-                .body(Strings.Uni.Link + ": _" +
-                        escapeMd((glob != null
-                                ? "https://t.me/" + config.getString("service.bot.nick") + "?start=shared-" + glob.getId()
-                                : v(LangMap.Value.NO_GLOBAL_LINK, user)
-                        )) + "_\n");
-
-        if (countPers <= 0)
-            box.body(Strings.Uni.People + ": _" + escapeMd(v(LangMap.Value.NO_PERSONAL_GRANTS, user)) + "_");
-
-        box.button(GUI.Buttons.mkLinkButton)
-                .button(GUI.Buttons.mkGrantButton)
-                .button(GUI.Buttons.cancelButton);
-
-        final AtomicInteger counter = new AtomicInteger(0);
-
-        scope.stream()
-                .filter(s -> !s.isGlobal())
-                .sorted(Comparator.comparing(Share::getName))
-                .forEach(s -> box.row()
-                        .button(new GUI.Button(v(s.isReadWrite() ? LangMap.Value.SHARE_ACCESS : LangMap.Value.SHARE_ACCESS_RO, user, s.getName()),
-                                Strings.Callback.changeRo.toString() + counter.get()))
-                        .button(new GUI.Button(Strings.Uni.drop, Strings.Callback.drop.toString() + counter.getAndIncrement())));
-
-        gui.sendBox(box, user);
-        logger.debug(user.toString());
+    private <T> T byIdx(final int idx, final TFile subject, final User user) {
+        return (T) scope(subject, user).get(idx);
     }
 }

@@ -2,62 +2,42 @@
 
 <mapper namespace="sql.UserMapper">
     <insert id="insertUser">
-        insert into users(id,  root_id, last_message_id, current_dir_id, query, view_offset, options)
+        insert into users(id, root_id, last_message_id, subject_id, query, view_offset, options)
         VALUES (#{id}, #{rootId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, 0,
                 #{rootId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, '', 0, 0)
     </insert>
-    <insert id="selectEntries">
-        insert into user_selection(user_id, uuid) VALUES
-        <foreach collection="uuids" item="uuid" separator=",">
-            (#{id}, #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
-        </foreach>
-    </insert>
 
     <select id="getUser" resultMap="UserMap">
-        select u.*, us.uuid
+        select u.*
         from users u
-                 left join user_selection us on u.id = us.user_id
         where u.id = #{id}
     </select>
 
     <update id="updateUser">
         update users
-        set current_dir_id = #{currentDirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler},
-            query          = #{query},
-            view_offset    = #{viewOffset},
-            options        = #{options}
+        set subject_id    = #{subjectId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler},
+            query         = #{query},
+            search_dir_id = #{searchDirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler},
+            view_offset   = #{viewOffset},
+            options       = #{options},
+            last_ref_id   = #{lastRefId},
+            last_text     = #{lastText},
+            last_kbd      = #{lastKbd}
         where id = #{id}
     </update>
-
-    <insert id="selectEntry">
-        insert into user_selection(user_id, uuid)
-        VALUES (#{id}, #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
-    </insert>
-
-    <delete id="deselectEntry">
-        delete
-        from user_selection
-        where user_id = #{id}
-          and uuid = #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-    </delete>
-
-    <delete id="resetSelection">
-        delete
-        from user_selection
-        where user_id = #{id}
-    </delete>
 
     <resultMap id="UserMap" type="model.User">
         <id column="id" property="id"/>
         <result property="rootId" column="root_id" typeHandler="utils.UUIDTypeHandler"/>
         <result property="lastMessageId" column="last_message_id"/>
-        <result property="currentDirId" column="current_dir_id" typeHandler="utils.UUIDTypeHandler"/>
+        <result property="subjectId" column="subject_id" typeHandler="utils.UUIDTypeHandler"/>
         <result property="query" column="query"/>
+        <result property="searchDirId" column="search_dir_id" typeHandler="utils.UUIDTypeHandler"/>
         <result property="viewOffset" column="view_offset"/>
         <result property="options" column="options"/>
+        <result property="lastRefId" column="last_ref_id"/>
+        <result property="lastText" column="last_text"/>
+        <result property="lastKeyboard" column="last_kbd"/>
 
-        <collection property="selection" notNullColumn="uuid" javaType="java.util.UUID">
-            <result column="uuid" typeHandler="utils.UUIDTypeHandler"/>
-        </collection>
     </resultMap>
 </mapper>

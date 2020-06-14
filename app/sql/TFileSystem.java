@@ -52,11 +52,9 @@ public interface TFileSystem {
 
     TFile getEntry(@Param("id") UUID id, @Param("viewName") String viewName, @Param("treeViewName") String treeViewName);
 
-    void dropEntries(@Param("ids") List<UUID> ids, @Param("tableName") String tableName);
+    void dropEntriesByParent(@Param("parentId") UUID parentId, @Param("tableName") String tableName, @Param("treeViewName") String treeViewName);
 
-    List<TFile> listTypedChilds(@Param("id") UUID id, @Param("type") ContentType type, @Param("fsName") String fsName, @Param("treeName") String treeName);
-
-    List<TFile> getPredictors(@Param("id") UUID id, @Param("viewName") String viewName);
+    List<TFile> listTypedChilds(@Param("id") UUID id, @Param("type") ContentType type, @Param("viewName") String fsName, @Param("treeViewName") String treeName);
 
     List<TFile> search(@Param("query") String query, @Param("fromDirId") final UUID fromDirId, @Param("viewName") String viewName, @Param("treeViewName") String treeViewName);
 
@@ -67,6 +65,4 @@ public interface TFileSystem {
     void addServiceWin(@Param("messageId") long messageId, @Param("userId") long userId);
 
     void updateLastMessageId(@Param("lastMessageId") long lastMessageId, @Param("userId") long userId);
-
-    List<TFile> selectByIds(@Param("uuids") Collection<UUID> uuids, @Param("viewName") String viewName, @Param("treeViewName") String treeViewName);
 }

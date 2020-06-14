@@ -1,10 +1,9 @@
 package model;
 
+import services.TgApi;
 import utils.BMasked;
 import utils.Optioned;
 
-import java.util.Collection;
-import java.util.TreeSet;
 import java.util.UUID;
 
 /**
@@ -19,12 +18,10 @@ public class User implements Optioned, InputWait, Stater {
 
     // runtime data
     private long lastMessageId;
-    private UUID currentDirId;
-    private String query;
+    private UUID subjectId, searchDirId;
+    private String query, lastRefId, lastText, lastKeyboard;
     private int viewOffset;
     private int options;
-
-    public TreeSet<UUID> selection = new TreeSet<>();
 
     // not saved
     public String lang;
@@ -34,15 +31,14 @@ public class User implements Optioned, InputWait, Stater {
     public String toString() {
         return "User{" +
                 "lastMessageId=" + lastMessageId +
-                ", currentDirId=" + currentDirId +
+                ", subjectId=" + subjectId +
                 ", query='" + query + '\'' +
                 ", viewOffset=" + viewOffset +
-                ", selection=" + selection +
                 ", options=\n"+Optz.printOut(this)+"}";
     }
 
     public boolean isOnTop() {
-        return currentDirId.equals(rootId);
+        return subjectId.equals(rootId);
     }
 
     public void deltaSearchOffset(final int delta) {
@@ -50,14 +46,6 @@ public class User implements Optioned, InputWait, Stater {
     }
 
     // getters/setters
-
-    public TreeSet<UUID> getSelection() {
-        return selection;
-    }
-
-    public void setSelection(final Collection<UUID> selection) {
-        this.selection = selection == null ? new TreeSet<>() : new TreeSet<>(selection);
-    }
 
     public long getId() {
         return id;
@@ -91,12 +79,12 @@ public class User implements Optioned, InputWait, Stater {
         this.lastMessageId = lastMessageId;
     }
 
-    public UUID getCurrentDirId() {
-        return currentDirId;
+    public UUID getSubjectId() {
+        return subjectId;
     }
 
-    public void setCurrentDirId(final UUID currentDirId) {
-        this.currentDirId = currentDirId;
+    public void setSubjectId(final UUID subjectId) {
+        this.subjectId = subjectId;
     }
 
     public String getQuery() {
@@ -113,6 +101,14 @@ public class User implements Optioned, InputWait, Stater {
 
     public void setViewOffset(final int viewOffset) {
         this.viewOffset = viewOffset;
+    }
+
+    public UUID getSearchDirId() {
+        return searchDirId;
+    }
+
+    public void setSearchDirId(final UUID searchDirId) {
+        this.searchDirId = searchDirId;
     }
 
     @Override
@@ -134,8 +130,39 @@ public class User implements Optioned, InputWait, Stater {
         resetInputWait();
     }
 
+    public String getLastRefId() {
+        return lastRefId;
+    }
+
+    public void setLastRefId(final String lastRefId) {
+        this.lastRefId = lastRefId;
+    }
+
+    public String getLastText() {
+        return lastText;
+    }
+
+    public void setLastText(final String lastText) {
+        this.lastText = lastText;
+    }
+
+    public void setLastKeyboard(final String lastKeyboard) {
+        this.lastKeyboard = lastKeyboard;
+    }
+
+    public TgApi.Keyboard getLastKeyboard() {
+        return lastKeyboard == null ? null : TgApi.Keyboard.fromJson(lastKeyboard);
+    }
+
     enum Optz implements BMasked {
-        RenameInputWait, DirInputWait, LabelInputWait, GrantFileWait, StateSharing, StateMoving, StateGearing, StateSearching, SearchInputWait, StateFileViewing;
+        RenameDirInputWait,
+        RenameFileInputWait,
+        EditLabelInputWait,
+        DirInputWait,
+        LabelInputWait,
+        GrantFileWait,
+        StateSearching,
+        StateSharing, StateGearing;
 
         public static String printOut(final User user) {
             final StringBuilder s = new StringBuilder();

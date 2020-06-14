@@ -3,7 +3,7 @@
 <mapper namespace="sql.ShareMapper">
     <delete id="dropGlobalShareByEntry">
         delete
-        from shares where entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler} and owner = #{owner}
+        from shares where shared_to = 0 and entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler} and owner = #{owner}
     </delete>
 
     <select id="selectSharesByDir" resultMap="ShareMap">

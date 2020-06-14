@@ -4,7 +4,7 @@ import model.User;
 
 import java.util.EnumMap;
 
-import static utils.TextUtils.notNull;
+import static utils.TextUtils.*;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -18,34 +18,142 @@ public class LangMap {
         ruData = new EnumMap<>(Value.class);
         enData = new EnumMap<>(Value.class);
 
-        init(Value.CMD_LIST, "Commands list", "Список команд");
-        init(Value.CMD, "Command", "Команда");
-        init(Value.DESC, "Description", "Описание");
-        init(Value.CD_HELP, "cd <dir>", "cd <дир>");
-        init(Value.CD_HELP2, "Change directory", "Переход в директорию");
-        init(Value.GET_HELP, "get <file>", "get <файл>");
-        init(Value.GET_HELP2, "Get previously stored file", "Получить ранее сохранённый файл");
-        init(Value.LS_HELP, "ls", "ls");
-        init(Value.LS_HELP2, "Listing of current directory", "Показать содержимое текущей директории");
-        init(Value.MKD_HELP, "mkdir <name>", "mkdir <название>");
-        init(Value.MKD_HELP2, "Make directory", "Создать директорию");
-        init(Value.MV_HELP, "mv <src> <trg>", "mv <истотчник> <цель>");
-        init(Value.MV_HELP2, "Move source to target", "Переместить источник в целевой каталог");
-        init(Value.PWD_HELP, "pwd", "pwd");
-        init(Value.PWD_HELP2, "Current directory full path", "Полный путь к текущей директории");
-        init(Value.RM_HELP, "rm <name>", "rm <имя>");
-        init(Value.RM_HELP2, "Remove file or dir (recursively)", "Удалить файл или директорию (рекурсивно)");
-        init(Value.LBL_HELP, "label <text>", "label <текст>");
-        init(Value.LBL_HELP2, "Add label to current dir", "Добавить заметку в текущую директорию");
-        init(Value.ALS_HELP, "alias <als>=<cmd>", "alias <псевдоним>=<команда>");
-        init(Value.ALS_HELP2, "Alias any command", "Создать псевдоним для любой команды");
-
+        init(Value.LS_HELP,
+                mdBold("Folder view mode.") + "\n" +
+                        escapeMd("First row show folder path, if exists below are shown all notes which are placed here.\nFirst row buttons:\n") +
+                        escapeMd(Strings.Uni.goUp + " - go to the parent folder. ") + mdItalic("doesnt shown if you're in a root folder") + "\n" +
+                        escapeMd(Strings.Uni.label + " - make note in the current folder. ") + mdItalic("you have to type note's text after click") + "\n" +
+                        escapeMd(Strings.Uni.mkdir + " - make subfolder in the current folder. ") + mdItalic("you have to type subfolder's name after click") + "\n" +
+                        escapeMd(Strings.Uni.gear + " - go to 'folder edit mode'. ") + mdItalic("provides possibility to rename, delete or share access to the current folder") +
+                        "\n\n" +
+                        escapeMd("Entire content of the current folder (subfolders and files) is displayed with buttons (max. 10 buttons per page).\n\n" +
+                                "If entry is folder it will have " + Strings.Uni.folder + " icon before its name. Click the button to get into the folder.\n" +
+                                "Click the file's button to view the file.\n\n " +
+                                "If the current folder contains more than 10 childs then last row of buttons will contain navigation buttons: " + Strings.Uni.rewind + " - 10 " +
+                                "entries back and " + Strings.Uni.forward + " - 10 entries further"),
+                mdBold("Режим просмотра папки.") + "\n" +
+                        escapeMd("Первой строкой указан путь к текущей папке, ниже, если есть, показаны все заметки, которые были заведены в ней.\nПервая строка кнопок:\n") +
+                        escapeMd(Strings.Uni.goUp + " - переход в родительскую папку. ") + mdItalic("не показывается, если текущая директория - корневая") + "\n" +
+                        escapeMd(Strings.Uni.label + " - создание заметки в текущей папке. ") + mdItalic("после нажатия нужно будет ввести текст заметки") + "\n" +
+                        escapeMd(Strings.Uni.mkdir + " - создание подпапки в текущей папке. ") + mdItalic("после нажатия нужно будет ввести имя новой папки") + "\n" +
+                        escapeMd(Strings.Uni.gear + " - переход в режим управления папкой. ") + mdItalic("предоставляет доступ к переименованию, удалению и предоставлению публичного и " +
+                        "персонального доступа к текущей папке") + "\n\n" +
+                        escapeMd("Содержимое текущей папки (подпапки и файлы) отображено кнопками (макс. 10 штук).\n\n" +
+                                "Если элемент - папка, то перед его именем стоит иконка " + Strings.Uni.folder + ". Нажатие на кнопку приводит к переходу в эту папку.\n" +
+                                "Нажатие на кнопку файла позволяет просмотреть этот файл.\n\n Если текущая папка содержит больше 10 элементов, то последней строкой отображаются " +
+                                "две кнопки перехода по страницам: " + Strings.Uni.rewind + " - назад на 10 файлов и " + Strings.Uni.forward + " - вперёд на 10 файлов"));
+        init(Value.FILE_HELP, mdBold("File view mode\n") +
+                        escapeMd("First of all file's body is shown. Below is file's path, after that control buttons are:\n" +
+                                Strings.Uni.goUp + " - go to the parent folder.\n" +
+                                Strings.Uni.share + " - go to the access share management.\n" +
+                                Strings.Uni.edit + " - rename the file. ") + mdItalic("you have to type new file's name after click. Beware that file wont be actually renamed in" +
+                        " a cloud. Only display name will be changed after that.\n") +
+                        escapeMd(Strings.Uni.drop + " - drop the file. ") + mdItalic("File will be permanently deleted."),
+                mdBold("Режим просмотра файла\n") +
+                        escapeMd("Первым отображается тело самого файла. Ниже указан путь файла, затем идёт ряд кнопок управления:\n" +
+                                Strings.Uni.goUp + " - переход в родительскую папку.\n" +
+                                Strings.Uni.share + " - переход к управлению правами доступа к файлу.\n" +
+                                Strings.Uni.edit + " - переименование файла. ") + mdItalic("после нажатия нужно будет ввести новое имя файла. Внимание, сам файл физически не будет " +
+                        "переименован, будет изменено только имя под которым он отображается в боте.\n") +
+                        escapeMd(Strings.Uni.drop + " - удаление файла. ") + mdItalic("после нажатия файл будет безвозвратно удалён."));
+        init(Value.SEARCHED_HELP, mdBold("Search results mode\n") +
+                        escapeMd("Search query and search folder are show at first, followed by search results quantity.\nNext is button " + Strings.Uni.goUp + ": exit search - " +
+                                "after click you will get into 'view mode' of the element where you started searching.\n\nIf bot found more than nothing then all results are " +
+                                "shown as buttons. Each button is signed with entry's relative path, relative to the your current folder\n\n") +
+                        mdItalic("Beware that found notes, unlike the 'view mode', are also shown with buttons.\n\n") +
+                        escapeMd("Click to any result button takes you to the view mode according to the element's type, but return button (" + Strings.Uni.goUp + ") will " +
+                                "lead back to the search results.\n"),
+                mdBold("Просмотр результатов поиска\n") +
+                        escapeMd("Первой строкой показаны поисковый запрос и папка начала поиска, затем общее количество результатов поиска.\nЗатем следует строка с кнопкой выхода из " +
+                                "режима поиска: " + Strings.Uni.goUp + " - нажатие приводит к возврату в режим просмотра того элемента, где был начат поиск.\n\nЕсли количество " +
+                                "результатов отлично от нуля, то все они показываются ниже кнопками. Каждая кнопка подписана согласно локальному пути элемента, относительно текущей папки\n\n") +
+                        mdItalic("Обратите внимание, что найденные заметки, в отличие от обычного режима, здесь показываются тоже кнопками, наравне с файлами и папками.\n\n") +
+                        escapeMd("Нажатие на любую кнопку приводит к переходу в режим обычного просмотра выбранного элемента, согласно его типу, но в этом просмотре кнопка выхода " +
+                                "из просмотра (" + Strings.Uni.goUp + ") будет вести обратно к результатам поиска.\n"));
+        init(Value.ROOT_HELP, "Change directory", // todo english
+                mdBold("Домашняя папка\n") +
+                        escapeMd("Вы находитесь в домашней папке вашей файловой системы TeleFS.\n\n" +
+                                "Бот позволяет создавать, изменять и удалять папки и файлы также, как вы делаете это на своём компьютере, только эта иерархия сразу доступна на всех" +
+                                " ваших устройствах, где запущен telegram под вашим аккаунтом.\n" +
+                                "Файлы физически находятся в облаке telegram и их содержимое недоступно ни боту, ни кому-либо ещё, до тех пор, пока вы не решите поделиться доступом с " +
+                                "кем-либо.\n" +
+                                "Бот работает в режиме 'единого окна', это означает, что в любой момент времени вы видите только одно сообщение от бота, в котором содержимое " +
+                                "соответствует режиму и командам, принятым от вас; то есть, если вы что-то искали - вы видите результаты поиска, если вы перешли в директорию - " +
+                                "содержимое сообщения изменится на список содержимого этой директории и так далее.\n\n" +
+                                "Независимо от режимов и действий, в любой момент времени вам доступны четыре действия:\n") +
+                        mdBold("1. ") + mdItalic("добавление файлов") + escapeMd(" главная задача бота - хранить доступ к вашим файлам, согласно созданной вами структуре. Вы в любой " +
+                        "момент можете пополнить вашу коллекцию просто отправив любое количество файлов боту, они будут сохранены в той папке, где вы находитесь в момент отправки. " +
+                        "Никаких специальных комманд или действий не требуется - просто посылайте файлы. ") + mdItalic("Обратите внимание, что документы сохраняются с теми " +
+                        "именами, с которыми они были посланы, но это не касается фотографий, видео и аудио материалов - к сожалению, telegram не передаёт их имена, потому бот называет " +
+                        "полученные файлы согласно их типам.\n" +
+                        "Подсказка: если вы посылаете файл и в комментарии напишете что-либо, то комментарий будет использован в качестве имени файла\n\n") +
+                        mdBold("2. ") + escapeMd("команда '/reset' - если отклик бота неадекватен или отсутствует. Это сбрасывает ваше взаимодействие с ботом и возвращает вас " +
+                        "на начальную точку - сюда, в домашнюю папку.\n\n") +
+                        mdBold("3. ") + escapeMd("команда '/help' - контекстная помощь, в зависимости от того, где вы сейчас находитесь и что делали. Если вы запутались и не знаете " +
+                        "куда нажать - отправьте эту команду.\n\n") +
+                        mdBold("4. ") + mdItalic("поиск по имени") + escapeMd(" - в любом месте файловой системы вы можете искать файлы и папки по имени, вглубь по всей иерархии, " +
+                        "начиная с того места, где вы находитесь. Просто отправьте сообщение с частью искомого имени из любого места. ") + mdItalic("Поиск всегда происходит без учёта " +
+                        "регистра и по любой части имени\n\n") +
+                        escapeMd("В домашней папке вам доступны следующие кнопки управления:\n") +
+                        escapeMd(Strings.Uni.label + " - создание заметки в текущей папке. ") + mdItalic("после нажатия нужно будет ввести текст заметки") + "\n" +
+                        escapeMd(Strings.Uni.mkdir + " - создание подпапки в текущей папке. ") + mdItalic("после нажатия нужно будет ввести имя новой папки") + "\n" +
+                        escapeMd(Strings.Uni.gear + " - переход в режим управления метками. ") + mdItalic("предоставляет доступ к редактированию и удалению меток в домашней папке")
+            );
+        init(Value.SHARE_DIR_HELP, "get <file>", // todo english
+                mdBold("Управление доступом к папке\n") +
+                        escapeMd("В TeleFS вы можете предоставлять доступ к своим папкам и файлам двумя способами: публичная ссылка и персональный доступ.\n\n" +
+                                "Публичный анонимный доступ предоставляется путём создания http-ссылки на папку. Это делается нажатием на кнопку " + Strings.Uni.link +
+                                ". Повторное нажатие удаляет " +
+                                "ранее созданную ссылку. При переходе по данной ссылке любой пользователь telegram получает доступ 'только для чтения' к вашей папке.\n\n" +
+                                "Персональный доступ предоставляется индивидуально для каждого человека. После нажатия кнопки " + Strings.Uni.mkGrant + " вам будет " +
+                                "предложено прислать боту контакт человека, с которым вы хотите поделиться содержимым папки. Это означает, что человек должен быть " +
+                                "пользователем telegram и он должен быть у вас в контактах. После получения контакта, кнопка с именем пользователя будет отображена в " +
+                                "списке управления доступом. Персональный доступ может быть как 'только для чтения' так и 'полный доступ'; второй вариант означает, что" +
+                                " этот пользователь сможет изменять и удалять содержимое папки, будьте осторожны в предоставлении такого варианта. Для изменения режима " +
+                                "предоставления доступа достаточно один раз кликнуть на кнопку с именем пользователя.\n" +
+                                "Справа от каждой кнопки персонального доступа находится кнопка удаления с иконкой " + Strings.Uni.drop + " - при клике на неё доступ к " +
+                                "данной папке для данного пользователя будет сразу же аннулирован.\n" +
+                                Strings.Uni.cancel + " - кнопка возврата к режиму просмотра папки.")
+            );
+        init(Value.SHARE_FILE_HELP, "get <file>", // todo english
+                mdBold("Управление доступом к файлу\n") +
+                        escapeMd("В TeleFS вы можете предоставлять доступ к своим папкам и файлам двумя способами: публичная ссылка и персональный доступ.\n\n" +
+                                "Публичный анонимный доступ предоставляется путём создания http-ссылки на файл. Это делается нажатием на кнопку " + Strings.Uni.link +
+                                ". Повторное нажатие удаляет " +
+                                "ранее созданную ссылку. При переходе по данной ссылке любой пользователь telegram получает доступ 'только для чтения' к вашему файлу" +
+                                ".\n\nПерсональный доступ предоставляется индивидуально для каждого человека. После нажатия кнопки " + Strings.Uni.mkGrant + " вам будет " +
+                                "предложено прислать боту контакт человека, с которым вы хотите поделиться данным файлом. Это означает, что человек должен быть " +
+                                "пользователем telegram и он должен быть у вас в контактах. После получения контакта, кнопка с именем пользователя будет отображена в " +
+                                "списке управления доступом. Персональный доступ может быть как 'только для чтения' так и 'полный доступ'; второй вариант означает, что" +
+                                " этот пользователь сможет переименовать или удалить файл, будьте осторожны в предоставлении такого варианта. Для изменения режима " +
+                                "предоставления доступа достаточно один раз кликнуть на кнопку с именем пользователя.\n" +
+                                "Справа от каждой кнопки персонального доступа находится кнопка удаления с иконкой " + Strings.Uni.drop + " - при клике на неё доступ к " +
+                                "данному файлу для данного пользователя будет сразу же аннулирован.\n" +
+                                Strings.Uni.cancel + " - кнопка возврата к режиму просмотра файла.")
+            );
+        init(Value.GEAR_HELP, "Get previously stored file", // todo english
+                mdBold("Режим управления папкой\n") +
+                        escapeMd("В данном режиме недоступна навигация ни вверх ни вниз по иерархии.\n\nВ первой строке находятся кнопки управления самой папкой:" +
+                                Strings.Uni.share + " - управление правами доступа к папке.\n" +
+                                Strings.Uni.edit + " - переименование папки. ") + mdItalic("после нажатия нужно будет ввести новое имя папки.\n") +
+                        escapeMd(Strings.Uni.drop + " - удаление папки. ") + mdItalicU("после нажатия папка будет безвозвратно удалена " + mdBold("вместе со всем содержимым\n")) +
+                        escapeMd(Strings.Uni.cancel + " - выход из режима управления\n\n" +
+                                        "Если в папке имеются заметки, то они будут отображены кнопками, ниже ряда кнопок управления.\n" +
+                                        "Клик по кнопке заметки приводит к переходу в режим управления этой заметкой."
+                                ));
+        init(Value.LABEL_HELP, "mkdir <name>", // todo english
+                mdBold("Режим управления заметкой\n") +
+                        escapeMd("Здесь вы можете отредактировать или удалить заметку, с помощью соответствующих кнопок:\n" +
+                                Strings.Uni.edit + " - редактирование заметки. ") + mdItalic("После нажатия нужно будет ввести новый текст заметки\n") +
+                        escapeMd(Strings.Uni.drop + " - удаление заметки. ") + mdItalic("После нажатия заметка будет безвозвратно удалена.\n") +
+                        escapeMd(Strings.Uni.goUp + " - выход из режима управления. ") + mdItalic("После нажатаия вы будете возвращены в режим просмотра родительской папки.")
+            );
+        init(Value.GEARING, "Manage folder '%s'", "Управление папкой '%s'");
         init(Value.CANT_MKDIR, "cannot create directory ‘%s’: File exists", "Невозможно создать папку '%s': файл уже существует");
         init(Value.CANT_RN_TO, "cannot rename to ‘%s’: File exists", "Невозможно переименовать в '%s': файл уже существует");
         init(Value.CANT_MKLBL, "cannot create label ‘%s’: File exists", "Невозможно создать заметку '%s': файл уже существует");
-        init(Value.NO_RESULTS, "Nothing found for ‘%s’", "Ничего не найдено по запросу '%s'");
-        init(Value.NO_RESULTS_AFTER, "No search results", "Результатов поиска нет");
-        init(Value.TYPE_QUERY, "Type query:", "Поиск:");
+        init(Value.NO_RESULTS, "Nothing found", "Ничего не найдено");
+        init(Value.RESULTS_FOUND, "Found %s item(s)", "позиций найдено: %s");
         init(Value.TYPE_RENAME, "Type new name for '%s':", "Напиши новое имя для '%s':");
         init(Value.TYPE_FOLDER, "Type new folder name:", "Напиши имя новой папки");
         init(Value.CD, "cd %s", "переход в %s");
@@ -61,7 +169,7 @@ public class LangMap {
         init(Value.TYPE_LABEL, "Type label:", "Текст заметки:");
         init(Value.NO_CONTENT, "No content here yet. Send me some files.", "В этой папке пока ничего нет.");
         init(Value.LANG_SWITCHED, "Switched to English", "Используется русский язык");
-        init(Value.SEARCHED, "Search for '%s': %s entry(s)", "Поиск '%s': %s результат(ов)");
+        init(Value.SEARCHED, "Search for '%s' in '%s'", "Поиск '%s' в '%s'");
         init(Value.UPLOADED, "File stored '%s'", "Файл сохранён '%s'");
         init(Value.CHECK_ALL, "*", "*");
         init(Value.NO_GLOBAL_LINK, "No public link", "Нет публичной ссылки");
@@ -87,21 +195,20 @@ public class LangMap {
         init(Value.PASSWORD_CLEARED, "Password removed", "Пароль выключен");
         init(Value.VALID_CLEARED, "Validity limit removed", "Ограничения сняты");
         init(Value.OTU_SET, "Validity limited up to one time", "Ссылка ограничена одним срабатыванием");
-        init(Value.DROP_PUBLINK_DIR, "%s\n\nRemove public share link for this folder?", "%s\n\nУдалить публичную ссылку на эту папку?");
-        init(Value.DROP_PUBLINK_FILE, "%s\n\nRemove public share link for this file?", "%s\n\nУдалить публичную ссылку на этот файл?");
-        init(Value.CREATE_PUBLINK_DIR, "%s\n\nCreate public share link for this folder?", "%s\n\nСоздать публичную ссылку на эту папку?");
-        init(Value.SEND_CONTACT_DIR, "%s\n\nSend me a contact of the person you want to grant access to this folder",
-                "%s\n\nПришли мне контакт того, кому хочешь предоставить доступ к этой папке");
-        init(Value.CREATE_PUBLINK_FILE, "%s\n\nCreate public share link for this file?", "%s\n\nСоздать публичную ссылку на этот файл?");
-        init(Value.SEND_CONTACT_FILE, "%s\n\nSend me a contact of the person you want to grant access to this file",
-                "%s\n\nПришли мне контакт того, кому хочешь предоставить доступ к этому файлу");
+        init(Value.SEND_CONTACT_DIR, "Send me a contact of the person you want to grant access to folder '%s'",
+                "Пришли мне контакт того, кому хочешь предоставить доступ к папке '%s'");
+        init(Value.SEND_CONTACT_FILE, "Send me a contact of the person you want to grant access to file '%s'",
+                "Пришли мне контакт того, кому хочешь предоставить доступ к файлу '%s'");
         init(Value.CANT_GRANT, "Access already granted to %s", "%s: доступ уже предоставлен");
-        init(Value.SHARE_ACCESS, Strings.Uni.Person + " %s [Read/Write]", Strings.Uni.Person + " %s [полный доступ]");
-        init(Value.SHARE_ACCESS_RO, Strings.Uni.Person + " %s [Read only]", Strings.Uni.Person + " %s [только чтение]");
+        init(Value.SHARE_RW, Strings.Uni.mkGrant + " %s [Read/Write]", Strings.Uni.mkGrant + " %s [полный доступ]");
+        init(Value.SHARE_RO, Strings.Uni.mkGrant + " %s [Read only]", Strings.Uni.mkGrant + " %s [только чтение]");
         init(Value.SHARES, Strings.Uni.share + " network", Strings.Uni.share + " сеть");
         init(Value.SHARES_ANONYM, "common", "общие");
         init(Value.NOT_ALLOWED, "You're not allowed to do it here", "Это действие запрещено в текущей папке");
         init(Value.NOT_ALLOWED_THIS, "You're not allowed to do it to this entry", "Это действие запрещено в для данного элемента");
+        init(Value.FILE_ACCESS, "Grant access to file %s", "Доступ к файлу %s");
+        init(Value.DIR_ACCESS, "Grant access to folder %s", "Доступ к папке %s");
+        init(Value.TYPE_REWRITE, "Write new text for label:", "Напиши новый текст заметки:");
     }
 
     private static void init(final Value key, final String en, final String ru) {
@@ -110,13 +217,12 @@ public class LangMap {
     }
 
     public enum Value {
-        CMD, DESC, CD_HELP, CD_HELP2, GET_HELP, GET_HELP2, LS_HELP, LS_HELP2, MKD_HELP, MKD_HELP2, MV_HELP, MV_HELP2, PWD_HELP, PWD_HELP2, RM_HELP, RM_HELP2, LBL_HELP,
-        LBL_HELP2, ALS_HELP, ALS_HELP2, CANT_MKDIR, CANT_RN_TO, CANT_MKLBL, NO_RESULTS, TYPE_QUERY, TYPE_RENAME, TYPE_FOLDER, CD, PAGE, NORMAL_MODE, EDIT_MODE, DELETED,
-        DELETED_MANY, MOVE_DEST, DESELECTED, SELECTED, MOVED, TYPE_LABEL, SEARCHED, NO_CONTENT, LANG_SWITCHED, NO_RESULTS_AFTER, UPLOADED, None, CHECK_ALL, NO_GLOBAL_LINK,
-        NO_PERSONAL_GRANTS, CMD_LIST,
-        PASS_RESET, PASS_DROP, PASSWORD_SET, PASSWORD_NOT_SET, VALID_ONETIME, VALID_UNTILL, VALID_CANCEL, VALID_NOT_SET, VALID_SET_OTU, VALID_SET_UNTILL, LINK_DELETED,
-        LINK_SAVED, PASS_SET, TYPE_PASSWORD, TYPE_PASSWORD2, PASSWORD_SET_TXT, PASSWORD_NOT_MATCH, PASSWORD_CLEARED, VALID_CLEARED, OTU_SET, DROP_PUBLINK_DIR, DROP_PUBLINK_FILE, CREATE_PUBLINK_DIR, SEND_CONTACT_DIR, CREATE_PUBLINK_FILE, SEND_CONTACT_FILE, CANT_GRANT, SHARE_ACCESS, SHARE_ACCESS_RO, SHARES, SHARES_ANONYM, NOT_ALLOWED, NOT_ALLOWED_THIS, LINK
-
+        SEARCHED_HELP, ROOT_HELP, SHARE_FILE_HELP, GEAR_HELP, LS_HELP, FILE_HELP, LABEL_HELP, CANT_MKDIR, CANT_RN_TO, CANT_MKLBL, NO_RESULTS, TYPE_RENAME,
+        TYPE_FOLDER, CD, PAGE, NORMAL_MODE, EDIT_MODE, DELETED, DELETED_MANY, MOVE_DEST, DESELECTED, SELECTED, MOVED, TYPE_LABEL, SEARCHED, NO_CONTENT, LANG_SWITCHED,
+        RESULTS_FOUND, UPLOADED, None, CHECK_ALL, NO_GLOBAL_LINK, NO_PERSONAL_GRANTS, GEARING, PASS_RESET, PASS_DROP, PASSWORD_SET, PASSWORD_NOT_SET, VALID_ONETIME,
+        VALID_UNTILL, VALID_CANCEL, VALID_NOT_SET, VALID_SET_OTU, VALID_SET_UNTILL, LINK_DELETED, LINK_SAVED, PASS_SET, TYPE_PASSWORD, TYPE_PASSWORD2, PASSWORD_SET_TXT,
+        PASSWORD_NOT_MATCH, PASSWORD_CLEARED, VALID_CLEARED, OTU_SET, SEND_CONTACT_DIR, SEND_CONTACT_FILE, CANT_GRANT, SHARE_RW, SHARE_RO, SHARES, SHARES_ANONYM, NOT_ALLOWED,
+        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_REWRITE, SHARE_DIR_HELP, DIR_ACCESS
     }
 
     public static String v(final Value name, final User user, final Object... args) {

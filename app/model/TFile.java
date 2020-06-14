@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import model.telegram.ContentType;
+import services.TgApi;
 import utils.BMasked;
 import utils.Optioned;
+import utils.Strings;
 
 import java.util.UUID;
 
@@ -29,10 +31,40 @@ public class TFile implements Comparable<TFile>, Optioned {
     private int options;
     private boolean rw;
 
-    public volatile boolean selected;
+    public TgApi.Button toButton(final int idx) {
+        return new TgApi.Button(
+                (isDir() ? Strings.Uni.folder + " " : "")
+                        + name,
+                (isDir()
+                        ? CommandType.openDir
+                        : isFile()
+                        ? CommandType.openFile
+                        : CommandType.openLabel).toString()
+                        + idx
+        );
+    }
+
+    public TgApi.Button toSearchedButton(final int pathSkip, final int idx) {
+        final String label = path.substring(pathSkip);
+
+        return new TgApi.Button(
+                (isDir() ? Strings.Uni.folder + " " : "")
+                        + label,
+                (isDir()
+                        ? CommandType.openSearchedDir
+                        : isFile()
+                        ? CommandType.openSearchedFile
+                        : CommandType.openSearchedLabel).toString()
+                        + idx
+        );
+    }
 
     public boolean isDir() {
         return type == ContentType.DIR;
+    }
+
+    public boolean isFile() {
+        return type != ContentType.DIR && type != ContentType.LABEL;
     }
 
     @Override
