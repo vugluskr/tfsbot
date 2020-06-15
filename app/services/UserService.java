@@ -3,6 +3,7 @@ package services;
 import model.User;
 import model.telegram.api.ContactRef;
 import model.telegram.api.UpdateRef;
+import play.Logger;
 import sql.UserMapper;
 import utils.Strings;
 import utils.TFileFactory;
@@ -18,6 +19,8 @@ import static utils.TextUtils.notNull;
  * tfs ☭ sweat and blood
  */
 public class UserService {
+    private static final Logger.ALogger logger = Logger.of(UserService.class);
+
     @Inject
     private UserMapper mapper;
 
@@ -48,6 +51,7 @@ public class UserService {
             fsService.mkdir(ru ? "Документы" : "Documents", 1, user.getId());
             fsService.mkdir(ru ? "Фото" : "Photos", 1, user.getId());
             fsService.upload(TFileFactory.label(ru ? "Пример заметки" : "Example note", fsService.mkdir(ru ? "Заметки" : "Notes", 1, user.getId()).getId()), user);
+            logger.info("New user: " + cr);
         } else {
             if (isEmpty(db.getState()))
                 db.setState(Strings.State.View);
