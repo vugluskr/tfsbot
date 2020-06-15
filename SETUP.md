@@ -104,6 +104,49 @@ create table service_windows
 
 create index service_windows_user_id_index
 	on service_windows (user_id);
+
+create function dotree(viewname text, dirid text, entryid text, shareownertablename text, shareid text) returns void
+	language plpgsql
+as $$
+begin
+    EXECUTE format(
+            'create or replace view %s (id, name, type, parent_id, ref_id, options, owner, rw) as
+        (
+        WITH RECURSIVE tree AS
+                           (
+                               SELECT id,
+                                      name,
+                                      type,
+                                      cast(''%s'' as uuid) as parent_id,
+                                      options,
+                                      ref_id
+                               FROM %s
+                               WHERE id = cast(''%s'' as uuid)
+                               UNION ALL
+                               SELECT si.id,
+                                      si.name,
+                                      si.type,
+                                      si.parent_id,
+                                      si.options,
+                                      si.ref_id
+                               FROM %s As si
+                                        JOIN
+                                    tree AS sp
+                                    ON (si.parent_id = sp.id)
+                           )
+        SELECT tree.id,
+               tree.name,
+               tree.type,
+               tree.parent_id,
+               tree.ref_id,
+               tree.options,
+               share.owner,
+               share.rw
+        FROM tree
+                 left join shares share on share.id = ''%s'')', viewName, dirId, shareOwnerTableName, entryId, shareOwnerTableName, shareId);
+end;
+$$;
+
 ``` 
 - start bot with command `$bot_dir/bin/tfs`
 - thats it, your bot should be fully functional with `@its_unique_name` in the telegram :)
