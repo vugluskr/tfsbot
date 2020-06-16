@@ -107,6 +107,12 @@ public class Handler extends Controller {
                         command.type = CommandType.renameFile;
                     else if (user.isWaitEditLabelInput())
                         command.type = CommandType.editLabel;
+                    else if (user.isWaitPasswordInput())
+                        command.type = CommandType.lock;
+                    else if (user.isWaitUnlockDirInput())
+                        command.type = CommandType.unlockDir;
+                    else if (user.isWaitUnlockFileInput())
+                        command.type = CommandType.unlockFile;
                     else
                         command.type = CommandType.doSearch;
 

@@ -65,4 +65,10 @@ public interface TFileSystem {
     void addServiceWin(@Param("messageId") long messageId, @Param("userId") long userId);
 
     void updateLastMessageId(@Param("lastMessageId") long lastMessageId, @Param("userId") long userId);
+
+    void dropLock(@Param("uuid") UUID uuid);
+
+    void createLock(@Param("uuid") UUID uuid, @Param("salt") String salt, @Param("password") String password);
+
+    Map<String, Object> selectEntryPassword(@Param("uuid") UUID uuid);
 }

@@ -45,6 +45,7 @@ public class LangMap {
         init(Value.FILE_HELP, mdBold("File view mode\n") +
                         escapeMd("First of all file's body is shown. Below is file's path, after that control buttons are:\n" +
                                 Strings.Uni.goUp + " - go to the parent folder.\n" +
+                                Strings.Uni.keyLock + " - set/clear password on file.\n" +
                                 Strings.Uni.share + " - go to the access share management.\n" +
                                 Strings.Uni.edit + " - rename the file. ") + mdItalic("you have to type new file's name after click. Be aware that file wont be actually renamed " +
                         "in a cloud. Only display name will be changed after that.\n") +
@@ -52,6 +53,7 @@ public class LangMap {
                 mdBold("Режим просмотра файла\n") +
                         escapeMd("Первым отображается тело самого файла. Ниже указан путь файла, затем идёт ряд кнопок управления:\n" +
                                 Strings.Uni.goUp + " - переход в родительскую папку.\n" +
+                                Strings.Uni.keyLock + " - установить/снять пароль на доступ к файлу.\n" +
                                 Strings.Uni.share + " - переход к управлению правами доступа к файлу.\n" +
                                 Strings.Uni.edit + " - переименование файла. ") + mdItalic("после нажатия нужно будет ввести новое имя файла. Внимание, сам файл физически не будет " +
                         "переименован, будет изменено только имя под которым он отображается в боте.\n") +
@@ -181,6 +183,7 @@ public class LangMap {
             );
         init(Value.GEAR_HELP, mdBold("Folder manage mode\n") +
                         escapeMd("Navigation is unavailable in this mode, only folder's management.\n\nFirst row is a control buttons:" +
+                                Strings.Uni.keyLock + " - set/clear access password.\n" +
                                 Strings.Uni.share + " - share folder's access.\n" +
                                 Strings.Uni.edit + " - rename the folder. ") + mdItalic("you will have to type new folder's name after click.\n") +
                         escapeMd(Strings.Uni.drop + " - delete the folder. ") + mdItalicU("folder will be deleted after click " + mdBold("with its entire content\n")) +
@@ -190,6 +193,7 @@ public class LangMap {
                                 ),
                 mdBold("Режим управления папкой\n") +
                         escapeMd("В данном режиме недоступна навигация ни вверх ни вниз по иерархии.\n\nВ первой строке находятся кнопки управления самой папкой:" +
+                                Strings.Uni.keyLock + " - задать/снять пароль на доступ к папке.\n" +
                                 Strings.Uni.share + " - управление правами доступа к папке.\n" +
                                 Strings.Uni.edit + " - переименование папки. ") + mdItalic("после нажатия нужно будет ввести новое имя папки.\n") +
                         escapeMd(Strings.Uni.drop + " - удаление папки. ") + mdItalicU("после нажатия папка будет безвозвратно удалена " + mdBold("вместе со всем содержимым\n")) +
@@ -269,6 +273,11 @@ public class LangMap {
         init(Value.FILE_ACCESS, "Grant access to file %s", "Доступ к файлу %s");
         init(Value.DIR_ACCESS, "Grant access to folder %s", "Доступ к папке %s");
         init(Value.TYPE_REWRITE, "Write new text for label:", "Напиши новый текст заметки:");
+        init(Value.TYPE_LOCK_DIR, "Type a new password for folder '%s'", "Напиши новый пароль для папки '%s'");
+        init(Value.TYPE_LOCK_FILE, "Type a new password for file '%s'", "Напиши новый пароль для файла '%s'");
+        init(Value.TYPE_PASSWORD_FILE, "File '%s' is protected with password, type it:", "Доступ к Файлу '%s' ограничен, напиши пароль:");
+        init(Value.TYPE_PASSWORD_DIR, "Folder '%s' is protected with password, type it:", "Доступ к папке '%s' ограничен, напиши пароль:");
+        init(Value.PASSWORD_FAILED, "Wrong password", "Неверный пароль");
     }
 
     private static void init(final Value key, final String en, final String ru) {
@@ -282,7 +291,7 @@ public class LangMap {
         RESULTS_FOUND, UPLOADED, None, CHECK_ALL, NO_GLOBAL_LINK, NO_PERSONAL_GRANTS, GEARING, PASS_RESET, PASS_DROP, PASSWORD_SET, PASSWORD_NOT_SET, VALID_ONETIME,
         VALID_UNTILL, VALID_CANCEL, VALID_NOT_SET, VALID_SET_OTU, VALID_SET_UNTILL, LINK_DELETED, LINK_SAVED, PASS_SET, TYPE_PASSWORD, TYPE_PASSWORD2, PASSWORD_SET_TXT,
         PASSWORD_NOT_MATCH, PASSWORD_CLEARED, VALID_CLEARED, OTU_SET, SEND_CONTACT_DIR, SEND_CONTACT_FILE, CANT_GRANT, SHARE_RW, SHARE_RO, SHARES, SHARES_ANONYM, NOT_ALLOWED,
-        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_REWRITE, SHARE_DIR_HELP, DIR_ACCESS
+        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_REWRITE, SHARE_DIR_HELP, TYPE_LOCK_DIR, TYPE_LOCK_FILE, TYPE_PASSWORD_FILE, TYPE_PASSWORD_DIR, PASSWORD_FAILED, DIR_ACCESS
     }
 
     public static String v(final Value name, final User user, final Object... args) {

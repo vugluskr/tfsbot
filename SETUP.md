@@ -102,6 +102,15 @@ create table service_windows
 	message_id bigint not null
 );
 
+create table passwords
+(
+	entry_id uuid not null
+		constraint passwords_pk
+			primary key,
+	salt text not null,
+	password text not null
+);
+
 create index service_windows_user_id_index
 	on service_windows (user_id);
 

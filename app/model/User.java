@@ -154,7 +154,7 @@ public class User implements Optioned, InputWait, Stater {
         return lastKeyboard == null ? null : TgApi.Keyboard.fromJson(lastKeyboard);
     }
 
-    enum Optz implements BMasked {
+    public enum Optz implements BMasked {
         RenameDirInputWait,
         RenameFileInputWait,
         EditLabelInputWait,
@@ -162,7 +162,7 @@ public class User implements Optioned, InputWait, Stater {
         LabelInputWait,
         GrantFileWait,
         StateSearching,
-        StateSharing, StateGearing;
+        StateSharing, StateGearing, PasswordInputWait, UnlockDirInputWait, UnlockFileInputWait;
 
         public static String printOut(final User user) {
             final StringBuilder s = new StringBuilder();

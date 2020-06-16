@@ -228,6 +228,14 @@ public class TFile implements Comparable<TFile>, Optioned {
         Optz.Unsharable.set(this);
     }
 
+    public boolean isLocked() {
+        return Optz.locked.is(this);
+    }
+
+    public void setUnlocked() {
+        Optz.locked.remove(this);
+    }
+
     enum Optz implements BMasked {
         shared, locked, sharesRoot, shareFor, Unsharable;
     }

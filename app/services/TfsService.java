@@ -95,11 +95,11 @@ public class TfsService {
         applyShare(share, producer.name, langTag, consumerId);
     }
 
-    private TFile applyShare(final Share share, final String dirName, final String langTag, final long consumerId) {
+    private TFile applyShare(final Share share, final String holderDirName, final String langTag, final long consumerId) {
         final String tableName = tablePrefix + consumerId;
         final List<TFile> rootDirs = fs.selectRootDirs(tableName);
 
-        final TFile sharesDir = rootDirs.stream().filter(TFile::isSharesRoot).findFirst().orElseGet(() -> {
+        final TFile sharesHomeRoot = rootDirs.stream().filter(TFile::isSharesRoot).findFirst().orElseGet(() -> {
             final TFile dir = new TFile();
             dir.setSharesRoot();
             dir.setUnsharable();
@@ -107,26 +107,26 @@ public class TfsService {
             return makeSysDir(v(LangMap.Value.SHARES, langTag), fs.findRoot(userFsPrefix + consumerId, pathesTree + consumerId).getId(), null, dir.getOptions(), consumerId);
         });
 
-        final List<TFile> subs = fs.selectSubDirs(sharesDir.getId(), tableName);
+        final List<TFile> subs = fs.selectSubDirs(sharesHomeRoot.getId(), tableName);
 
-        final TFile shareParentDir = subs.stream().filter(d -> d.isShareFor() && getLong(d.getRefId()) == share.getOwner()).findAny().orElseGet(() -> {
+        final TFile shareHolder = subs.stream().filter(d -> d.isShareFor() && d.getName().equals(holderDirName)).findAny().orElseGet(() -> {
             final TFile dir = new TFile();
-            dir.setShareFor(share.getOwner());
+            dir.setShareFor(0);
             dir.setUnsharable();
 
-            return makeSysDir(dirName, sharesDir.getId(), dir.getRefId(), dir.getOptions(), consumerId);
+            return makeSysDir(holderDirName, sharesHomeRoot.getId(), dir.getRefId(), dir.getOptions(), consumerId);
         });
 
         fs.createShareView(
                 sharePrefix + consumerId + "_" + share.getOwner() + "_" + share.getId(),
                 share.getId(),
                 share.getEntryId().toString(),
-                shareParentDir.getId().toString(),
+                shareHolder.getId().toString(),
                 tablePrefix + share.getOwner());
 
-        fs.createFsView(userFsPrefix + consumerId, consumerId, tablePrefix + consumerId, fs.selectShareViewsLike(ownerShareViews(consumerId)));
+        fs.createFsView(userFsPrefix + consumerId, consumerId, tablePrefix + consumerId, fs.selectShareViewsLike(appliedShareViews(consumerId)));
 
-        return shareParentDir;
+        return shareHolder;
     }
 
     @Transactional
@@ -153,13 +153,11 @@ public class TfsService {
             return null;
         }
 
-        final String fsName = userFsPrefix + file.getOwner(), treeName = pathesTree + file.getOwner();
-
         final UUID uuid = generateUuid();
-        fs.dropEntry(file.getName(), file.getParentId(), file.getOwner(), fsName);
+        fs.dropEntry(file.getName(), file.getParentId(), file.getOwner(), tablePrefix + file.getOwner());
         fs.makeEntry(uuid, file.getName(), file.getParentId(), file.getType(), file.getRefId(), file.getOptions(), tablePrefix + file.getOwner());
 
-        return fs.getEntry(uuid, fsName, treeName);
+        return fs.getEntry(uuid, userFsPrefix + file.getOwner(), pathesTree + file.getOwner());
     }
 
     private String shareSharesViews(final String shareId) {
@@ -170,6 +168,11 @@ public class TfsService {
     private String ownerShareViews(final long ownerId) {
         // имя шары: prefix_КомуВыданаШара_КемВыдана_ИдШары
         return sharePrefix + "%_" + ownerId + "_%";
+    }
+
+    private String appliedShareViews(final long ownerId) {
+        // имя шары: prefix_КомуВыданаШара_КемВыдана_ИдШары
+        return sharePrefix + ownerId + "_%_%";
     }
 
     private TFile makeSysDir(final String name0, final UUID parentId, final String refId, final int options, final long userId) {
@@ -242,6 +245,26 @@ public class TfsService {
 
     public List<TFile> listTyped(final UUID parentId, final ContentType type, final User user) {
         return fs.listTypedChilds(parentId, type, userFsPrefix + user.getId(), pathesTree + user.getId());
+    }
+
+    public void lockEntry(final TFile entry, final String salt, final String password) {
+        fs.dropLock(entry.getId());
+        fs.createLock(entry.getId(), salt, password);
+
+        entry.setLocked();
+        fs.updateEntry(entry.getName(), entry.getParentId(), entry.getOptions(), entry.getId(), entry.getOwner(), tablePrefix + entry.getOwner());
+    }
+
+    public void unlockEntry(final TFile entry) {
+        fs.dropLock(entry.getId());
+        entry.setUnlocked();
+        fs.updateEntry(entry.getName(), entry.getParentId(), entry.getOptions(), entry.getId(), entry.getOwner(), tablePrefix + entry.getOwner());
+    }
+
+    public boolean passwordFailed(final UUID uuid, final String password) {
+        final Map<String, Object> accessRow = fs.selectEntryPassword(uuid);
+
+        return !String.valueOf(accessRow.get("password")).equalsIgnoreCase(hash256(accessRow.get("salt") + password));
     }
 }
 

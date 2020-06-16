@@ -7,8 +7,10 @@ import model.telegram.ParseMode;
 import utils.LangMap;
 import utils.Strings;
 import utils.TFileFactory;
+import utils.TextUtils;
 
 import javax.inject.Inject;
+import java.math.BigInteger;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Comparator;
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static model.CommandType.unlockDir;
 import static utils.LangMap.v;
 import static utils.TextUtils.*;
 
@@ -105,13 +108,18 @@ public class HeadQuarters {
                 viewKind = ViewKind.subjectShares;
                 break;
             case editLabel:
-                if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
-                    subject.setName(command.input);
-                    subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
-                    fsService.updateMeta(subject, user);
+                if (!isEmpty(command.input)) {
+                    if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
+                        subject.setName(command.input);
+                        subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
+                        fsService.updateMeta(subject, user);
+                    }
+                    user.resetState();
+                    viewKind = ViewKind.viewLabel;
+                } else {
+                    api.dialog(LangMap.Value.TYPE_LABEL, user, parent.getPath());
+                    user.setWaitLabelEditInput();
                 }
-                user.resetState();
-                viewKind = ViewKind.viewLabel;
                 break;
             case rewind:
             case forward:
@@ -166,6 +174,7 @@ public class HeadQuarters {
                             user.setViewOffset(0);
                             user.setSubjectId(subject.getId());
                             user.resetState();
+                            viewKind = ViewKind.viewDir;
                         }
                     }
                 } else {
@@ -202,27 +211,54 @@ public class HeadQuarters {
                 if (!isEmpty(command.input)) {
                     if (fsService.entryMissed(command.input, user))
                         fsService.mk(TFileFactory.label(command.input, subject.getId(), user.getId()));
+
+                    viewKind = ViewKind.viewDir;
                 } else {
                     api.dialog(LangMap.Value.TYPE_LABEL, user);
                     user.setWaitLabelInput();
                     viewKind = ViewKind.none;
                 }
                 break;
+            case unlockFile:
+            case unlockDir:
+                if (fsService.passwordFailed(user.getSubjectId(), command.input)) {
+                    if (user.isSearching()) {
+                        subject = fsService.get(user.getSearchDirId(), user);
+                        user.setSubjectId(subject.getId());
+                        parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
+                        viewKind = ViewKind.searchResults;
+                    } else {
+                        subject = fsService.get(subject.getParentId(), user);
+                        user.setSubjectId(subject.getId());
+                        parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
+                        viewKind = ViewKind.viewDir;
+                    }
+                } else {
+                    user.setViewOffset(0);
+                    viewKind = command.type == unlockDir ? (user.isSearching() ? ViewKind.viewSearchedDir : ViewKind.viewDir) : (user.isSearching() ? ViewKind.viewSearchedFile : ViewKind.viewFile);
+                }
+                break;
             case openDir:
                 user.resetState();
                 final TFile dir = byIdx(command.elementIdx, subject, user);
+
+                if (breakOnLock(dir, user, User.Optz.UnlockDirInputWait))
+                    break;
+
+                user.setViewOffset(0);
                 parent = subject;
                 subject = dir;
-                user.setViewOffset(0);
-                user.setSubjectId(subject.getId());
                 viewKind = ViewKind.viewDir;
                 break;
             case openFile:
                 user.resetState();
                 final TFile file = byIdx(command.elementIdx, subject, user);
+
+                if (breakOnLock(file, user, User.Optz.UnlockFileInputWait))
+                    break;
+
                 parent = subject;
                 subject = file;
-                user.setSubjectId(subject.getId());
                 viewKind = ViewKind.viewFile;
                 break;
             case openLabel:
@@ -235,17 +271,23 @@ public class HeadQuarters {
                 break;
             case openSearchedDir:
                 final TFile sd = byIdx(command.elementIdx, subject, user);
+
+                if (breakOnLock(sd, user, User.Optz.UnlockDirInputWait))
+                    break;
+
                 parent = subject;
                 subject = sd;
                 user.setViewOffset(0);
-                user.setSubjectId(subject.getId());
                 viewKind = ViewKind.viewSearchedDir;
                 break;
             case openSearchedFile:
                 final TFile sf = byIdx(command.elementIdx, subject, user);
+
+                if (breakOnLock(sf, user, User.Optz.UnlockFileInputWait))
+                    break;
+
                 parent = subject;
                 subject = sf;
-                user.setSubjectId(subject.getId());
                 viewKind = ViewKind.viewSearchedFile;
                 break;
             case openSearchedLabel:
@@ -256,22 +298,32 @@ public class HeadQuarters {
                 viewKind = ViewKind.viewSearchedLabel;
                 break;
             case renameDir:
-                user.resetState();
-                if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
-                    subject.setName(command.input);
-                    subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
-                    fsService.updateMeta(subject, user);
+                if (!isEmpty(command.input)) {
+                    user.resetState();
+                    if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
+                        subject.setName(command.input);
+                        subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
+                        fsService.updateMeta(subject, user);
+                    }
+                    viewKind = ViewKind.viewDir;
+                } else {
+                    api.dialog(LangMap.Value.TYPE_RENAME, user, subject.getName());
+                    user.setWaitDirRenameInput();
                 }
-                viewKind = ViewKind.viewDir;
                 break;
             case renameFile:
-                user.resetState();
-                if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
-                    subject.setName(command.input);
-                    subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
-                    fsService.updateMeta(subject, user);
+                if (!isEmpty(command.input)) {
+                    user.resetState();
+                    if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
+                        subject.setName(command.input);
+                        subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
+                        fsService.updateMeta(subject, user);
+                    }
+                    viewKind = ViewKind.viewFile;
+                } else {
+                    api.dialog(LangMap.Value.TYPE_RENAME, user, subject.getName());
+                    user.setWaitFileRenameInput();
                 }
-                viewKind = ViewKind.viewFile;
                 break;
             case resetToRoot:
                 user.resetState();
@@ -296,6 +348,24 @@ public class HeadQuarters {
             case contextHelp:
                 doHelp(subject, user);
                 break;
+            case unlock:
+                fsService.unlockEntry(subject);
+                viewKind = subject.isDir() ? ViewKind.gearSubject : ViewKind.viewFile;
+                break;
+            case lock:
+                if (!isEmpty(command.input)) {
+                    if (subject.getOwner() == user.getId()) {
+                        final String salt = new BigInteger(130, TextUtils.rnd).toString(32);
+                        final String password = hash256(salt + command.input);
+
+                        fsService.lockEntry(subject, salt, password);
+                    }
+
+                    viewKind = subject.isDir() ? ViewKind.gearSubject : ViewKind.viewFile;
+                } else {
+                    api.dialog(subject.isDir() ? LangMap.Value.TYPE_LOCK_DIR : LangMap.Value.TYPE_LOCK_FILE, user, subject.getName());
+                    user.setWaitLockInput();
+                }
         }
 
         if (viewKind != ViewKind.none)
@@ -334,9 +404,14 @@ public class HeadQuarters {
                     body.append(escapeMd(v(LangMap.Value.GEARING, user, notNull(subject.getPath(), "/"))));
 
                     if (!user.isOnTop()) {
-                        kbd.button(CommandType.share.b());
-                        kbd.button(CommandType.renameDir.b());
-                        kbd.button(CommandType.dropDir.b());
+                        if (subject.getOwner() == user.getId()) {
+                            kbd.button(subject.isLocked() ? CommandType.unlock.b() : CommandType.lock.b());
+                            kbd.button(CommandType.share.b());
+                        }
+                        if (subject.isRw())
+                            kbd.button(CommandType.renameDir.b());
+                        if (subject.getOwner() == user.getId())
+                            kbd.button(CommandType.dropDir.b());
                     }
 
                     kbd.button(CommandType.cancelShare.b());
@@ -421,12 +496,13 @@ public class HeadQuarters {
 
                     if (!user.isOnTop())
                         kbd.button(CommandType.openParent.b());
-                    kbd.button(CommandType.mkLabel.b());
-                    kbd.button(CommandType.mkDir.b());
-                    kbd.button(CommandType.gear.b());
+                    if (subject.isRw()) {
+                        kbd.button(CommandType.mkLabel.b());
+                        kbd.button(CommandType.mkDir.b());
+                        kbd.button(CommandType.gear.b());
+                    }
 
-                    final List<TFile> toButtons = scope.stream().sorted(sorter).filter(e -> e.getType() != ContentType.LABEL)
-                            .collect(Collectors.toList());
+                    final List<TFile> toButtons = scope.stream().sorted(sorter).filter(e -> e.getType() != ContentType.LABEL).collect(Collectors.toList());
 
                     for (int i = user.getViewOffset(); i < Math.min(user.getViewOffset() + 10, toButtons.size()); i++) {
                         kbd.newLine();
@@ -448,13 +524,24 @@ public class HeadQuarters {
 
                     body.append(notNull(escapeMd(file.getPath()), "/"));
 
-                    kbd.button(CommandType.openParent.b(), CommandType.share.b(), CommandType.renameFile.b(), CommandType.dropFile.b());
+                    kbd.button(CommandType.openParent.b());
+                    if (file.isRw()) {
+                        if (file.getOwner() == user.getId()) {
+                            kbd.button(file.isLocked() ? CommandType.unlock.b() : CommandType.lock.b());
+                            kbd.button(CommandType.share.b());
+                        }
+
+                        kbd.button(CommandType.renameFile.b(), CommandType.dropFile.b());
+                    }
                 }
                 break;
                 case viewLabel: {
                     body.append('*').append(notNull(escapeMd(parent.getPath()), "/")).append("*\n\n").append(escapeMd(subject.name));
 
-                    kbd.button(CommandType.openParent.b(), CommandType.editLabel.b(), CommandType.dropLabel.b());
+                    kbd.button(CommandType.openParent.b());
+
+                    if (subject.isRw())
+                        kbd.button(CommandType.editLabel.b(), CommandType.dropLabel.b());
                 }
                 break;
                 case viewSearchedDir: {
@@ -514,6 +601,18 @@ public class HeadQuarters {
         } finally {
             api.sendContent(file, body.toString(), format, kbd, user);
         }
+    }
+
+    private boolean breakOnLock(final TFile entry, final User user, final User.Optz optz) {
+        user.setSubjectId(entry.getId());
+        if (!entry.isLocked())
+            return false;
+
+        api.dialog(entry.isDir() ? LangMap.Value.TYPE_PASSWORD_DIR : LangMap.Value.TYPE_PASSWORD_FILE, user, entry.getName());
+
+        optz.set(user);
+
+        return true;
     }
 
     private <T> List<T> scope(final TFile subject, final User user) {

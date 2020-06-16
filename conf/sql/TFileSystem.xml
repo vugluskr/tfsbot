@@ -10,13 +10,16 @@
         insert into service_windows(user_id, message_id)
         VALUES (#{userId}, #{messageId})
     </insert>
+    <insert id="createLock">
+        insert into passwords(entry_id, salt, password)
+        values (#{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, #{salt}, #{password})
+    </insert>
 
     <delete id="dropEntry">
         delete
         from ${viewName} f
         where f.name = #{name}
           and f.parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-          and f.owner = #{owner}
     </delete>
     <delete id="dropEntriesByParent">
         delete
@@ -25,14 +28,16 @@
             WITH RECURSIVE tree AS
                                (
                                    SELECT id,
-                                          parent_id, rw
+                                          parent_id,
+                                          rw
                                    FROM ${treeViewName}
                                    WHERE rw = true
                                      and (id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
                                        or parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
                                    UNION ALL
                                    SELECT si.id,
-                                          si.parent_id, si.rw
+                                          si.parent_id,
+                                          si.rw
                                    FROM ${treeViewName} As si
                                             JOIN
                                         tree AS sp
@@ -46,6 +51,15 @@
         from service_windows
         where user_id = #{userId}
     </delete>
+    <delete id="dropLock">
+        delete
+        from passwords
+        where entry_id = #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+    </delete>
+    <select id="selectEntryPassword" resultType="java.util.Map">
+        select *
+        from passwords where entry_id = #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+    </select>
 
     <update id="createRootTable">
         create table ${tableName}
@@ -103,7 +117,7 @@
                                FROM ${consolidatedViewName} As si
                                         JOIN
                                     tree AS sp
-                                    ON (si.parent_id = sp.id and si.owner = sp.owner)
+                                    ON (si.parent_id = sp.id)
                            )
         SELECT id, parent_id, owner, array_to_string(fpath, '/')
         FROM tree)

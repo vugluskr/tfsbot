@@ -1,6 +1,7 @@
 package utils;
 
 import java.lang.reflect.Array;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -170,5 +171,23 @@ public class TextUtils {
 
     private static String wrap(final Object v, final char with) {
         return with + escapeMd(String.valueOf(v)) + with;
+    }
+
+    public static String hash256(String data) {
+        try {
+            final MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update(data.getBytes());
+            return bytesToHex(md.digest());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        final StringBuilder result = new StringBuilder();
+
+        for (byte byt : bytes) result.append(Integer.toString((byt & 0xff) + 0x100, 16).substring(1));
+
+        return result.toString();
     }
 }
