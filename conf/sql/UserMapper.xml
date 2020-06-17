@@ -22,7 +22,8 @@
             options       = #{options},
             last_ref_id   = #{lastRefId},
             last_text     = #{lastText},
-            last_kbd      = #{lastKbd}
+            last_kbd      = #{lastKbd},
+            contest_id    = #{contestId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
         where id = #{id}
     </update>
 
@@ -33,11 +34,13 @@
         <result property="subjectId" column="subject_id" typeHandler="utils.UUIDTypeHandler"/>
         <result property="query" column="query"/>
         <result property="searchDirId" column="search_dir_id" typeHandler="utils.UUIDTypeHandler"/>
+        <result property="contestId" column="contest_id" typeHandler="utils.UUIDTypeHandler"/>
         <result property="viewOffset" column="view_offset"/>
         <result property="options" column="options"/>
         <result property="lastRefId" column="last_ref_id"/>
         <result property="lastText" column="last_text"/>
         <result property="lastKeyboard" column="last_kbd"/>
+
 
     </resultMap>
 </mapper>

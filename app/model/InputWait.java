@@ -2,6 +2,8 @@ package model;
 
 import utils.Optioned;
 
+import java.util.Arrays;
+
 /**
  * @author Denis Danilin | denis@danilin.name
  * 04.06.2020
@@ -29,10 +31,6 @@ public interface InputWait extends Optioned {
     default boolean isWaitDirInput() { return User.Optz.DirInputWait.is(this); }
 
     default void resetInputWait() {
-        User.Optz.LabelInputWait.remove(this);
-        User.Optz.DirInputWait.remove(this);
-        User.Optz.PasswordInputWait.remove(this);
-        User.Optz.UnlockDirInputWait.remove(this);
-        User.Optz.UnlockFileInputWait.remove(this);
+        Arrays.stream(User.Optz.values()).filter(o -> o.name().endsWith("InputWait")).forEach(o -> o.remove(this));
     }
 }

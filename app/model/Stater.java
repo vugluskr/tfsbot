@@ -2,6 +2,8 @@ package model;
 
 import utils.Optioned;
 
+import java.util.Arrays;
+
 /**
  * @author Denis Danilin | denis@danilin.name
  * 04.06.2020
@@ -21,8 +23,6 @@ public interface Stater extends Optioned {
     default boolean isGearing() { return User.Optz.StateGearing.is(this); }
 
     default void resetState() {
-        User.Optz.StateSearching.remove(this);
-        User.Optz.StateSharing.remove(this);
-        User.Optz.StateGearing.remove(this);
+        Arrays.stream(User.Optz.values()).filter(o -> o.name().startsWith("State")).forEach(o -> o.remove(this));
     }
 }

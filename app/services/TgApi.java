@@ -9,8 +9,8 @@ import com.typesafe.config.Config;
 import model.CommandType;
 import model.TFile;
 import model.User;
-import model.telegram.ContentType;
-import model.telegram.ParseMode;
+import model.ContentType;
+import model.ParseMode;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
@@ -35,7 +35,6 @@ import static utils.TextUtils.isEmpty;
 @Singleton
 public class TgApi {
     private static final Logger.ALogger logger = Logger.of(TgApi.class);
-    private static final String jsonType = "application/json";
     public static final Keyboard voidKbd = new Keyboard().button(CommandType.Void.b());
 
     private final String apiUrl;
@@ -98,12 +97,11 @@ public class TgApi {
 
             final Consumer<Reply> editSuccessConsumer = reply -> {
                 if (!reply.ok) {
-                    deleteMessage(user.getLastMessageId(), user.getId()).thenAccept(any -> {
-                        user.setLastMessageId(0);
-                        fs.updateLastMessageId(0, user.getId());
-                        if (cnt < 2)
-                            sendContent(file, body, format, keyboard, user, cnt + 1);
-                    });
+                    deleteMessage(user.getLastMessageId(), user.getId());
+                    user.setLastMessageId(0);
+                    fs.updateLastMessageId(0, user.getId());
+                    if (cnt < 2)
+                        sendContent(file, body, format, keyboard, user, cnt + 1);
                 }
             };
 
@@ -162,52 +160,24 @@ public class TgApi {
         user.setLastText(body);
     }
 
-    public CompletionStage<Reply> deleteMessage(final long messageId, final long userId) {
-        if (messageId <= 0)
-            return CompletableFuture.completedFuture(new Reply(0));
-
-        return ws.url(apiUrl + "deleteMessage")
-                .setContentType(jsonType)
-                .post("{\"chat_id\":" + userId + ",\"message_id\":" + messageId + "}")
-                .thenApply(wsr -> {
-                    final JsonNode j = wsr.asJson();
-
-                    if (j.get("ok").asBoolean())
-                        return new Reply(0);
-
-                    return new Reply(j.get("description").asText());
-                })
-                .exceptionally(e -> {
-                    logger.error(e.getMessage(), e);
-                    return new Reply(e.getMessage());
-                });
+    public void deleteMessage(final long messageId, final long userId) {
+        if (messageId > 0)
+            CompletableFuture.runAsync(() -> ws.url(apiUrl + "deleteMessage").setContentType("application/json").post("{\"chat_id\":" + userId + ",\"message_id\":" + messageId + "}"));
     }
 
     public CompletionStage<Reply> sendText(final String text, final String format, final JsonNode replyMarkup, final long userId) {
         final ObjectNode node = Json.newObject();
+
         node.put("chat_id", userId);
         node.put("text", text);
         node.put("disable_web_page_preview", true);
+
         if (format != null)
             node.put("parse_mode", format);
         if (replyMarkup != null)
             node.set("reply_markup", replyMarkup);
 
-        return ws.url(apiUrl + "sendMessage")
-                .post(node)
-                .thenApply(wsr -> {
-                    final JsonNode j = wsr.asJson();
-
-                    if (j.get("ok").asBoolean())
-                        return new Reply(j.get("result").get("message_id").asLong());
-
-                    logger.debug("On request:\n" + node.toString() + "\ngot response:\n" + j.toString());
-                    return new Reply(j.get("description").asText());
-                })
-                .exceptionally(e -> {
-                    logger.error(e.getMessage(), e);
-                    return new Reply(e.getMessage());
-                });
+        return doCall(node, "sendMessage");
     }
 
     public CompletionStage<Reply> editText(final String text, final String format, final JsonNode keyboard, final long userId, final long updateMessageId) {
@@ -248,66 +218,28 @@ public class TgApi {
     }
 
     public CompletionStage<Reply> editKeyboard(final JsonNode keyboard, final long userId, final long messageId) {
-        /*
-chat_id 	Integer or String 	Optional 	Required if inline_message_id is not specified. Unique identifier for the target chat or username of the target channel (in the format @channelusername)
-message_id 	Integer 	Optional 	Required if inline_message_id is not specified. Identifier of the message to edit
-inline_message_id 	String 	Optional 	Required if chat_id and message_id are not specified. Identifier of the inline message
-reply_markup 	InlineKeyboardMarkup 	Optional 	A JSON-serialized object for an inline keyboard.        * */
         final ObjectNode node = Json.newObject();
+
         node.put("chat_id", userId);
         node.put("message_id", messageId);
         node.set("reply_markup", keyboard);
 
-        return ws.url(apiUrl + "editMessageReplyMarkup")
-                .post(node)
-                .thenApply(wsr -> {
-                    final JsonNode j = wsr.asJson();
-
-                    if (j.get("ok").asBoolean())
-                        return new Reply(messageId);
-
-                    logger.debug("On request:\n" + node.toString() + "\ngot response:\n" + j.toString());
-
-                    return new Reply(j.get("description").asText());
-                })
-                .exceptionally(e -> {
-                    logger.error(e.getMessage(), e);
-                    return new Reply(e.getMessage());
-                });
+        return doCall(node, "editMessageReplyMarkup");
     }
 
     public CompletionStage<Reply> editCaption(final String caption, final String format, final JsonNode keyboard, final long userId, final long messageId) {
-        /*
-chat_id 	Integer or String 	Optional 	Required if inline_message_id is not specified. Unique identifier for the target chat or username of the target channel (in the format @channelusername)
-message_id 	Integer 	Optional 	Required if inline_message_id is not specified. Identifier of the message to edit
-inline_message_id 	String 	Optional 	Required if chat_id and message_id are not specified. Identifier of the inline message
-caption 	String 	Optional 	New caption of the message, 0-1024 characters after entities parsing
-parse_mode 	String 	Optional 	Mode for parsing entities in the message caption. See formatting options for more details.
-reply_markup 	InlineKeyboardMarkup 	Optional 	A JSON-serialized object for an inline keyboard.        * */
         final ObjectNode node = Json.newObject();
+
         node.put("chat_id", userId);
         node.put("message_id", messageId);
         node.put("caption", caption);
+
         if (format != null)
             node.put("parse_mode", format);
         if (keyboard != null)
             node.set("reply_markup", keyboard);
 
-        return ws.url(apiUrl + "editMessageCaption")
-                .post(node)
-                .thenApply(wsr -> {
-                    final JsonNode j = wsr.asJson();
-
-                    if (j.get("ok").asBoolean())
-                        return new Reply(messageId);
-
-                    logger.debug("On request:\n" + node.toString() + "\ngot response:\n" + j.toString());
-                    return new Reply(j.get("description").asText());
-                })
-                .exceptionally(e -> {
-                    logger.error(e.getMessage(), e);
-                    return new Reply(e.getMessage());
-                });
+        return doCall(node, "editMessageCaption");
     }
 
     public CompletionStage<Reply> editMedia(final String refId, final ContentType type, final JsonNode keyboard, final long userId, final long messageId) {
@@ -323,23 +255,7 @@ reply_markup 	InlineKeyboardMarkup 	Optional 	A JSON-serialized object for an in
         if (keyboard != null)
             node.set("reply_markup", keyboard);
 
-        return ws.url(apiUrl + "editMessageMedia")
-                .post(node)
-                .thenApply(wsr -> {
-                    final JsonNode j = wsr.asJson();
-
-                    if (j.get("ok").asBoolean())
-                        return new Reply(messageId);
-
-                    logger.debug("On request:\n" + node.toString() + "\ngot response:\n" + j.toString());
-
-                    return new Reply(j.get("description").asText());
-                })
-                .exceptionally(e -> {
-                    logger.error(e.getMessage(), e);
-                    return new Reply(e.getMessage());
-                });
-
+        return doCall(node, "editMessageMedia");
     }
 
     public CompletionStage<Reply> sendMedia(final String refId, final ContentType type, final String caption, final String format, final JsonNode keyboard, final long userId) {
@@ -349,9 +265,8 @@ reply_markup 	InlineKeyboardMarkup 	Optional 	A JSON-serialized object for an in
         final ObjectNode node = Json.newObject();
         node.put("chat_id", userId);
         if (type == ContentType.CONTACT) {
-//            node.set(type.getParamName(), Json.parse(refId));
             final JsonNode c = Json.parse(refId);
-            c.fieldNames().forEachRemaining(s -> node.put(s, c.get(s)));
+            c.fieldNames().forEachRemaining(s -> node.set(s, c.get(s)));
         } else
             node.put(type.getParamName(), refId);
         if (!isEmpty(caption)) {
@@ -363,20 +278,26 @@ reply_markup 	InlineKeyboardMarkup 	Optional 	A JSON-serialized object for an in
         if (keyboard != null)
             node.set("reply_markup", keyboard);
 
-        return ws.url(apiUrl + type.getUrlPath())
+        return doCall(node, type.getUrlPath());
+    }
+
+    private CompletionStage<Reply> doCall(final JsonNode node, final String partialUrl) {
+        return ws.url(apiUrl + partialUrl)
                 .post(node)
                 .thenApply(wsr -> {
                     final JsonNode j = wsr.asJson();
 
                     if (j.get("ok").asBoolean())
-                        return new Reply(j.get("result").get("message_id").asLong());
+                        return new Reply(j.has("result") && j.get("result").has("message_id")
+                                ? j.get("result").get("message_id").asLong()
+                                : 0);
 
-                    logger.debug("On request:\n" + node.toString() + "\ngot response:\n" + j.toString());
+                    logger.debug("On request [" + apiUrl + partialUrl + "]:\n" + node.toString() + "\ngot response:\n" + j.toString());
 
                     return new Reply(j.get("description").asText());
                 })
                 .exceptionally(e -> {
-                    logger.error(e.getMessage(), e);
+                    logger.error("On request [" + apiUrl + partialUrl + "]:\n" + node.toString() + "\ngot error: " + e.getMessage(), e);
                     return new Reply(e.getMessage());
                 });
     }

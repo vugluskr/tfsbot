@@ -42,7 +42,14 @@ public enum CommandType {
     resetToRoot(null),
     joinPublicShare(null),
     doSearch(null),
-    uploadFile(null), cancelSearch(Strings.Uni.goUp), contextHelp(null), grantAccess(null), unlock(Strings.Uni.lock), lock(Strings.Uni.keyLock), unlockFile(null), unlockDir(null);
+    uploadFile(null),
+    cancelSearch(Strings.Uni.goUp),
+    contextHelp(null),
+    grantAccess(null),
+    unlock(Strings.Uni.lock),
+    lock(Strings.Uni.keyLock),
+    unlockFile(null),
+    unlockDir(null);
 
     private final String icon;
     private TgApi.Button button;

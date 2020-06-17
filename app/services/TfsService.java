@@ -3,7 +3,7 @@ package services;
 import model.Share;
 import model.TFile;
 import model.User;
-import model.telegram.ContentType;
+import model.ContentType;
 import org.mybatis.guice.transactional.Transactional;
 import play.Logger;
 import sql.ShareMapper;
@@ -102,7 +102,6 @@ public class TfsService {
         final TFile sharesHomeRoot = rootDirs.stream().filter(TFile::isSharesRoot).findFirst().orElseGet(() -> {
             final TFile dir = new TFile();
             dir.setSharesRoot();
-            dir.setUnsharable();
 
             return makeSysDir(v(LangMap.Value.SHARES, langTag), fs.findRoot(userFsPrefix + consumerId, pathesTree + consumerId).getId(), null, dir.getOptions(), consumerId);
         });
@@ -112,7 +111,6 @@ public class TfsService {
         final TFile shareHolder = subs.stream().filter(d -> d.isShareFor() && d.getName().equals(holderDirName)).findAny().orElseGet(() -> {
             final TFile dir = new TFile();
             dir.setShareFor(0);
-            dir.setUnsharable();
 
             return makeSysDir(holderDirName, sharesHomeRoot.getId(), dir.getRefId(), dir.getOptions(), consumerId);
         });

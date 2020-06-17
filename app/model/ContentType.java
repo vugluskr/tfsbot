@@ -1,4 +1,4 @@
-package model.telegram;
+package model;
 
 import utils.TextUtils;
 

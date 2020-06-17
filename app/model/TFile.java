@@ -1,14 +1,11 @@
 package model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import model.telegram.ContentType;
 import services.TgApi;
 import utils.BMasked;
 import utils.Optioned;
 import utils.Strings;
 
+import java.nio.file.Paths;
 import java.util.UUID;
 
 import static utils.TextUtils.notNull;
@@ -18,8 +15,6 @@ import static utils.TextUtils.notNull;
  * 01.05.2020
  * tfs ☭ sweat and blood
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class TFile implements Comparable<TFile>, Optioned {
     public String uniqId;
     private UUID id, parentId;
@@ -59,6 +54,10 @@ public class TFile implements Comparable<TFile>, Optioned {
         );
     }
 
+    public String parentPath() {
+        return Paths.get(path).getParent().toString();
+    }
+
     public boolean isDir() {
         return type == ContentType.DIR;
     }
@@ -87,21 +86,7 @@ public class TFile implements Comparable<TFile>, Optioned {
         return id.hashCode();
     }
 
-    @Override
-    public String toString() {
-        return "TFile{" +
-                "refId='" + refId + '\'' +
-                ", type=" + type +
-                ", id=" + id +
-                ", parentId=" + parentId +
-                ", name='" + name + '\'' +
-                ", path='" + path + '\'' +
-                '}';
-    }
-
     //    getters/setters
-
-
     public UUID getId() {
         return id;
     }
@@ -178,54 +163,25 @@ public class TFile implements Comparable<TFile>, Optioned {
         this.rw = rw;
     }
 
-    @JsonIgnore
-    public boolean isShared() {
-        return Optz.shared.is(options);
-    }
-
-    @JsonIgnore
-    public void setUnshared() {
-        Optz.shared.remove(this);
-    }
-
-    @JsonIgnore
-    public void setShared() {
-        Optz.shared.set(this);
-    }
-
-    @JsonIgnore
     public void setLocked() {
         Optz.locked.set(this);
     }
 
-    @JsonIgnore
-    public boolean isSharable() {
-        return parentId != null && rw && !Optz.Unsharable.is(this);
-    }
-
-    @JsonIgnore
     public boolean isSharesRoot() {
         return Optz.sharesRoot.is(this);
     }
 
-    @JsonIgnore
     public void setSharesRoot() {
         Optz.sharesRoot.set(this);
     }
 
-    @JsonIgnore
     public void setShareFor(final long shareOwner) {
         Optz.shareFor.set(this);
         refId = String.valueOf(shareOwner);
     }
 
-    @JsonIgnore
     public boolean isShareFor() {
         return Optz.shareFor.is(this);
-    }
-
-    public void setUnsharable() {
-        Optz.Unsharable.set(this);
     }
 
     public boolean isLocked() {
@@ -237,6 +193,6 @@ public class TFile implements Comparable<TFile>, Optioned {
     }
 
     enum Optz implements BMasked {
-        shared, locked, sharesRoot, shareFor, Unsharable;
+        unused, locked, sharesRoot, shareFor, unused2;
     }
 }

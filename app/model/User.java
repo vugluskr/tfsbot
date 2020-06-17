@@ -18,7 +18,7 @@ public class User implements Optioned, InputWait, Stater {
 
     // runtime data
     private long lastMessageId;
-    private UUID subjectId, searchDirId;
+    private UUID subjectId, searchDirId, contestId;
     private String query, lastRefId, lastText, lastKeyboard;
     private int viewOffset;
     private int options;
@@ -46,6 +46,14 @@ public class User implements Optioned, InputWait, Stater {
     }
 
     // getters/setters
+
+    public UUID getContestId() {
+        return contestId;
+    }
+
+    public void setContestId(final UUID contestId) {
+        this.contestId = contestId;
+    }
 
     public long getId() {
         return id;

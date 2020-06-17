@@ -27,7 +27,7 @@ public interface Strings {
         String checked = "\u2714\uFE0F"; // ✔️
         String checkAll = "\u2611\uFE0F"; // ☑️
         String put = "\u2705"; // ✅
-        String label = "\uD83C\uDFF7\u0336"; // 🏷
+        String label = "\uD83C\uDFF7"; // 🏷
         String share = "\uD83C\uDF10"; // 🌐
         String keyLock = "\uD83D\uDD10"; // 🔐
         String lock = "\uD83D\uDD12"; // 🔒

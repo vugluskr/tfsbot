@@ -23,5 +23,6 @@ public interface UserMapper {
                     @Param("lastRefId") String lastRefId,
                     @Param("lastText") String lastText,
                     @Param("lastKbd") String lastKeyboard,
+                    @Param("contestId") UUID contestId,
                     @Param("id") long id);
 }

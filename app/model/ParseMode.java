@@ -1,4 +1,4 @@
-package model.telegram;
+package model;
 
 /**
  * @author Denis Danilin | denis@danilin.name

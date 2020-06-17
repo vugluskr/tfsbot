@@ -1,7 +1,7 @@
 package sql;
 
 import model.TFile;
-import model.telegram.ContentType;
+import model.ContentType;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.*;

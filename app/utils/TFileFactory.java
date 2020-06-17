@@ -1,7 +1,7 @@
 package utils;
 
 import model.TFile;
-import model.telegram.ContentType;
+import model.ContentType;
 
 import java.util.UUID;
 

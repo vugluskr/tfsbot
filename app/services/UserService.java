@@ -44,6 +44,7 @@ public class UserService {
                 user.getLastRefId(),
                 user.getLastText(),
                 user.getLastKeyboard() == null ? null : user.getLastKeyboard().toJson().toString(),
+                user.getContestId(),
                 user.getId());
     }
 }

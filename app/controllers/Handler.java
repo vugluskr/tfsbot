@@ -5,7 +5,7 @@ import model.Command;
 import model.CommandType;
 import model.TFile;
 import model.User;
-import model.telegram.ContentType;
+import model.ContentType;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Http;
@@ -63,6 +63,7 @@ public class Handler extends Controller {
         final Command command = new Command();
 
         if (js.has("callback_query")) {
+            logger.debug("Callback:\n" + js);
             api.sendCallbackAnswer("", js.get("callback_query").get("id").asLong(), false, 0);
             final String cb = js.get("callback_query").get("data").asText();
             user = getUser(js.get("callback_query").get("from"));

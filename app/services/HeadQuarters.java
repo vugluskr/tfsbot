@@ -2,8 +2,6 @@ package services;
 
 import com.typesafe.config.Config;
 import model.*;
-import model.telegram.ContentType;
-import model.telegram.ParseMode;
 import utils.LangMap;
 import utils.Strings;
 import utils.TFileFactory;
@@ -12,12 +10,12 @@ import utils.TextUtils;
 import javax.inject.Inject;
 import java.math.BigInteger;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static model.CommandType.renameFile;
 import static model.CommandType.unlockDir;
 import static utils.LangMap.v;
 import static utils.TextUtils.*;
@@ -49,13 +47,12 @@ public class HeadQuarters {
     private TgApi api;
 
     public void doCommand(final Command command, final User user) {
-        TFile subject = fsService.get(user.getSubjectId(), user), parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
+        TFile subject = fsService.get(user.getSubjectId(), user);
         ViewKind viewKind = ViewKind.none;
 
         switch (command.type) {
             case backToSearch:
                 subject = fsService.get(user.getSearchDirId(), user);
-                parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
                 viewKind = ViewKind.searchResults;
                 break;
             case cancelShare:
@@ -74,7 +71,7 @@ public class HeadQuarters {
                 user.setSearching();
                 if (!subject.isDir()) {
                     user.setSubjectId(user.getRootId());
-                    subject = parent = fsService.findRoot(user.getId());
+                    subject = fsService.findRoot(user.getId());
                 }
                 user.setSearchDirId(subject.getId());
                 viewKind = ViewKind.searchResults;
@@ -83,41 +80,30 @@ public class HeadQuarters {
             case dropDir:
             case dropLabel: // может объединить?
                 fsService.rm(subject, user);
-                user.setSubjectId(parent.getId());
+                user.setSubjectId(subject.getParentId());
                 user.setViewOffset(0);
                 user.resetState();
-                subject = parent;
-                parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
+                subject = fsService.get(subject.getParentId(), user);
                 viewKind = ViewKind.viewDir;
                 break;
             case dropGlobLink:
                 fsService.dropGlobalShareByEntry(subject.getId(), user);
-                if (subject.isShared() && fsService.noSharesExist(subject.getId(), user)) {
-                    subject.setUnshared();
-                    fsService.updateMeta(subject, user);
-                }
                 viewKind = ViewKind.subjectShares;
                 break;
             case dropShare:
                 fsService.dropShare(((Share) byIdx(command.elementIdx, subject, user)).getId(), user);
-
-                if (fsService.noSharesExist(subject.getId(), user)) {
-                    subject.setUnshared();
-                    fsService.updateMeta(subject, user);
-                }
                 viewKind = ViewKind.subjectShares;
                 break;
             case editLabel:
                 if (!isEmpty(command.input)) {
                     if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
                         subject.setName(command.input);
-                        subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
                         fsService.updateMeta(subject, user);
                     }
                     user.resetState();
                     viewKind = ViewKind.viewLabel;
                 } else {
-                    api.dialog(LangMap.Value.TYPE_LABEL, user, parent.getPath());
+                    api.dialog(LangMap.Value.TYPE_LABEL, user);
                     user.setWaitLabelEditInput();
                 }
                 break;
@@ -132,10 +118,9 @@ public class HeadQuarters {
                 break;
             case openParent:
                 user.resetState();
-                user.setSubjectId(parent.getId());
+                user.setSubjectId(subject.getParentId());
                 user.setViewOffset(0);
-                subject = parent;
-                parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
+                subject = fsService.get(subject.getParentId(), user);
                 viewKind = ViewKind.viewDir;
                 break;
             case joinPublicShare:
@@ -147,7 +132,6 @@ public class HeadQuarters {
                         user.setSubjectId(dir.getId());
                         user.setViewOffset(0);
                         subject = dir;
-                        parent = fsService.get(subject.getParentId(), user);
                     }
                 }
                 user.resetState();
@@ -155,11 +139,6 @@ public class HeadQuarters {
                 break;
             case makeGlobLink:
                 fsService.makeShare(subject.getName(), user, subject.getId(), 0, null);
-
-                if (!subject.isShared()) {
-                    subject.setShared();
-                    fsService.updateMeta(subject, user);
-                }
                 viewKind = ViewKind.subjectShares;
                 break;
             case mkDir:
@@ -169,7 +148,6 @@ public class HeadQuarters {
                         final TFile n = fsService.mk(TFileFactory.dir(command.input, subject.getId(), user.getId()));
 
                         if (n != null) {
-                            parent = subject;
                             subject = n;
                             user.setViewOffset(0);
                             user.setSubjectId(subject.getId());
@@ -196,14 +174,9 @@ public class HeadQuarters {
 
                 final User target = userService.resolveUser(contact);
 
-                if (!fsService.shareExist(subject.getId(), target.getId(), user)) {
+                if (!fsService.shareExist(subject.getId(), target.getId(), user))
                     fsService.makeShare(command.file.getName(), user, subject.getId(), target.getId(), notNull(target.getLang(), "en"));
 
-                    if (!subject.isShared()) {
-                        subject.setShared();
-                        fsService.updateMeta(subject, user);
-                    }
-                }
                 viewKind = ViewKind.subjectShares;
                 break;
             case mkLabel:
@@ -221,22 +194,18 @@ public class HeadQuarters {
                 break;
             case unlockFile:
             case unlockDir:
-                if (fsService.passwordFailed(user.getSubjectId(), command.input)) {
-                    if (user.isSearching()) {
-                        subject = fsService.get(user.getSearchDirId(), user);
-                        user.setSubjectId(subject.getId());
-                        parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
-                        viewKind = ViewKind.searchResults;
-                    } else {
-                        subject = fsService.get(subject.getParentId(), user);
-                        user.setSubjectId(subject.getId());
-                        parent = subject.getParentId() == null ? subject : fsService.get(subject.getParentId(), user);
-                        viewKind = ViewKind.viewDir;
-                    }
-                } else {
+                if (fsService.passwordFailed(user.getContestId(), command.input))
+                    viewKind = user.isSearching() ? ViewKind.searchResults : ViewKind.viewDir;
+                else {
+                    subject = fsService.get(user.getContestId(), user);
+                    user.setSubjectId(user.getContestId());
                     user.setViewOffset(0);
-                    viewKind = command.type == unlockDir ? (user.isSearching() ? ViewKind.viewSearchedDir : ViewKind.viewDir) : (user.isSearching() ? ViewKind.viewSearchedFile : ViewKind.viewFile);
+
+                    viewKind = command.type == unlockDir
+                            ? (user.isSearching() ? ViewKind.viewSearchedDir : ViewKind.viewDir)
+                            : (user.isSearching() ? ViewKind.viewSearchedFile : ViewKind.viewFile);
                 }
+                user.setContestId(null);
                 break;
             case openDir:
                 user.resetState();
@@ -246,7 +215,6 @@ public class HeadQuarters {
                     break;
 
                 user.setViewOffset(0);
-                parent = subject;
                 subject = dir;
                 viewKind = ViewKind.viewDir;
                 break;
@@ -257,14 +225,12 @@ public class HeadQuarters {
                 if (breakOnLock(file, user, User.Optz.UnlockFileInputWait))
                     break;
 
-                parent = subject;
                 subject = file;
                 viewKind = ViewKind.viewFile;
                 break;
             case openLabel:
                 final TFile label = byIdx(command.elementIdx, subject, user);
                 user.resetState();
-                parent = subject;
                 subject = label;
                 user.setSubjectId(subject.getId());
                 viewKind = ViewKind.viewLabel;
@@ -275,7 +241,6 @@ public class HeadQuarters {
                 if (breakOnLock(sd, user, User.Optz.UnlockDirInputWait))
                     break;
 
-                parent = subject;
                 subject = sd;
                 user.setViewOffset(0);
                 viewKind = ViewKind.viewSearchedDir;
@@ -286,50 +251,40 @@ public class HeadQuarters {
                 if (breakOnLock(sf, user, User.Optz.UnlockFileInputWait))
                     break;
 
-                parent = subject;
                 subject = sf;
                 viewKind = ViewKind.viewSearchedFile;
                 break;
             case openSearchedLabel:
-                final TFile sl = byIdx(command.elementIdx, subject, user);
-                parent = subject;
-                subject = sl;
+                subject = byIdx(command.elementIdx, subject, user);
                 user.setSubjectId(subject.getId());
                 viewKind = ViewKind.viewSearchedLabel;
                 break;
             case renameDir:
-                if (!isEmpty(command.input)) {
-                    user.resetState();
-                    if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
-                        subject.setName(command.input);
-                        subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
-                        fsService.updateMeta(subject, user);
-                    }
-                    viewKind = ViewKind.viewDir;
-                } else {
-                    api.dialog(LangMap.Value.TYPE_RENAME, user, subject.getName());
-                    user.setWaitDirRenameInput();
-                }
-                break;
             case renameFile:
                 if (!isEmpty(command.input)) {
                     user.resetState();
                     if (!subject.getName().equals(command.input) && fsService.entryMissed(command.input, user)) {
                         subject.setName(command.input);
-                        subject.setPath(Paths.get(parent.getPath()).resolve(command.input).toString());
+                        subject.setPath(Paths.get(subject.getPath()).getParent().resolve(command.input).toString());
                         fsService.updateMeta(subject, user);
                     }
-                    viewKind = ViewKind.viewFile;
+                    viewKind = command.type == renameFile ? ViewKind.viewFile : ViewKind.viewDir;
                 } else {
                     api.dialog(LangMap.Value.TYPE_RENAME, user, subject.getName());
-                    user.setWaitFileRenameInput();
+                    if (command.type == renameFile)
+                        user.setWaitFileRenameInput();
+                    else
+                        user.setWaitDirRenameInput();
                 }
                 break;
             case resetToRoot:
-                user.resetState();
-                user.resetInputWait();
+                user.setOptions(0);
+                user.setQuery(null);
                 user.setSubjectId(user.getRootId());
-                subject = parent = fsService.findRoot(user.getId());
+                if (user.getLastMessageId() > 0)
+                    api.deleteMessage(user.getLastMessageId(), user.getId());
+                user.setLastMessageId(0);
+                subject = fsService.findRoot(user.getId());
                 viewKind = ViewKind.viewDir;
                 break;
             case share:
@@ -338,7 +293,7 @@ public class HeadQuarters {
                 viewKind = ViewKind.subjectShares;
                 break;
             case uploadFile:
-                command.file.setParentId(subject.isDir() ? subject.getId() : parent.getId());
+                command.file.setParentId(subject.isDir() ? subject.getId() : subject.getParentId());
                 command.file.setOwner(user.getId());
 
                 fsService.mk(command.file);
@@ -369,7 +324,7 @@ public class HeadQuarters {
         }
 
         if (viewKind != ViewKind.none)
-            doView(subject, parent, viewKind, user);
+            doView(subject, viewKind, user);
 
         userService.update(user);
     }
@@ -391,7 +346,7 @@ public class HeadQuarters {
             api.dialogUnescaped(LangMap.Value.LS_HELP, user, TgApi.voidKbd);
     }
 
-    private void doView(final TFile subject, final TFile parent, final ViewKind viewKind, final User user) {
+    private void doView(final TFile subject, final ViewKind viewKind, final User user) {
         final TgApi.Keyboard kbd = new TgApi.Keyboard();
         final StringBuilder body = new StringBuilder(16);
         TFile file = null;
@@ -453,7 +408,7 @@ public class HeadQuarters {
                 }
                 break;
                 case subjectShares: {
-                    final List<Share> scope = subject.isShared() ? scope(subject, user) : Collections.emptyList();
+                    final List<Share> scope = scope(subject, user);
                     final Share glob = scope.stream().filter(s -> s.getSharedTo() == 0).findAny().orElse(null);
                     final long countPers = scope.stream().filter(s -> s.getSharedTo() > 0).count();
 
@@ -536,7 +491,7 @@ public class HeadQuarters {
                 }
                 break;
                 case viewLabel: {
-                    body.append('*').append(notNull(escapeMd(parent.getPath()), "/")).append("*\n\n").append(escapeMd(subject.name));
+                    body.append('*').append(notNull(escapeMd(subject.parentPath()), "/")).append("*\n\n").append(escapeMd(subject.name));
 
                     kbd.button(CommandType.openParent.b());
 
@@ -547,7 +502,7 @@ public class HeadQuarters {
                 case viewSearchedDir: {
                     final List<TFile> scope = fsService.list(subject.getId(), user);
 
-                    body.append("_").append(escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), parent.getPath()))).append("_\n");
+                    body.append("_").append(escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), subject.parentPath()))).append("_\n");
                     body.append(escapeMd(subject.getName()));
 
                     final StringBuilder ls = new StringBuilder();
@@ -584,14 +539,14 @@ public class HeadQuarters {
                 case viewSearchedFile: {
                     file = subject;
 
-                    body.append("_").append(escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), parent.getPath()))).append("_\n");
+                    body.append("_").append(escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), subject.parentPath()))).append("_\n");
                     body.append(escapeMd(subject.getName()));
 
                     kbd.button(CommandType.backToSearch.b(), CommandType.share.b(), CommandType.renameFile.b(), CommandType.dropFile.b());
                 }
                 break;
                 case viewSearchedLabel: {
-                    body.append("_").append(escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), parent.getPath()))).append("_\n");
+                    body.append("_").append(escapeMd(v(LangMap.Value.SEARCHED, user, user.getQuery(), subject.parentPath()))).append("_\n");
                     body.append("```\n").append(subject.name).append("\n```");
 
                     kbd.button(CommandType.backToSearch.b(), CommandType.editLabel.b(), CommandType.dropLabel.b());
@@ -604,10 +559,12 @@ public class HeadQuarters {
     }
 
     private boolean breakOnLock(final TFile entry, final User user, final User.Optz optz) {
-        user.setSubjectId(entry.getId());
-        if (!entry.isLocked())
+        if (!entry.isLocked()) {
+            user.setSubjectId(entry.getId());
             return false;
+        }
 
+        user.setContestId(entry.getId());
         api.dialog(entry.isDir() ? LangMap.Value.TYPE_PASSWORD_DIR : LangMap.Value.TYPE_PASSWORD_FILE, user, entry.getName());
 
         optz.set(user);
