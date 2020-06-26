@@ -16,7 +16,7 @@
         drop table fs_struct_${userId}
     </update>
     <update id="dropUsersTable">
-        drop table userz;
+        drop table userz
     </update>
     <update id="createNewUsers">
         create table users

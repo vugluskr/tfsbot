@@ -66,50 +66,46 @@ create user tfs_user with encrypted password 'Tfs###';
 grant all privileges on database tfs to tfs_user; 
 \c tfs tfs_user;
 
-create table users
-(
-	id bigint not null
-		constraint users_pk
-			primary key,
-	root_id uuid not null,
-	last_message_id bigint default 0 not null,
-	last_ref_id text,
-	last_text text,
-	last_kbd text,
-	data text
-);
-
 create table shares
 (
-	id text not null
-		constraint shares_pk
-			primary key,
-	name text,
-	owner bigint,
-	shared_to bigint,
-	rw boolean,
-	from_name text,
-	entry_id uuid
+    id        text not null
+        primary key,
+    name      text,
+    owner     bigint,
+    shared_to bigint,
+    rw        boolean,
+    from_name text,
+    entry_id  uuid
 );
 
 create table service_windows
 (
-	user_id bigint not null,
-	message_id bigint not null
+    user_id    bigint not null,
+    message_id bigint not null
 );
 
-create index service_windows_user_id_index
-	on service_windows (user_id);
+create index service_windows_user_id_index on service_windows (user_id);
+
 
 create table passwords
 (
-	entry_id uuid not null
-		constraint passwords_pk
-			primary key,
-	salt text not null,
-	password text not null
+    entry_id uuid not null
+        primary key,
+    salt     text not null,
+    password text not null
 );
 
+create table users
+(
+    id              bigint           not null
+        primary key,
+    root_id         uuid             not null,
+    last_message_id bigint default 0 not null,
+    last_ref_id     text,
+    last_text       text,
+    last_kbd        text,
+    data            text
+);
 
 create function dotree(viewname text, dirid text, entryid text, shareownertablename text, shareid text) returns void
 	language plpgsql
