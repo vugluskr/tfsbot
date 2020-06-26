@@ -6,11 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.typesafe.config.Config;
-import model.CommandType;
-import model.TFile;
-import model.User;
-import model.ContentType;
-import model.ParseMode;
+import model.*;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
@@ -26,6 +22,7 @@ import java.util.function.Function;
 
 import static utils.LangMap.v;
 import static utils.TextUtils.isEmpty;
+import static utils.TextUtils.notNull;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -60,13 +57,13 @@ public class TgApi {
     }
 
     public void dialog(final LangMap.Value text, final User user, final Keyboard kbd, final Object... args) {
-        CompletableFuture.runAsync(() -> sendText(TextUtils.escapeMd(v(text, user, args)), ParseMode.md2, kbd.toJson(), user.getId())
-                .thenAccept(reply -> fs.addServiceWin(reply.messageId, user.getId())));
+        CompletableFuture.runAsync(() -> sendText(TextUtils.escapeMd(v(text, user, args)), ParseMode.md2, kbd.toJson(), user.id)
+                .thenAccept(reply -> fs.addServiceWin(reply.messageId, user.id)));
     }
 
     public void dialogUnescaped(final LangMap.Value text, final User user, final Keyboard kbd, final Object... args) {
-        CompletableFuture.runAsync(() -> sendText(v(text, user, args), ParseMode.md2, kbd.toJson(), user.getId())
-                .thenAccept(reply -> fs.addServiceWin(reply.messageId, user.getId())));
+        CompletableFuture.runAsync(() -> sendText(v(text, user, args), ParseMode.md2, kbd.toJson(), user.id)
+                .thenAccept(reply -> fs.addServiceWin(reply.messageId, user.id)));
     }
 
     public void sendContent(final TFile file, final String body, final String format, final Keyboard keyboard, final User user) {
@@ -79,27 +76,34 @@ public class TgApi {
             return null;
         };
 
-        if ((user.getLastRefId() != null && file == null) || (user.getLastRefId() == null && file != null)) {
-            final long toDel = user.getLastMessageId();
-            CompletableFuture.runAsync(() -> deleteMessage(toDel, user.getId()));
-            user.setLastMessageId(0);
+        if (diffState(file, user.lastRefId)) {
+            final long toDel = user.lastMessageId;
+            CompletableFuture.runAsync(() -> deleteMessage(toDel, user.id));
+            user.lastMessageId = 0;
         }
 
         final String ks = keyboard == null ? null : keyboard.toJson().toString();
+        final Consumer<TgApi.Reply> sendSuccessConsumer = reply -> {
+            if (reply.ok) {
+                user.lastMessageId = reply.messageId;
+                fs.updateLastMessageId(reply.messageId, user.id);
+            } else
+                logger.error("Cant send content: " + reply.desc);
+        };
 
-        if (user.getLastMessageId() > 0) {
-            final boolean sameKbd = Objects.equals(ks, user.getLastKeyboard() == null ? null : user.getLastKeyboard().toJson().toString());
-            final boolean sameFile = Objects.equals(file == null ? null : file.getRefId(), user.getLastRefId());
-            final boolean sameText = Objects.equals(body, user.getLastText());
+        if (user.lastMessageId > 0) {
+            final boolean sameKbd = Objects.equals(ks, user.lastKeyboard);
+            final boolean sameFile = Objects.equals(file == null ? "" : file.getRefId(), user.lastRefId);
+            final boolean sameText = Objects.equals(body, user.lastText);
 
             if (sameFile && sameText && sameKbd)
                 return;
 
             final Consumer<Reply> editSuccessConsumer = reply -> {
                 if (!reply.ok) {
-                    deleteMessage(user.getLastMessageId(), user.getId());
-                    user.setLastMessageId(0);
-                    fs.updateLastMessageId(0, user.getId());
+                    deleteMessage(user.lastMessageId, user.id);
+                    user.lastMessageId = 0;
+                    fs.updateLastMessageId(0, user.id);
                     if (cnt < 2)
                         sendContent(file, body, format, keyboard, user, cnt + 1);
                 }
@@ -109,55 +113,58 @@ public class TgApi {
                 if (sameFile) {
                     if (sameText)
                         CompletableFuture.runAsync(() ->
-                                editKeyboard(keyboard == null ? Json.newObject() : keyboard.toJson(), user.getId(), user.getLastMessageId())
+                                editKeyboard(keyboard == null ? Json.newObject() : keyboard.toJson(), user.id, user.lastMessageId)
                                         .thenAccept(editSuccessConsumer)
                                         .exceptionally(fuckup));
                     else
                         CompletableFuture.runAsync(() ->
-                                editCaption(body, format, keyboard == null ? null : keyboard.toJson(), user.getId(), user.getLastMessageId())
+                                editCaption(body, format, keyboard == null ? null : keyboard.toJson(), user.id, user.lastMessageId)
                                         .thenAccept(editSuccessConsumer)
                                         .exceptionally(fuckup));
-                } else
-                    CompletableFuture.runAsync(() ->
-                            editMedia(file.getRefId(), file.getType(), keyboard == null ? null : keyboard.toJson(), user.getId(), user.getLastMessageId())
-                                    .thenAccept(editSuccessConsumer)
-                                    .exceptionally(fuckup));
+                } else {
+                    if (!notNull(user.lastRefId).isEmpty())
+                        CompletableFuture.runAsync(() ->
+                                editMedia(file.getRefId(), file.getType(), keyboard == null ? null : keyboard.toJson(), user.id, user.lastMessageId)
+                                        .thenAccept(editSuccessConsumer)
+                                        .exceptionally(fuckup));
+                    else
+                        CompletableFuture.runAsync(() ->
+                                sendMedia(file.getRefId(), file.getType(), body, format, keyboard == null ? null : keyboard.toJson(), user.id)
+                                        .thenAccept(sendSuccessConsumer)
+                                        .exceptionally(fuckup));
+                }
             } else {
                 if (!sameKbd && sameText)
                     CompletableFuture.runAsync(() ->
-                            editKeyboard(keyboard == null ? Json.newObject() : keyboard.toJson(), user.getId(), user.getLastMessageId())
+                            editKeyboard(keyboard == null ? Json.newObject() : keyboard.toJson(), user.id, user.lastMessageId)
                                     .thenAccept(editSuccessConsumer)
                                     .exceptionally(fuckup));
                 else
                     CompletableFuture.runAsync(() ->
-                            editText(body, format, keyboard == null ? null : keyboard.toJson(), user.getId(), user.getLastMessageId())
+                            editText(body, format, keyboard == null ? null : keyboard.toJson(), user.id, user.lastMessageId)
                                     .thenAccept(editSuccessConsumer)
                                     .exceptionally(fuckup));
             }
         } else {
-            final Consumer<TgApi.Reply> sendSuccessConsumer = reply -> {
-                if (reply.ok) {
-                    user.setLastMessageId(reply.messageId);
-                    fs.updateLastMessageId(reply.messageId, user.getId());
-                } else
-                    logger.error("Cant send content: " + reply.desc);
-            };
-
             if (file != null)
                 CompletableFuture.runAsync(() ->
-                        sendMedia(file.getRefId(), file.getType(), body, format, keyboard == null ? null : keyboard.toJson(), user.getId())
+                        sendMedia(file.getRefId(), file.getType(), body, format, keyboard == null ? null : keyboard.toJson(), user.id)
                                 .thenAccept(sendSuccessConsumer)
                                 .exceptionally(fuckup));
             else
                 CompletableFuture.runAsync(() ->
-                        sendText(body, format, keyboard == null ? null : keyboard.toJson(), user.getId())
+                        sendText(body, format, keyboard == null ? null : keyboard.toJson(), user.id)
                                 .thenAccept(sendSuccessConsumer)
                                 .exceptionally(fuckup));
         }
 
-        user.setLastRefId(file == null ? null : file.getRefId());
-        user.setLastKeyboard(ks);
-        user.setLastText(body);
+        user.lastRefId = (file == null ? "" : file.getRefId());
+        user.lastKeyboard = ks;
+        user.lastText = body;
+    }
+
+    private boolean diffState(final TFile file, final String lastRefId) {
+        return (file != null && notNull(lastRefId).isEmpty()) || (!notNull(lastRefId).isEmpty() && file == null);
     }
 
     public void deleteMessage(final long messageId, final long userId) {
@@ -329,8 +336,9 @@ public class TgApi {
             buttons.add(new ArrayList<>(1));
         }
 
-        public void newLine() {
+        public Keyboard newLine() {
             buttons.add(new ArrayList<>(0));
+            return this;
         }
 
         public Keyboard button(final Button... button) {
@@ -348,6 +356,11 @@ public class TgApi {
             buttons.get(buttons.size() - 1).add(button);
         }
 
+        public void replaceButton(final int row, final int idx, final Button button) {
+            if (row < buttons.size() && idx < buttons.get(row).size())
+                buttons.get(row).set(idx, button);
+        }
+
         public JsonNode toJson() {
             final ObjectNode node = Json.newObject();
 
@@ -361,24 +374,6 @@ public class TgApi {
             });
 
             return node;
-        }
-
-        public static Keyboard fromJson(final String json) {
-            final JsonNode node = Json.parse(json);
-            final Keyboard k = new Keyboard();
-
-            for (int i = 0; i < node.get("inline_keyboard").size(); i++) {
-                final JsonNode bn = node.get("inline_keyboard").get(i);
-
-                for (int j = 0; j < bn.size(); j++) {
-                    k.button(new Button(bn.get(j).get("text").asText(), bn.get(j).get("callback_data").asText()));
-
-                    if (i < node.get("inline_keyboard").size() - 1)
-                        k.newLine();
-                }
-            }
-
-            return k;
         }
     }
 

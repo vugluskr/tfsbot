@@ -31,7 +31,6 @@ public class BatisModule extends org.mybatis.guice.MyBatisModule {
         addTypeHandlerClass(UUIDTypeHandler.class);
         addSimpleAlias(UUIDTypeHandler.class);
         addSimpleAlias(UUID.class);
-        Executors.newScheduledThreadPool(3);
         addMapperClasses(TFileSystem.class.getPackage().getName());
     }
 

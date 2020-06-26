@@ -1,22 +1,18 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import model.Command;
-import model.CommandType;
-import model.TFile;
-import model.User;
-import model.ContentType;
+import model.*;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
-import services.HeadQuarters;
 import services.TgApi;
 import services.UserService;
 
 import javax.inject.Inject;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import static utils.TextUtils.getInt;
 import static utils.TextUtils.notNull;
@@ -28,9 +24,6 @@ import static utils.TextUtils.notNull;
  */
 public class Handler extends Controller {
     private static final Logger.ALogger logger = Logger.of(Handler.class);
-
-    @Inject
-    private HeadQuarters hq;
 
     @Inject
     private TgApi api;
@@ -60,7 +53,6 @@ public class Handler extends Controller {
 
     private void handleJson(final JsonNode js) {
         final User user;
-        final Command command = new Command();
 
         if (js.has("callback_query")) {
             logger.debug("Callback:\n" + js);
@@ -75,11 +67,14 @@ public class Handler extends Controller {
                 return;
             }
 
+            final Command command = new Command();
             command.elementIdx = del < cb.length() - 1 ? getInt(cb.substring(del + 1)) : -1;
             command.type = CommandType.ofString(cb);
 
             if (command.type == CommandType.Void)
                 return; // просто закрыли диалоги
+
+            handleUserRequest(user, u -> u.onCallback(command), js);
         } else if (js.has("message")) {
             CompletableFuture.runAsync(() -> api.deleteMessage(js.get("message").get("message_id").asLong(), js.get("message").get("from").get("id").asLong()));
 
@@ -89,36 +84,13 @@ public class Handler extends Controller {
 
             if (text != null) {
                 if (text.equals("/start") || text.equals("/reset"))
-                    command.type = CommandType.resetToRoot;
+                    handleUserRequest(user, User::reset, js);
                 else if (text.equals("/help"))
-                    command.type = CommandType.contextHelp;
-                else if (text.startsWith("/start shared-")) {
-                    command.input = notNull(text).substring(14);
-                    command.type = CommandType.joinPublicShare;
-                } else {
-                    command.input = text;
-
-                    if (user.isWaitDirInput())
-                        command.type = CommandType.mkDir;
-                    else if (user.isWaitLabelInput())
-                        command.type = CommandType.mkLabel;
-                    else if (user.isWaitRenameDirInput())
-                        command.type = CommandType.renameDir;
-                    else if (user.isWaitRenameFileInput())
-                        command.type = CommandType.renameFile;
-                    else if (user.isWaitEditLabelInput())
-                        command.type = CommandType.editLabel;
-                    else if (user.isWaitPasswordInput())
-                        command.type = CommandType.lock;
-                    else if (user.isWaitUnlockDirInput())
-                        command.type = CommandType.unlockDir;
-                    else if (user.isWaitUnlockFileInput())
-                        command.type = CommandType.unlockFile;
-                    else
-                        command.type = CommandType.doSearch;
-
-                    user.resetInputWait();
-                }
+                    handleUserRequest(user, u -> api.dialogUnescaped(u.doHelp(), u, TgApi.voidKbd), js);
+                else if (text.startsWith("/start shared-"))
+                    handleUserRequest(user, u -> u.joinShare(notNull(text).substring(14)), js);
+                else
+                    handleUserRequest(user, u -> u.onInput(text), js);
             } else {
                 final JsonNode attachNode;
                 final TFile file = new TFile();
@@ -180,39 +152,43 @@ public class Handler extends Controller {
                                 ? msg.get("caption").asText().trim()
                                 : file.type.name().toLowerCase() + "_" + file.uniqId;
 
-                    command.type = user.isWaitFileGranting() && file.type == ContentType.CONTACT ? CommandType.grantAccess : CommandType.uploadFile;
-                    if (!user.isWaitFileGranting() && file.type == ContentType.CONTACT)
+                    if (file.type == ContentType.CONTACT)
                         file.refId = attachNode.toString();
 
-                    command.file = file;
-                }
+                    handleUserRequest(user, u -> u.onFile(file), js);
+                } else
+                    handleUserRequest(user, User::doView, js);
             }
         } else {
             logger.debug("Необслуживаемый тип сообщения");
-            return;
         }
+    }
 
-        CompletableFuture.runAsync(() -> hq.doCommand(command, user))
-                .exceptionally(e -> {
-                    logger.error("Handling command [" + command + "]: " + e.getMessage(), e);
-                    return null;
-                });
+    private void handleUserRequest(final User user, final Consumer<User> task, final JsonNode input) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                task.accept(user);
+            } finally {
+                userService.update(user);
+            }
+        }).exceptionally(e -> {
+            logger.error("Handling input [" + input.toString() + "]: " + e.getMessage(), e);
+            return null;
+        });
     }
 
     private User getUser(final JsonNode node) {
         final String f = node.has("first_name") ? node.get("first_name").asText() : null;
         final String l = node.has("last_name") ? node.get("last_name").asText() : null;
         final String n = node.has("username") ? node.get("username").asText() : null;
-
-        final User user = new User();
-        user.setId(node.get("id").asLong());
-        user.setLang(node.has("language_code") ? node.get("language_code").asText() : "en");
-        user.name = notNull((notNull(f) + " " + notNull(l)), notNull(n, "u" + user.getId()));
+        final long id = node.get("id").asLong();
 
         try {
-            return userService.resolveUser(user);
+            return userService.resolveUser(id,
+                    node.has("language_code") ? node.get("language_code").asText() : "en",
+                    notNull((notNull(f) + " " + notNull(l)), notNull(n, "u" + id)));
         } finally {
-            api.cleanup(user.getId());
+            api.cleanup(id);
         }
     }
 }

@@ -36,27 +36,12 @@ public interface TFileSystem {
 
     boolean isNameBusy(@Param("name") String name, @Param("parentId") UUID parentId, @Param("tableName") String tableName);
 
-    TFile findEntry(@Param("name") String name, @Param("parentId") UUID parentId, @Param("owner") long owner, @Param("viewName") String viewName,
-                    @Param("treeViewName") String treeViewName);
-
     void dropEntry(@Param("name") String name, @Param("parentId") UUID parentId, @Param("owner") long owner, @Param("viewName") String viewName);
-
-    TFile findRoot(@Param("fsViewName") String fsViewName, @Param("treeViewName") String treeViewName);
-
-    List<TFile> listChilds(@Param("parentId") UUID parentId, @Param("viewName") String viewName, @Param("treeViewName") String treeViewName);
 
     void updateEntry(@Param("name") String name, @Param("parentId") UUID parentId, @Param("options") int options, @Param("id") UUID id, @Param("owner") long owner,
                      @Param("tableName") String tableName);
 
     boolean isEntryExist(@Param("name") String name, @Param("parentId") UUID parentId, @Param("viewName") String viewName);
-
-    TFile getEntry(@Param("id") UUID id, @Param("viewName") String viewName, @Param("treeViewName") String treeViewName);
-
-    void dropEntriesByParent(@Param("parentId") UUID parentId, @Param("tableName") String tableName, @Param("treeViewName") String treeViewName);
-
-    List<TFile> listTypedChilds(@Param("id") UUID id, @Param("type") ContentType type, @Param("viewName") String fsName, @Param("treeViewName") String treeName);
-
-    List<TFile> search(@Param("query") String query, @Param("fromDirId") final UUID fromDirId, @Param("viewName") String viewName, @Param("treeViewName") String treeViewName);
 
     List<Long> selectServiceWindows(@Param("userId") long userId);
 
@@ -71,4 +56,5 @@ public interface TFileSystem {
     void createLock(@Param("uuid") UUID uuid, @Param("salt") String salt, @Param("password") String password);
 
     Map<String, Object> selectEntryPassword(@Param("uuid") UUID uuid);
+
 }

@@ -21,31 +21,6 @@
         where f.name = #{name}
           and f.parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
     </delete>
-    <delete id="dropEntriesByParent">
-        delete
-        from ${tableName}
-        where id in (
-            WITH RECURSIVE tree AS
-                               (
-                                   SELECT id,
-                                          parent_id,
-                                          rw
-                                   FROM ${treeViewName}
-                                   WHERE rw = true
-                                     and (id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-                                       or parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
-                                   UNION ALL
-                                   SELECT si.id,
-                                          si.parent_id,
-                                          si.rw
-                                   FROM ${treeViewName} As si
-                                            JOIN
-                                        tree AS sp
-                                        ON (si.parent_id = sp.id and sp.rw = true)
-                               )
-            SELECT id
-            FROM tree)
-    </delete>
     <delete id="deleteServiceWindows">
         delete
         from service_windows
@@ -58,7 +33,8 @@
     </delete>
     <select id="selectEntryPassword" resultType="java.util.Map">
         select *
-        from passwords where entry_id = #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+        from passwords
+        where entry_id = #{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
     </select>
 
     <update id="createRootTable">
@@ -133,63 +109,8 @@
         where id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
     </update>
 
-    <select id="listChilds" resultMap="EntryMap">
-        select f.*, fp.path
-        from ${viewName} f
-                 left join ${treeViewName} fp on (f.id = fp.id)
-        where f.parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-    </select>
     <select id="isEntryExist" resultType="_boolean">
         select exists(select 1 from ${viewName} where name = #{name} and parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
-    </select>
-    <select id="getEntry" resultMap="EntryMap">
-        select f.*, fp.path
-        from ${viewName} f
-                 left join ${treeViewName} fp on (f.id = fp.id)
-        where f.id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-    </select>
-    <select id="listTypedChilds" resultMap="EntryMap">
-        select f.*, fp.path
-        from ${viewName} f
-                 left join ${treeViewName} fp on (f.id = fp.id)
-        where f.type = #{type}
-          and f.parent_id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-    </select>
-    <select id="getPredictors" resultType="model.TFile">
-        with recursive a as (
-            select head.id, head.parent_id
-            from ${viewName} head
-            where head.id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-            union all
-            select tail.id, tail.parent_id
-            from ${viewName} tail
-                     join a on tail.id = a.parent_id)
-        select a.id, a.parent_id as "parentId"
-        from a
-    </select>
-    <select id="search" resultMap="EntryMap">
-        select f.*, fp.path
-        from ${viewName} f
-                 left join ${treeViewName} fp on (f.id = fp.id)
-        where lower(f.name) like #{query}
-          and f.id in (
-            WITH RECURSIVE tree AS
-                               (
-                                   SELECT id,
-                                          parent_id
-                                   FROM ${treeViewName}
-                                   WHERE id = #{fromDirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-                                      or parent_id = #{fromDirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-                                   UNION ALL
-                                   SELECT si.id,
-                                          si.parent_id
-                                   FROM ${treeViewName} As si
-                                            JOIN
-                                        tree AS sp
-                                        ON (si.parent_id = sp.id)
-                               )
-            SELECT id
-            FROM tree)
     </select>
     <select id="selectServiceWindows" resultType="_long">
         select message_id
@@ -217,33 +138,4 @@
     <select id="isNameBusy" resultType="_boolean">
         select exists(select 1 from ${tableName} where name = #{name} and parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
     </select>
-    <select id="findEntry" resultMap="EntryMap">
-        select f.*, fp.path
-        from ${viewName} f
-                 left join ${treeViewName} fp on (f.id = fp.id)
-        where f.name = #{name}
-          and f.parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-          and f.owner = #{owner}
-        limit 1
-    </select>
-    <select id="findRoot" resultMap="EntryMap">
-        select f.*, fp.path
-        from ${fsViewName} f
-                 left join ${treeViewName} fp on (f.id = fp.id)
-        where f.parent_id is null
-          and f.type = 'DIR'
-        limit 1
-    </select>
-
-    <resultMap id="EntryMap" type="model.TFile">
-        <id column="id" property="id" typeHandler="utils.UUIDTypeHandler"/>
-        <result column="parent_id" property="parentId" typeHandler="utils.UUIDTypeHandler"/>
-        <result column="name" property="name"/>
-        <result column="type" property="type"/>
-        <result column="ref_id" property="refId"/>
-        <result column="options" property="options"/>
-        <result column="path" property="path"/>
-        <result property="owner" column="owner"/>
-        <result property="rw" column="rw"/>
-    </resultMap>
 </mapper>

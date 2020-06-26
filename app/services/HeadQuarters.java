@@ -1,32 +1,12 @@
 package services;
 
-import com.typesafe.config.Config;
-import model.*;
-import utils.LangMap;
-import utils.Strings;
-import utils.TFileFactory;
-import utils.TextUtils;
-
-import javax.inject.Inject;
-import java.math.BigInteger;
-import java.nio.file.Paths;
-import java.util.Comparator;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import static model.CommandType.renameFile;
-import static model.CommandType.unlockDir;
-import static utils.LangMap.v;
-import static utils.TextUtils.*;
-
 /**
  * @author Denis Danilin | denis@danilin.name
  * 16.05.2020
  * tfs ☭ sweat and blood
  */
-@SuppressWarnings("unchecked")
 public class HeadQuarters {
+/*
     private enum ViewKind {subjectShares, gearSubject, none, viewDir, viewFile, viewLabel, viewSearchedDir, viewSearchedFile, viewSearchedLabel, searchResults}
 
     private static final Comparator<TFile> sorter = (o1, o2) -> {
@@ -55,12 +35,12 @@ public class HeadQuarters {
                 subject = fsService.get(user.getSearchDirId(), user);
                 viewKind = ViewKind.searchResults;
                 break;
-            case cancelShare:
+            case cancel:
             case cancelSearch:
                 viewKind = subject.isDir() ? ViewKind.viewDir : subject.isLabel() ? ViewKind.viewLabel : ViewKind.viewFile;
                 user.resetState();
                 break;
-            case changeRo:
+            case changeGrantRw:
                 fsService.changeShareRo(((Share) byIdx(command.elementIdx, subject, user)).getId(), user);
                 viewKind = ViewKind.subjectShares;
                 break;
@@ -86,11 +66,11 @@ public class HeadQuarters {
                 subject = fsService.get(subject.getParentId(), user);
                 viewKind = ViewKind.viewDir;
                 break;
-            case dropGlobLink:
-                fsService.dropGlobalShareByEntry(subject.getId(), user);
+            case dropEntryLink:
+                fsService.dropEntryLink(subject.getId(), user);
                 viewKind = ViewKind.subjectShares;
                 break;
-            case dropShare:
+            case dropGrant:
                 fsService.dropShare(((Share) byIdx(command.elementIdx, subject, user)).getId(), user);
                 viewKind = ViewKind.subjectShares;
                 break;
@@ -137,7 +117,7 @@ public class HeadQuarters {
                 user.resetState();
                 viewKind = ViewKind.viewDir;
                 break;
-            case makeGlobLink:
+            case makeEntryLink:
                 fsService.makeShare(subject.getName(), user, subject.getId(), 0, null);
                 viewKind = ViewKind.subjectShares;
                 break;
@@ -174,7 +154,7 @@ public class HeadQuarters {
 
                 final User target = userService.resolveUser(contact);
 
-                if (!fsService.shareExist(subject.getId(), target.getId(), user))
+                if (fsService.shareMissed(subject.getId(), target.getId(), user))
                     fsService.makeShare(command.file.getName(), user, subject.getId(), target.getId(), notNull(target.getLang(), "en"));
 
                 viewKind = ViewKind.subjectShares;
@@ -369,7 +349,7 @@ public class HeadQuarters {
                             kbd.button(CommandType.dropDir.b());
                     }
 
-                    kbd.button(CommandType.cancelShare.b());
+                    kbd.button(CommandType.cancel.b());
 
                     for (int i = 0; i < scope.size(); i++) {
                         kbd.newLine();
@@ -421,9 +401,9 @@ public class HeadQuarters {
                     if (countPers <= 0)
                         body.append(Strings.Uni.People + ": _").append(escapeMd(v(LangMap.Value.NO_PERSONAL_GRANTS, user))).append("_");
 
-                    kbd.button(glob != null ? CommandType.dropGlobLink.b() : CommandType.makeGlobLink.b());
+                    kbd.button(glob != null ? CommandType.dropEntryLink.b() : CommandType.makeEntryLink.b());
                     kbd.button(CommandType.mkGrant.b());
-                    kbd.button(CommandType.cancelShare.b());
+                    kbd.button(CommandType.cancel.b());
 
                     final AtomicInteger counter = new AtomicInteger(0);
 
@@ -432,8 +412,8 @@ public class HeadQuarters {
                             .sorted(Comparator.comparing(Share::getName))
                             .forEach(s -> {
                                 kbd.newLine();
-                                kbd.button(CommandType.changeRo.b(v(s.isReadWrite() ? LangMap.Value.SHARE_RW : LangMap.Value.SHARE_RO, user, s.getName()), counter.get()));
-                                kbd.button(CommandType.dropShare.b(counter.getAndIncrement()));
+                                kbd.button(CommandType.changeGrantRw.b(v(s.isReadWrite() ? LangMap.Value.SHARE_RW : LangMap.Value.SHARE_RO, user, s.getName()), counter.get()));
+                                kbd.button(CommandType.dropGrant.b(counter.getAndIncrement()));
                             });
                 }
                 break;
@@ -588,4 +568,5 @@ public class HeadQuarters {
     private <T> T byIdx(final int idx, final TFile subject, final User user) {
         return (T) scope(subject, user).get(idx);
     }
+*/
 }

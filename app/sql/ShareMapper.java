@@ -12,23 +12,16 @@ import java.util.UUID;
  * tfs ☭ sweat and blood
  */
 public interface ShareMapper {
-    List<Share> selectSharesByDir(@Param("entryId") UUID id, @Param("owner") long owner);
-
-    boolean isShareIdAvailable(@Param("id") String id);
-
+    boolean isIdAvailable(@Param("id") String id);
     void insertShare(@Param("share") Share share);
-
     void dropShare(@Param("id") String id, @Param("owner") long owner);
-
-    boolean selectShareExist(@Param("entryId") UUID id, @Param("sharedTo") long sharedTo, @Param("owner") long owner);
-
-    void changeShareRo(@Param("shareId") String shareId, @Param("owner") long owner);
-
-    boolean isAnyShareExist(@Param("entryId") UUID id, @Param("owner") long owner);
-
+    boolean isShareExists(@Param("entryId") UUID entryId, @Param("sharedTo") long sharedTo, @Param("owner") long owner);
     Share selectPublicShare(@Param("id") String id);
+    List<Share> selectEntryGrants(@Param("entryId") UUID entryId, @Param("offset") int offset, @Param("limit") int limit, @Param("owner") long owner);
+    void dropEntryLink(@Param("entryId") UUID entryId, @Param("owner") long owner);
+    int countEntryGrants(@Param("entryId") UUID entryId);
+    Share getEntryLink(@Param("entryId") UUID entryId);
+    List<Share> getEntryShares(@Param("entryId") UUID entryId, @Param("owner") long owner);
 
-    Share selectShare(@Param("id") String id);
-
-    void dropGlobalShareByEntry(@Param("entryId") UUID entryId, @Param("owner") long owner);
+    void changeGrantRw(@Param("entryId") UUID entryId, @Param("offset") int offset, @Param("owner") long owner);
 }

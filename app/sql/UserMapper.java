@@ -3,6 +3,7 @@ package sql;
 import model.User;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -11,18 +12,13 @@ import java.util.UUID;
  * tfs ☭ sweat and blood
  */
 public interface UserMapper {
-    User getUser(@Param("id") long id);
+    Map<String, Object> getUser(@Param("id") long id);
 
     void insertUser(@Param("id") long id, @Param("rootId") UUID rootId);
 
-    void updateUser(@Param("subjectId") UUID subjectId,
-                    @Param("query") String query,
-                    @Param("searchDirId") UUID searchDirId,
-                    @Param("viewOffset") int viewOffset,
-                    @Param("options") int options,
-                    @Param("lastRefId") String lastRefId,
+    void updateUser(@Param("lastRefId") String lastRefId,
                     @Param("lastText") String lastText,
                     @Param("lastKbd") String lastKeyboard,
-                    @Param("contestId") UUID contestId,
+                    @Param("data") String data,
                     @Param("id") long id);
 }

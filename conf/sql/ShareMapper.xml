@@ -1,59 +1,73 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="sql.ShareMapper">
-    <delete id="dropGlobalShareByEntry">
-        delete
-        from shares where shared_to = 0 and entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler} and owner = #{owner}
-    </delete>
-
-    <select id="selectSharesByDir" resultMap="ShareMap">
+    <select id="selectEntryGrants" resultMap="ShareMap">
         select *
         from shares
         where entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
           and owner = #{owner}
+          and shared_to > 0
+        order by name
+        offset #{offset} limit #{limit}
     </select>
-
-    <select id="isShareIdAvailable" resultType="_boolean">
+    <select id="isIdAvailable" resultType="_boolean">
         select not exists(select 1 from shares where id = #{id})
     </select>
-
-    <select id="selectShareExist" resultType="_boolean">
-        select exists(select 1 from shares where entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler} and shared_to = #{sharedTo} and owner = #{owner})
-    </select>
-
-    <select id="selectShare" resultMap="ShareMap">
-        select *
-        from shares where id = #{id}
-    </select>
-
     <insert id="insertShare">
         insert INTO shares(id, name, entry_id, owner, rw, shared_to)
         VALUES (#{share.id}, #{share.name}, #{share.entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, #{share.owner}, #{share.readWrite}, #{share.sharedTo})
     </insert>
-
     <delete id="dropShare">
         delete
         from shares
         where id = #{id}
     </delete>
-
-    <update id="changeShareRo">
-        update shares
-        set rw = not rw
-        where owner = #{owner}
-          and id = #{shareId}
-    </update>
-
-    <select id="isAnyShareExist" resultType="_boolean">
-        select exists(select 1 from shares where owner = #{owner} and entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
+    <select id="isShareExists" resultType="_boolean">
+        select exists(select 1 from shares where entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler} and shared_to = #{sharedTo} and owner = #{owner})
     </select>
-
+    <delete id="dropEntryLink">
+        delete
+        from shares
+        where shared_to = 0
+          and entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+          and owner = #{owner}
+    </delete>
     <select id="selectPublicShare" resultMap="ShareMap">
         select *
         from shares
         where id = #{id}
           and shared_to = 0
     </select>
+    <select id="countEntryGrants" resultType="_int">
+        select count(*)
+        from shares
+        where shared_to > 0
+          and entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+    </select>
+    <select id="getEntryLink" resultMap="ShareMap">
+        select *
+        from shares
+        where entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+          and shared_to = 0
+    </select>
+    <select id="getEntryShares" resultMap="ShareMap">
+        select *
+        from shares
+        where entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+          and owner = #{owner}
+    </select>
+
+    <update id="changeGrantRw">
+        update shares
+        set rw = not rw
+        where owner = #{owner}
+          and id = (select id
+                    from shares
+                    where entry_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+                      and shared_to > 0
+                    order by name
+                    offset #{offset} limit 1)
+    </update>
 
     <resultMap id="ShareMap" type="model.Share">
         <id property="id" column="id"/>
@@ -63,5 +77,4 @@
         <result property="sharedTo" column="shared_to"/>
         <result property="readWrite" column="rw"/>
     </resultMap>
-
 </mapper>

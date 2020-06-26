@@ -217,7 +217,7 @@ public class LangMap {
         init(Value.CANT_RN_TO, "cannot rename to ‘%s’: File exists", "Невозможно переименовать в '%s': файл уже существует");
         init(Value.CANT_MKLBL, "cannot create label ‘%s’: File exists", "Невозможно создать заметку '%s': файл уже существует");
         init(Value.NO_RESULTS, "Nothing found", "Ничего не найдено");
-        init(Value.RESULTS_FOUND, "Found %s item(s)", "позиций найдено: %s");
+        init(Value.RESULTS_FOUND, "Found entries:", "Результаты:");
         init(Value.TYPE_RENAME, "Type new name for '%s':", "Напиши новое имя для '%s':");
         init(Value.TYPE_FOLDER, "Type new folder name:", "Напиши имя новой папки");
         init(Value.CD, "cd %s", "переход в %s");
@@ -295,7 +295,7 @@ public class LangMap {
     }
 
     public static String v(final Value name, final User user, final Object... args) {
-        return v(name, notNull(user.getLang(), "ru"), args);
+        return v(name, notNull(user.lang, "ru"), args);
     }
 
     public static String v(final Value name, final String langTag, final Object... args) {

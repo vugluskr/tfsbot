@@ -1,0 +1,149 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sql.EntryMapper">
+    <delete id="rmList">
+        delete
+        from ${t}
+        where id in
+        <foreach collection="uuids" item="uuid" close=")" open="(" separator=",">#{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}</foreach>
+    </delete>
+    <select id="gearDirContent" resultMap="EntryMap">
+        select f.*, fp.path
+        from ${v1} f
+                 left join ${v2} fp on (f.id = fp.id)
+        where f.parent_id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+        and f.type = 'LABEL'
+        order by f.name
+        offset #{offset} limit #{limit}
+    </select>
+    <select id="countDirGear" resultType="_int">
+        select count(f.*)
+        from ${v1} f
+        where parent_id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+        and type = 'LABEL'
+    </select>
+
+    <select id="searchContent" resultMap="EntryMap">
+        select f.*, fp.path
+        from ${v1} f
+                 left join ${v2} fp on (f.id = fp.id)
+        where lower(f.name) like #{query}
+          and f.id in (
+            WITH RECURSIVE tree AS
+                               (
+                                   SELECT id,
+                                          parent_id
+                                   FROM ${v1}
+                                   WHERE id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+                                      or parent_id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+                                   UNION ALL
+                                   SELECT si.id,
+                                          si.parent_id
+                                   FROM ${v1} As si
+                                            JOIN
+                                        tree AS sp
+                                        ON (si.parent_id = sp.id)
+                               )
+            SELECT id
+            FROM tree)
+        order by case when (f.type = 'DIR') then 0 else 1 end, f.name
+        offset #{offset} limit #{limit}
+    </select>
+    <select id="countSearch" resultType="_int">
+        select count(f.*)
+        from ${v1} f
+        where lower(f.name) like #{query}
+          and f.id in (
+            WITH RECURSIVE tree AS
+                               (
+                                   SELECT id,
+                                          parent_id
+                                   FROM ${v1}
+                                   WHERE id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+                                      or parent_id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+                                   UNION ALL
+                                   SELECT si.id,
+                                          si.parent_id
+                                   FROM ${v1} As si
+                                            JOIN
+                                        tree AS sp
+                                        ON (si.parent_id = sp.id)
+                               )
+            SELECT id
+            FROM tree)
+    </select>
+
+    <select id="lsDirLabels" resultType="java.lang.String">
+        select f.name
+        from ${v1} f
+        where f.parent_id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+          and f.type = 'LABEL'
+        order by f.name
+    </select>
+
+    <select id="lsDirContent" resultMap="EntryMap">
+        select f.*, fp.path
+        from ${v1} f
+                 left join ${v2} fp on (f.id = fp.id)
+        where f.parent_id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+          and f.type != 'LABEL'
+        order by case
+                     when (f.type = 'DIR') then 0
+                     else 1 end, f.name
+        offset #{offset} limit #{limit}
+    </select>
+    <select id="countDirLs" resultType="_int">
+        select count(f.*)
+        from ${v1} f
+        where parent_id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+          and type != 'LABEL'
+    </select>
+
+    <select id="getEntry" resultMap="EntryMap">
+        select f.*, fp.path
+        from ${v1} f
+                 left join ${v2} fp on (f.id = fp.id)
+        where f.id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+    </select>
+    <select id="getTree" resultMap="EntryMap">
+        select f.*
+        from ${v1} f
+        where f.id in (
+            WITH RECURSIVE tree AS
+                               (
+                                   SELECT id,
+                                          parent_id
+                                   FROM ${v1}
+                                   WHERE id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+                                      or parent_id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+                                   UNION ALL
+                                   SELECT si.id,
+                                          si.parent_id
+                                   FROM ${v1} As si
+                                            JOIN
+                                        tree AS sp
+                                        ON (si.parent_id = sp.id)
+                               )
+            SELECT id
+            FROM tree)
+    </select>
+
+    <select id="getParent" resultMap="EntryMap">
+        select f.*, fp.path
+        from ${v1} f
+                 left join ${v2} fp on (f.id = fp.id)
+        where f.id = (select parent_id from ${v1} where id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
+    </select>
+
+    <resultMap id="EntryMap" type="model.TFile">
+        <id column="id" property="id" typeHandler="utils.UUIDTypeHandler"/>
+        <result column="parent_id" property="parentId" typeHandler="utils.UUIDTypeHandler"/>
+        <result column="name" property="name"/>
+        <result column="type" property="type"/>
+        <result column="ref_id" property="refId"/>
+        <result column="options" property="options"/>
+        <result column="path" property="path"/>
+        <result property="owner" column="owner"/>
+        <result property="rw" column="rw"/>
+    </resultMap>
+</mapper>

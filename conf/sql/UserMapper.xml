@@ -2,12 +2,12 @@
 
 <mapper namespace="sql.UserMapper">
     <insert id="insertUser">
-        insert into users(id, root_id, last_message_id, subject_id, query, view_offset, options)
-        VALUES (#{id}, #{rootId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, 0,
-                #{rootId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, '', 0, 0)
+        insert into users(id, root_id)
+        VALUES (#{id},
+                #{rootId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
     </insert>
 
-    <select id="getUser" resultMap="UserMap">
+    <select id="getUser" resultType="java.util.Map">
         select u.*
         from users u
         where u.id = #{id}
@@ -15,32 +15,10 @@
 
     <update id="updateUser">
         update users
-        set subject_id    = #{subjectId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler},
-            query         = #{query},
-            search_dir_id = #{searchDirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler},
-            view_offset   = #{viewOffset},
-            options       = #{options},
-            last_ref_id   = #{lastRefId},
-            last_text     = #{lastText},
-            last_kbd      = #{lastKbd},
-            contest_id    = #{contestId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+        set last_ref_id = #{lastRefId},
+            last_text   = #{lastText},
+            last_kbd    = #{lastKbd},
+            data        = #{data}
         where id = #{id}
     </update>
-
-    <resultMap id="UserMap" type="model.User">
-        <id column="id" property="id"/>
-        <result property="rootId" column="root_id" typeHandler="utils.UUIDTypeHandler"/>
-        <result property="lastMessageId" column="last_message_id"/>
-        <result property="subjectId" column="subject_id" typeHandler="utils.UUIDTypeHandler"/>
-        <result property="query" column="query"/>
-        <result property="searchDirId" column="search_dir_id" typeHandler="utils.UUIDTypeHandler"/>
-        <result property="contestId" column="contest_id" typeHandler="utils.UUIDTypeHandler"/>
-        <result property="viewOffset" column="view_offset"/>
-        <result property="options" column="options"/>
-        <result property="lastRefId" column="last_ref_id"/>
-        <result property="lastText" column="last_text"/>
-        <result property="lastKeyboard" column="last_kbd"/>
-
-
-    </resultMap>
 </mapper>

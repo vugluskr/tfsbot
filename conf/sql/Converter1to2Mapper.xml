@@ -1,0 +1,54 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sql.Converter1to2Mapper">
+    <insert id="insertNewUser">
+        insert into users(id, root_id, last_message_id, data)
+        VALUES (#{userId},
+                #{rootId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler},
+                #{lastMessageId},
+                #{data})
+    </insert>
+    <update id="renameOld">
+        alter table users
+            rename to userz
+    </update>
+    <update id="dropOldStruct">
+        drop table fs_struct_${userId}
+    </update>
+    <update id="dropUsersTable">
+        drop table userz;
+    </update>
+    <update id="createNewUsers">
+        create table users
+        (
+            id              bigint           not null
+                primary key,
+            root_id         uuid             not null,
+            last_message_id bigint default 0 not null,
+            last_ref_id     text,
+            last_text       text,
+            last_kbd        text,
+            data            text
+        )
+    </update>
+    <delete id="dropOldUser">
+        delete
+        from userz
+        where id = #{userId}
+    </delete>
+    <select id="isOldsExists" resultType="_boolean">
+        SELECT EXISTS(SELECT 1
+                      FROM information_schema.tables
+                      WHERE table_schema = 'public'
+                        AND table_name like 'fs_struct_%'
+                   )
+    </select>
+    <select id="getUsers" resultType="java.util.Map">
+        select *
+        from userz
+    </select>
+    <select id="getUserData" resultType="java.util.Map">
+        select *
+        from fs_struct_${id}
+    </select>
+</mapper>

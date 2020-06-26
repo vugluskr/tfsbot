@@ -6,7 +6,7 @@ package model;
  * tfs ☭ sweat and blood
  */
 public class Command {
-    public CommandType type = CommandType.resetToRoot;
+    public CommandType type = CommandType.cancel;
     public int elementIdx;
     public TFile file;
     public String input;
