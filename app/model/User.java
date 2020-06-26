@@ -6,6 +6,7 @@ import model.user.ARole;
 import model.user.CallbackSink;
 import model.user.InputSink;
 import model.user.Role;
+import play.Logger;
 import utils.LangMap;
 
 import java.util.UUID;
@@ -16,6 +17,7 @@ import java.util.UUID;
  * tfs ☭ sweat and blood
  */
 public final class User {
+    private static final Logger.ALogger logger = Logger.of(User.class);
     public final long id;
     public final UUID rootId;
     public final String lang;
@@ -27,14 +29,14 @@ public final class User {
     private Role role;
 
     public User(final long id,
-                   final UUID rootId,
-                   final String lang,
-                   final String name,
-                   final String lastRefId,
-                   final String lastText,
-                   final String lastKeyboard,
-                   final long lastMessageId,
-                   final Role role) {
+                final UUID rootId,
+                final String lang,
+                final String name,
+                final String lastRefId,
+                final String lastText,
+                final String lastKeyboard,
+                final long lastMessageId,
+                final Role role) {
         this.id = id;
 
         this.rootId = rootId;
@@ -84,10 +86,16 @@ public final class User {
     }
 
     public void onCallback(final Command command) {
-        if (role instanceof CallbackSink)
-            ((CallbackSink) role).onCallback(command);
-        else
-            doView();
+        try {
+            if (role instanceof CallbackSink)
+                ((CallbackSink) role).onCallback(command);
+            else
+                doView();
+        } catch (final Exception e) {
+            logger.error(e.getMessage(), e);
+
+            reset();
+        }
     }
 
     public void onInput(final String text) {
