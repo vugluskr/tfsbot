@@ -40,7 +40,7 @@ public abstract class ARole implements Role {
     protected ObjectNode rootDump() {
         final ObjectNode data = Json.newObject();
 
-        data.put("entryId", entryId.toString());
+        data.put("entryId", (entryId == null ? user.rootId : entryId).toString());
 
         return data;
     }
