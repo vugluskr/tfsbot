@@ -1,6 +1,6 @@
 name := "tfs"
 
-version := "1.0"
+version := "1.1"
 maintainer := "denis@danilin.name"
 
 lazy val `tfs` = (project in file(".")).enablePlugins(PlayMinimalJava)
