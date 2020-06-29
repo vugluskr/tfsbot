@@ -11,6 +11,7 @@ import services.UserService;
 import utils.LangMap;
 
 import java.util.List;
+import java.util.Objects;
 
 import static utils.LangMap.v;
 import static utils.TextUtils.escapeMd;
@@ -59,7 +60,7 @@ public class DirViewer extends APager<TFile> {
                     break;
                 default:
                     logger.info("Нет обработчика для '" + command.type + "'");
-                    doView();
+                    restart();
                     break;
             }
     }
@@ -83,8 +84,14 @@ public class DirViewer extends APager<TFile> {
     protected boolean isViewAllowed() {
         prepareCountScope();
 
-        if (dir == null)
+        if (dir == null) {
+            if (Objects.equals(entryId, user.rootId))
+                tfs.reinitUserTables(user.id);
+
+            us.resolveUser(user.id, user.lang, user.name).start();
+//            restart();
             return false;
+        }
 
         if (dir.isLocked()) {
             if (password == null) {

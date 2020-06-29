@@ -59,7 +59,7 @@ public class DirGearer extends APager<TFile> {
                     break;
                 default:
                     logger.info("Нет обработчика для '" + command.type + "'");
-                    doView();
+                    restart();
                     break;
             }
     }

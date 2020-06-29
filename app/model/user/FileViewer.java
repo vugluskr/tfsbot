@@ -57,7 +57,7 @@ public class FileViewer extends ARole implements CallbackSink {
                 break;
             default:
                 logger.info("Нет обработчика для '" + command.type + "'");
-                doView();
+                restart();
                 break;
         }
     }

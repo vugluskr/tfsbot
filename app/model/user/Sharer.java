@@ -119,7 +119,7 @@ public class Sharer extends APager<Share> {
                     break;
                 default:
                     logger.info("Нет обработчика для '" + command.type + "'");
-                    doView();
+                    restart();
                     break;
             }
     }
