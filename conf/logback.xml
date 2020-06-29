@@ -10,14 +10,14 @@
 <!--        <appender-ref ref="STDOUT"/>-->
 <!--    </appender>-->
 
-    <logger level="ERROR" name="play"/>
-    <logger level="ERROR" name="akka"/>
-    <logger level="ERROR" name="sql"/>
-    <logger level="ERROR" name="org.mybatis"/>
-    <logger level="ERROR" name="org.apache"/>
-    <logger level="ERROR" name="com.zaxxer"/>
+    <logger level="OFF" name="play"/>
+    <logger level="OFF" name="akka"/>
+    <logger level="OFF" name="sql"/>
+    <logger level="OFF" name="org.mybatis"/>
+    <logger level="OFF" name="org.apache"/>
+    <logger level="OFF" name="com.zaxxer"/>
 
-    <root level="ERROR">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
     </root>
 
