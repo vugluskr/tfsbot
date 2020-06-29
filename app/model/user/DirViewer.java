@@ -66,7 +66,7 @@ public class DirViewer extends APager<TFile> {
 
     @Override
     public LangMap.Value helpValue() {
-        return LangMap.Value.LS_HELP;
+        return isDeep() ? LangMap.Value.LS_HELP : LangMap.Value.ROOT_HELP;
     }
 
     public void doView(final TFile entry) {
