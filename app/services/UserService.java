@@ -69,6 +69,7 @@ public class UserService {
         Map<String, Object> map = userMapper.getUser(id);
 
         if (map == null) {
+            logger.info("New user added: " + name + " #" + id);
             userMapper.insertUser(id, tfsService.initUserTables(id));
 
             map = userMapper.getUser(id);
@@ -80,7 +81,6 @@ public class UserService {
         final JsonNode data = Json.parse((String) map.get("data"));
 
         try {
-            logger.info("New user added: " + name + " #" + id);
             return new User(
                     id, (UUID) map.get("root_id"),
                     lang, name,
