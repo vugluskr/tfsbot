@@ -91,10 +91,11 @@ public class Handler extends Controller {
             user = getUser(msg.get("from"));
 
             if (text != null) {
-                if (text.equals("/start"))
+                if (text.equals("/start")) {
 //                    handleUserRequest(user, User::start, js);
                     api.sendText("Welcome!", null, null, user.id);
-                else if (text.equals("/reset"))
+                    handleUserRequest(user, User::start, js);
+                } else if (text.equals("/reset"))
                     handleUserRequest(user, this::doReset, js);
                 else if (text.equals("/help"))
                     handleUserRequest(user, u -> api.dialogUnescaped(u.doHelp(), u, TgApi.voidKbd), js);
