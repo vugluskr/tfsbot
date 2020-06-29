@@ -186,6 +186,7 @@ public class Handler extends Controller {
             userMapper.updateRoot(userId);
 
             userService.resolveUser(userId, user.lang, user.name).start();
+            logger.info("User " + user.name + " #" + user.id + " rebuilded");
         }).exceptionally(e -> {
             logger.error("Resetting user #"+userId+": " + e.getMessage(), e);
             return null;
