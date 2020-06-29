@@ -1,6 +1,7 @@
 package model.user;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import model.Command;
 import model.TFile;
 import services.TfsService;
 import services.TgApi;
@@ -15,11 +16,16 @@ import static utils.TextUtils.notNull;
  * 25.06.2020
  * tfs ☭ sweat and blood
  */
-public class LabelEditor extends ARole implements InputSink {
+public class LabelEditor extends ARole implements InputSink, CallbackSink {
 
     @SuppressWarnings("unused")
     public LabelEditor(final TgApi api, final TfsService tfs, final UserService us, final JsonNode node) {
         super(api, tfs, us, node);
+    }
+
+    @Override
+    public void onCallback(final Command command) {
+        us.morphTo(LabelViewer.class, user).doView();
     }
 
     @Override
