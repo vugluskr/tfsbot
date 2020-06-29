@@ -143,7 +143,7 @@ public class TextUtils {
         return new UUID(r1, r2);
     }
 
-    private static final Pattern md = Pattern.compile("([!=#\\.\\(\\)\\*\\[\\]\"`'~_-])");
+    private static final Pattern md = Pattern.compile("([!=#\\.\\(\\)\\*\\[\\]\"`'~_\\-+])");
 
     public static String escapeMd(final String s) {
         return md.matcher(s).replaceAll("\\\\$1");

@@ -56,7 +56,6 @@ public class Handler extends Controller {
         final User user;
 
         if (js.has("callback_query")) {
-            logger.debug("Callback:\n" + js);
             api.sendCallbackAnswer("", js.get("callback_query").get("id").asLong(), false, 0);
             final String cb = js.get("callback_query").get("data").asText();
             user = getUser(js.get("callback_query").get("from"));

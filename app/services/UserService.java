@@ -80,6 +80,7 @@ public class UserService {
         final JsonNode data = Json.parse((String) map.get("data"));
 
         try {
+            logger.info("New user added: " + name + " #" + id);
             return new User(
                     id, (UUID) map.get("root_id"),
                     lang, name,

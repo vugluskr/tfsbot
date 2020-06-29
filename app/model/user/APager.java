@@ -62,7 +62,7 @@ public abstract class APager<T> extends ARole implements CallbackSink {
         if (count > 0 && count > offset) {
             final List<T> scope = selectScope(offset, 10);
 
-            for (int i = offset; i < count && i < offset + 10; i++)
+            for (int i = offset; i < count && i < offset + 9; i++)
                 kbd.newLine().button(toButton(scope.get(i), i - offset));
 
             if (offset > 0 || count > 10) {
