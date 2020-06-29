@@ -92,7 +92,8 @@ public class Handler extends Controller {
 
             if (text != null) {
                 if (text.equals("/start"))
-                    handleUserRequest(user, User::start, js);
+//                    handleUserRequest(user, User::start, js);
+                    api.sendText("Welcome!", null, null, user.id);
                 else if (text.equals("/reset"))
                     handleUserRequest(user, this::doReset, js);
                 else if (text.equals("/help"))
