@@ -6,6 +6,9 @@
         VALUES (#{id},
                 #{rootId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
     </insert>
+    <update id="updateRoot">
+        update users set root_id = (select id from fs_data_${userId} where parent_id is null)
+    </update>
 
     <select id="getUser" resultType="java.util.Map">
         select u.*

@@ -69,8 +69,8 @@ public final class User {
         return data;
     }
 
-    public void reset() {
-        ((ARole) role).reset();
+    public void start() {
+        ((ARole) role).restart();
     }
 
     public void joinShare(final String id) {
@@ -94,7 +94,7 @@ public final class User {
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
 
-            reset();
+            start();
         }
     }
 

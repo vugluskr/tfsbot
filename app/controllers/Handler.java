@@ -6,8 +6,10 @@ import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
+import services.TfsService;
 import services.TgApi;
 import services.UserService;
+import sql.UserMapper;
 
 import javax.inject.Inject;
 import java.util.TreeMap;
@@ -31,6 +33,12 @@ public class Handler extends Controller {
 
     @Inject
     private UserService userService;
+
+    @Inject
+    private UserMapper userMapper;
+
+    @Inject
+    private TfsService tfs;
 
     public Result get() {
         return ok();
@@ -83,8 +91,10 @@ public class Handler extends Controller {
             user = getUser(msg.get("from"));
 
             if (text != null) {
-                if (text.equals("/start") || text.equals("/reset"))
-                    handleUserRequest(user, User::reset, js);
+                if (text.equals("/start"))
+                    handleUserRequest(user, User::start, js);
+                else if (text.equals("/reset"))
+                    handleUserRequest(user, this::doReset, js);
                 else if (text.equals("/help"))
                     handleUserRequest(user, u -> api.dialogUnescaped(u.doHelp(), u, TgApi.voidKbd), js);
                 else if (text.startsWith("/start shared-"))
@@ -162,6 +172,24 @@ public class Handler extends Controller {
         } else {
             logger.debug("Необслуживаемый тип сообщения");
         }
+    }
+
+    private void doReset(final User user) {
+        final long userId = user.id;
+
+        CompletableFuture.runAsync(() -> {
+            api.cleanup(userId);
+            if (user.lastMessageId > 0)
+                api.deleteMessage(user.lastMessageId, userId);
+
+            tfs.reinitUserTables(userId);
+            userMapper.updateRoot(userId);
+
+            userService.resolveUser(userId, user.lang, user.name).start();
+        }).exceptionally(e -> {
+            logger.error("Resetting user #"+userId+": " + e.getMessage(), e);
+            return null;
+        });
     }
 
     private void handleUserRequest(final User user, final Consumer<User> task, final JsonNode input) {

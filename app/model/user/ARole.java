@@ -64,7 +64,7 @@ public abstract class ARole implements Role {
             us.morphTo(Searcher.class, user).initSearch(input);
     }
 
-    public final void reset() {
+    public final void restart() {
         entryId = user.rootId;
 
         if (!(this instanceof DirViewer)) {

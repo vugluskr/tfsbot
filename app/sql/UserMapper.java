@@ -21,4 +21,6 @@ public interface UserMapper {
                     @Param("lastKbd") String lastKeyboard,
                     @Param("data") String data,
                     @Param("id") long id);
+
+    void updateRoot(@Param("userId") long userId);
 }

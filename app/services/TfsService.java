@@ -56,6 +56,24 @@ public class TfsService {
         return rootId;
     }
 
+    public void reinitUserTables(final long userId) {
+        if (fs.isTableMissed(tablePrefix + userId)) {
+            fs.createRootTable(tablePrefix + userId);
+            fs.createIndex(tablePrefix + userId, tablePrefix + userId + "_names", "name");
+            fs.makeEntry(generateUuid(), "", null, ContentType.DIR, null, 0, tablePrefix + userId);
+        }
+
+        if (!fs.isViewMissed(userFsPrefix + userId))
+            fs.dropView(userFsPrefix + userId);
+
+        fs.createFsView(userFsPrefix + userId, userId, tablePrefix + userId, Collections.emptyList());
+
+        if (!fs.isViewMissed(pathesTree + userId))
+            fs.dropView(pathesTree + userId);
+
+        fs.createFsTree(pathesTree + userId, userFsPrefix + userId);
+    }
+
     @Transactional
     private void makeShare(final String name, final User user, final UUID entryId, final User sharedTo) {
         final char[] uuid = TextUtils.generateUuid().toString().replace("-", "").toCharArray();
@@ -339,6 +357,10 @@ public class TfsService {
                 pathesTree + searcher.user.id);
 
         return list.isEmpty() ? null : list.get(0);
+    }
+
+    public UUID fixDb() {
+        return null;
     }
 }
 

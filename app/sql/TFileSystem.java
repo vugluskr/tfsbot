@@ -57,4 +57,7 @@ public interface TFileSystem {
 
     Map<String, Object> selectEntryPassword(@Param("uuid") UUID uuid);
 
+    boolean isTableMissed(@Param("tableName") String tableName);
+
+    boolean isViewMissed(@Param("viewName") String viewName);
 }
