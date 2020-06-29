@@ -63,7 +63,11 @@ public class FileViewer extends ARole implements CallbackSink {
     }
 
     private void backToParent() {
-        entryId = tfs.get(entryId, user).getParentId();
+        try {
+            entryId = tfs.get(entryId, user).getParentId();
+        } catch (final Exception ignore) {
+            entryId = user.rootId;
+        }
         us.morphTo(DirViewer.class, user).doView();
     }
 
