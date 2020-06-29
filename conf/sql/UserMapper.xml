@@ -7,7 +7,9 @@
                 #{rootId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
     </insert>
     <update id="updateRoot">
-        update users set root_id = (select id from fs_data_${userId} where parent_id is null)
+        update users set root_id = (select id from fs_data_${userId} where parent_id is null),
+        last_text = '', last_kbd = '', last_ref_id = '', last_message_id = 0
+        where id = #{userId}
     </update>
 
     <select id="getUser" resultType="java.util.Map">
