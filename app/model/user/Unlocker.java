@@ -19,7 +19,6 @@ import static utils.TextUtils.notNull;
 public class Unlocker extends ARole implements InputSink, CallbackSink {
     private String password;
 
-    @SuppressWarnings("unused")
     public Unlocker(final TgApi api, final TfsService tfs, final UserService us, final JsonNode node) {
         super(api, tfs, us, node);
     }

@@ -23,12 +23,3 @@ updateOptions := updateOptions.value.withCachedResolution(true)
 routesGenerator := InjectedRoutesGenerator
 
 unmanagedResourceDirectories in Compile += (baseDirectory.value / "conf")
-
-// tests
-
-libraryDependencies += "org.assertj" % "assertj-core" % "3.6.2" % Test
-libraryDependencies += "org.awaitility" % "awaitility" % "2.0.0" % Test
-fork in Test := false
-
-testOptions in Test := Seq(Tests.Argument(TestFrameworks.JUnit, "-a", "-v"))
-javaOptions in Test += "-Dconfig.file=conf/application.test.conf"

@@ -193,6 +193,6 @@ public class TFile implements Comparable<TFile>, Optioned {
     }
 
     enum Optz implements BMasked {
-        unused, locked, sharesRoot, shareFor, unused2;
+        unused, locked, sharesRoot, shareFor, unused2
     }
 }

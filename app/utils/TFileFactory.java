@@ -1,12 +1,11 @@
 package utils;
 
-import model.TFile;
 import model.ContentType;
+import model.TFile;
 
 import java.util.UUID;
 
 import static utils.TextUtils.generateUuid;
-import static utils.TextUtils.notNull;
 
 /**
  * @author Denis Danilin | denis@danilin.name

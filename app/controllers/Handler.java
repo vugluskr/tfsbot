@@ -9,7 +9,6 @@ import play.mvc.Result;
 import services.TfsService;
 import services.TgApi;
 import services.UserService;
-import sql.UserMapper;
 
 import javax.inject.Inject;
 import java.util.TreeMap;

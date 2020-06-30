@@ -11,7 +11,6 @@ import javax.inject.Provider;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 import java.util.UUID;
-import java.util.concurrent.Executors;
 
 /**
  * @author Denis Danilin | denis@danilin.name

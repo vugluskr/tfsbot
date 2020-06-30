@@ -18,7 +18,6 @@ import static utils.TextUtils.notNull;
  */
 public class LabelEditor extends ARole implements InputSink, CallbackSink {
 
-    @SuppressWarnings("unused")
     public LabelEditor(final TgApi api, final TfsService tfs, final UserService us, final JsonNode node) {
         super(api, tfs, us, node);
     }

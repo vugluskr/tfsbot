@@ -1,6 +1,5 @@
 package sql;
 
-import model.User;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Map;

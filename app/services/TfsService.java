@@ -358,9 +358,5 @@ public class TfsService {
 
         return list.isEmpty() ? null : list.get(0);
     }
-
-    public UUID fixDb() {
-        return null;
-    }
 }
 

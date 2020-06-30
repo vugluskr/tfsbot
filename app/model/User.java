@@ -6,7 +6,6 @@ import model.user.ARole;
 import model.user.CallbackSink;
 import model.user.InputSink;
 import model.user.Role;
-import play.Logger;
 import utils.LangMap;
 
 import java.util.UUID;

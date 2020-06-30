@@ -1,7 +1,6 @@
 package model.user;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import model.Command;
 import model.CommandType;
 import model.ParseMode;
@@ -23,7 +22,6 @@ import static utils.TextUtils.notNull;
 public class LabelViewer extends ARole implements CallbackSink {
     private static final Logger.ALogger logger = Logger.of(LabelViewer.class);
 
-    @SuppressWarnings("unused")
     public LabelViewer(final TgApi api, final TfsService tfs, final UserService us, final JsonNode node) {
         super(api, tfs, us, node);
     }

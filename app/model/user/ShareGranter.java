@@ -10,8 +10,6 @@ import services.TgApi;
 import services.UserService;
 import utils.LangMap;
 
-import java.util.UUID;
-
 /**
  * @author Denis Danilin | denis@danilin.name
  * 24.06.2020
@@ -19,7 +17,6 @@ import java.util.UUID;
  */
 public class ShareGranter extends ARole implements CallbackSink {
 
-    @SuppressWarnings("unused")
     public ShareGranter(final TgApi api, final TfsService tfs, final UserService us, final JsonNode node) {
         super(api, tfs, us, node);
     }
