@@ -56,8 +56,6 @@ public abstract class APager<T> extends ARole implements CallbackSink {
             return;
 
         final int count = prepareCountScope();
-        offset = Math.min(count - 10, Math.max(0, offset));
-
         final TgApi.Keyboard kbd = initKeyboard();
 
         final List<T> scope = selectScope(offset, 10);
