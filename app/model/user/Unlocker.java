@@ -2,20 +2,21 @@ package model.user;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import model.Command;
 import model.TFile;
 import services.TfsService;
 import services.TgApi;
 import services.UserService;
 import utils.LangMap;
 
-import static utils.TextUtils.isEmpty;
+import static utils.TextUtils.notNull;
 
 /**
  * @author Denis Danilin | denis@danilin.name
  * 17.06.2020
  * tfs ☭ sweat and blood
  */
-public class Unlocker extends ARole implements InputSink {
+public class Unlocker extends ARole implements InputSink, CallbackSink {
     private String password;
 
     @SuppressWarnings("unused")
@@ -24,20 +25,26 @@ public class Unlocker extends ARole implements InputSink {
     }
 
     @Override
+    public void onCallback(final Command command) {
+        fallback();
+    }
+
+    @Override
     public JsonNode dump() {
         final ObjectNode parent = rootDump();
 
-        if (password != null)
-            parent.put("password", password);
+        parent.put("password", notNull(password));
 
         return parent;
     }
 
     @Override
     public void onInput(final String input) {
-        if (!isEmpty(input))
-            password = input;
+        password = input;
+        fallback();
+    }
 
+    private void fallback() {
         final TFile file = tfs.get(entryId, user);
 
         if (file.isFile())
