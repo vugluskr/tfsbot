@@ -66,7 +66,12 @@ public class UserService {
     }
 
     public User resolveUser(final long id, final String lang, final String name) {
-        Map<String, Object> map = userMapper.getUser(id);
+        Map<String, Object> map = null;
+        try {
+            map = userMapper.getUser(id);
+        } catch (final Exception e) {
+            logger.info(e.getMessage());
+        }
 
         if (map == null) {
             logger.info("New user added: " + name + " #" + id);
