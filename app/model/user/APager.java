@@ -59,20 +59,21 @@ public abstract class APager<T> extends ARole implements CallbackSink {
 
         final TgApi.Keyboard kbd = initKeyboard();
 
-        if (count > 0 && count > offset) {
-            final List<T> scope = selectScope(offset, 10);
+        if (offset > count - 10)
+            offset = Math.max(0, count - 10);
 
-            for (int i = offset; i < count && i < offset + 9; i++)
-                kbd.newLine().button(toButton(scope.get(i), i - offset));
+        final List<T> scope = selectScope(offset, 10);
 
-            if (offset > 0 || count > 10) {
-                kbd.newLine();
+        for (int i = 0; i < scope.size(); i++)
+            kbd.newLine().button(toButton(scope.get(i), i));
 
-                if (offset > 0)
-                    kbd.button(CommandType.rewind.b());
-                if ((count - offset) > 10)
-                    kbd.button(CommandType.forward.b());
-            }
+        if (offset > 0 || count > 10) {
+            kbd.newLine();
+
+            if (offset > 0)
+                kbd.button(CommandType.rewind.b());
+            if ((count - offset) > 10)
+                kbd.button(CommandType.forward.b());
         }
 
         api.sendContent(null, initBody(count == 0), ParseMode.md2, kbd, user);

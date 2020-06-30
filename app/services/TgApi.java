@@ -87,8 +87,10 @@ public class TgApi {
             if (reply.ok) {
                 user.lastMessageId = reply.messageId;
                 fs.updateLastMessageId(reply.messageId, user.id);
-            } else
+            } else {
+                sendContent(null, "Cant send appropriate message. Error from Telegram: " + reply.desc + "\n\nTry use command /reset", null, null, user, 0);
                 logger.error("Cant send content: " + reply.desc);
+            }
         };
 
         if (user.lastMessageId > 0) {
@@ -354,11 +356,6 @@ public class TgApi {
                 buttons.add(new ArrayList<>(1));
 
             buttons.get(buttons.size() - 1).add(button);
-        }
-
-        public void replaceButton(final int row, final int idx, final Button button) {
-            if (row < buttons.size() && idx < buttons.get(row).size())
-                buttons.get(row).set(idx, button);
         }
 
         public JsonNode toJson() {

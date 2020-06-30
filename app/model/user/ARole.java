@@ -64,19 +64,6 @@ public abstract class ARole implements Role {
             us.morphTo(Searcher.class, user).initSearch(input);
     }
 
-    public final void restart() {
-        entryId = user.rootId;
-
-        if (!(this instanceof DirViewer)) {
-            final DirViewer dw = us.morphTo(DirViewer.class, user);
-            dw.scopeChanged();
-            dw.doView();
-        } else {
-            ((DirViewer) this).scopeChanged();
-            doView();
-        }
-    }
-
     public void joinShare(final String linkId) {
         final Share share = tfs.getPublicShare(linkId);
 

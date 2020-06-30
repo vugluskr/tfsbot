@@ -56,7 +56,8 @@ public class Searcher extends APager<TFile> implements InputSink {
                     break;
                 default:
                     logger.info("Нет обработчика для '" + command.type + "'");
-                    restart();
+                    us.reset(user);
+                    user.doView();
                     break;
             }
     }

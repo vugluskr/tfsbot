@@ -49,7 +49,8 @@ public class LabelViewer extends ARole implements CallbackSink {
                 break;
             default:
                 logger.info("Нет обработчика для '" + command.type + "'");
-                restart();
+                us.reset(user);
+                user.doView();
                 break;
         }
     }

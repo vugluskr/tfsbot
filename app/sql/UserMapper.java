@@ -22,5 +22,4 @@ public interface UserMapper {
                     @Param("data") String data,
                     @Param("id") long id);
 
-    void updateRoot(@Param("userId") long userId);
 }

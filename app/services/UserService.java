@@ -116,4 +116,13 @@ public class UserService {
 
         return null;
     }
+
+    public void reset(final User user) {
+        user.setRole(new DirViewer(api, tfsService, this, Json.parse("{\"entryId\":\""+user.rootId+"\"}")));
+        user.lastMessageId = 0;
+        user.lastKeyboard = null;
+        user.lastText = null;
+        user.lastRefId = null;
+        update(user);
+    }
 }

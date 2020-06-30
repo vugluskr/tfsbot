@@ -35,9 +35,6 @@ public class Handler extends Controller {
     private UserService userService;
 
     @Inject
-    private UserMapper userMapper;
-
-    @Inject
     private TfsService tfs;
 
     public Result get() {
@@ -79,9 +76,6 @@ public class Handler extends Controller {
             command.elementIdx = del < cb.length() - 1 ? getInt(cb.substring(del + 1)) : -1;
             command.type = CommandType.ofString(cb);
 
-            if (command.type == CommandType.Void)
-                return; // просто закрыли диалоги
-
             handleUserRequest(user, u -> u.onCallback(command), js);
         } else if (js.has("message")) {
             CompletableFuture.runAsync(() -> api.deleteMessage(js.get("message").get("message_id").asLong(), js.get("message").get("from").get("id").asLong()));
@@ -92,9 +86,8 @@ public class Handler extends Controller {
 
             if (text != null) {
                 if (text.equals("/start")) {
-//                    handleUserRequest(user, User::start, js);
                     api.sendText("Welcome!", null, null, user.id);
-                    handleUserRequest(user, User::start, js);
+                    handleUserRequest(user, User::doView, js);
                 } else if (text.equals("/reset"))
                     handleUserRequest(user, this::doReset, js);
                 else if (text.equals("/help"))
@@ -183,11 +176,10 @@ public class Handler extends Controller {
             api.cleanup(userId);
             if (user.lastMessageId > 0)
                 api.deleteMessage(user.lastMessageId, userId);
-
+            userService.reset(user);
             tfs.reinitUserTables(userId);
-            userMapper.updateRoot(userId);
+            user.doView();
 
-            userService.resolveUser(userId, user.lang, user.name).start();
             logger.info("User " + user.name + " #" + user.id + " rebuilded");
         }).exceptionally(e -> {
             logger.error("Resetting user #"+userId+": " + e.getMessage(), e);

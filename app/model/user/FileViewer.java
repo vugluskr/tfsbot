@@ -12,6 +12,8 @@ import services.TgApi;
 import services.UserService;
 import utils.LangMap;
 
+import java.util.UUID;
+
 import static utils.TextUtils.escapeMd;
 
 /**
@@ -52,12 +54,15 @@ public class FileViewer extends ARole implements CallbackSink {
                 us.morphTo(Renamer.class, user).doView();
                 break;
             case dropFile:
-                tfs.rm(entryId, user);
-                backToParent();
+                final UUID fileId = entryId;
+                entryId = tfs.get(entryId, user).getParentId();
+                tfs.rm(fileId, user);
+                us.morphTo(DirViewer.class, user).doView();
                 break;
             default:
                 logger.info("Нет обработчика для '" + command.type + "'");
-                restart();
+                us.reset(user);
+                user.doView();
                 break;
         }
     }

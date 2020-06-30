@@ -99,7 +99,6 @@ create table users
 (
     id              bigint           not null
         primary key,
-    root_id         uuid             not null,
     last_message_id bigint default 0 not null,
     last_ref_id     text,
     last_text       text,

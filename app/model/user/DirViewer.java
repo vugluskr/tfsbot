@@ -60,7 +60,8 @@ public class DirViewer extends APager<TFile> {
                     break;
                 default:
                     logger.info("Нет обработчика для '" + command.type + "'");
-                    restart();
+                    us.reset(user);
+                    user.doView();
                     break;
             }
     }
@@ -88,8 +89,8 @@ public class DirViewer extends APager<TFile> {
             if (Objects.equals(entryId, user.rootId))
                 tfs.reinitUserTables(user.id);
 
-            us.resolveUser(user.id, user.lang, user.name).start();
-//            restart();
+            us.reset(user);
+            user.doView();
             return false;
         }
 
