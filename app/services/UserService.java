@@ -66,19 +66,12 @@ public class UserService {
     }
 
     public User resolveUser(final long id, final String lang, final String name) {
-        Map<String, Object> map = null;
-        try {
-            map = userMapper.getUser(id);
-        } catch (final Exception e) {
-            logger.info(e.getMessage());
+        if (userMapper.isUserMissed(id)) {
+            tfsService.initUserTables(id);
+            userMapper.insertUser(id);
         }
 
-        if (map == null) {
-            logger.info("New user added: " + name + " #" + id);
-            userMapper.insertUser(id, tfsService.initUserTables(id));
-
-            map = userMapper.getUser(id);
-        }
+        final Map<String, Object> map = userMapper.getUser(id);
 
         if (!map.containsKey("data"))
             return new User(id, (UUID) map.get("root_id"), notNull(lang, "en"), name, null, null, null, 0, new DirViewer(api, tfsService, this, Json.newObject()));

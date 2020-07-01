@@ -3,7 +3,6 @@ package sql;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -13,7 +12,7 @@ import java.util.UUID;
 public interface UserMapper {
     Map<String, Object> getUser(@Param("id") long id);
 
-    void insertUser(@Param("id") long id, @Param("rootId") UUID rootId);
+    void insertUser(@Param("id") long id);
 
     void updateUser(@Param("lastRefId") String lastRefId,
                     @Param("lastText") String lastText,
@@ -21,4 +20,5 @@ public interface UserMapper {
                     @Param("data") String data,
                     @Param("id") long id);
 
+    boolean isUserMissed(@Param("id") long id);
 }

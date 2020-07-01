@@ -9,8 +9,11 @@
     <select id="getUser" resultType="java.util.Map">
         select u.*, fs.id as root_id
         from users u
-        left join fs_data_${id} fs on fs.parent_id is null
+                 left join fs_data_${id} fs on fs.parent_id is null
         where u.id = #{id}
+    </select>
+    <select id="isUserMissed">
+        select not exists(select 1 from users where id = #{id})
     </select>
 
     <update id="updateUser">
