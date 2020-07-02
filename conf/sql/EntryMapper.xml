@@ -104,6 +104,7 @@
         from ${v1} f
                  left join ${v2} fp on (f.id = fp.id)
         where f.id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+        limit 1
     </select>
     <select id="getTree" resultMap="EntryMap">
         select f.*
