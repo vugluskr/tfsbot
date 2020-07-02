@@ -41,6 +41,7 @@ public class DirViewer extends APager<TFile> {
             switch (command.type) {
                 case openParent:
                     entryId = tfs.get(entryId, user).getParentId();
+                    scopeChanged();
                     doView();
                     break;
                 case mkDir:
