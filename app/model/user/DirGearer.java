@@ -57,8 +57,11 @@ public class DirGearer extends APager<TFile> {
                 case openLabel:
                     us.morphTo(LabelViewer.class, user).doView(tfs.getGearEntry(entryId, command.elementIdx, this));
                     break;
+                case Void:
+                    user.doView();
+                    break;
                 default:
-                    logger.info("Нет обработчика для '" + command.type + "'");
+                    logger.info("Нет обработчика для '" + command.type.name() + "'");
                     us.reset(user);
                     user.doView();
                     break;

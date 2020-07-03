@@ -45,8 +45,11 @@ public class LabelViewer extends ARole implements CallbackSink {
                 tfs.rm(entryId, user);
                 us.morphTo(DirViewer.class, user).doView(dir);
                 break;
+            case Void:
+                user.doView();
+                break;
             default:
-                logger.info("Нет обработчика для '" + command.type + "'");
+                logger.info("Нет обработчика для '" + command.type.name() + "'");
                 us.reset(user);
                 user.doView();
                 break;

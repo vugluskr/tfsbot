@@ -59,8 +59,11 @@ public class DirViewer extends APager<TFile> {
                 case gear:
                     us.morphTo(DirGearer.class, user).doView();
                     break;
+                case Void:
+                    user.doView();
+                    break;
                 default:
-                    logger.info("Нет обработчика для '" + command.type + "'");
+                    logger.info("Нет обработчика для '" + command.type.name() + "'");
                     us.reset(user);
                     user.doView();
                     break;

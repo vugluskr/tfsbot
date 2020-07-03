@@ -54,8 +54,11 @@ public class Searcher extends APager<TFile> implements InputSink {
 
                     us.morphTo(role, user).doView();
                     break;
+                case Void:
+                    user.doView();
+                    break;
                 default:
-                    logger.info("Нет обработчика для '" + command.type + "'");
+                    logger.info("Нет обработчика для '" + command.type.name() + "'");
                     us.reset(user);
                     user.doView();
                     break;
