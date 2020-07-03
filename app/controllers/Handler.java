@@ -68,6 +68,10 @@ public class Handler extends Controller {
 
             if (del < 1) {
                 logger.debug("Неизвестный науке коллбек: " + cb);
+                handleUserRequest(user, u -> {
+                    userService.reset(user);
+                    user.doView();
+                }, js);
                 return;
             }
 
