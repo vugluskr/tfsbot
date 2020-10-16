@@ -249,18 +249,13 @@ public class TfsService {
     public void lockEntry(final TFile entry, final String salt, final String password) {
         fs.dropLock(entry.getId());
         fs.createLock(entry.getId(), salt, password);
-        logger.debug("Locking entry {"+entry.getId()+"}: " + entry.getOptions());
-
         entry.setLocked();
-        logger.debug("Locking entry-2 {"+entry.getId()+"}: " + entry.getOptions());
         fs.updateEntry(entry.getName(), entry.getParentId(), entry.getOptions(), entry.getId(), entry.getOwner(), tablePrefix + entry.getOwner());
     }
 
     public void unlockEntry(final TFile entry) {
         fs.dropLock(entry.getId());
-        logger.debug("Unlocking entry {"+entry.getId()+"}: " + entry.getOptions());
         entry.setUnlocked();
-        logger.debug("Unlocking entry-2 {"+entry.getId()+"}: " + entry.getOptions());
         fs.updateEntry(entry.getName(), entry.getParentId(), entry.getOptions(), entry.getId(), entry.getOwner(), tablePrefix + entry.getOwner());
     }
 
