@@ -8,8 +8,11 @@ import services.TfsService;
 import services.TgApi;
 import services.UserService;
 import utils.LangMap;
+import utils.TextUtils;
 
-import static utils.TextUtils.notNull;
+import java.math.BigInteger;
+
+import static utils.TextUtils.*;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -45,6 +48,11 @@ public class Unlocker extends ARole implements InputSink, CallbackSink {
 
     private void fallback() {
         final TFile file = tfs.get(entryId, user);
+
+        if (!isEmpty(password) && !tfs.passwordFailed(entryId, password)) {
+            tfs.unlockEntry(file);
+            password = "";
+        }
 
         if (file.isFile())
             us.morphTo(FileViewer.class, user).doView(file);
