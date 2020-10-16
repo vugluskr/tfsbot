@@ -267,7 +267,8 @@ public class TfsService {
     public boolean passwordFailed(final UUID uuid, final String password) {
         final Map<String, Object> accessRow = fs.selectEntryPassword(uuid);
 
-        return !String.valueOf(accessRow.get("password")).equalsIgnoreCase(hash256(accessRow.get("salt") + password));
+        return !isEmpty(password) && accessRow != null && accessRow.get("password") != null && accessRow.get("salt") != null && !String.valueOf(accessRow.get("password")).equalsIgnoreCase(hash256(accessRow.get(
+                "salt") + password));
     }
 
     public List<TFile> listFolder(final UUID dirId, final int offset, final int limit, final long userId) {
