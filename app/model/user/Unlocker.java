@@ -38,6 +38,7 @@ public class Unlocker extends ARole implements InputSink, CallbackSink {
         final ObjectNode parent = rootDump();
 
         parent.put("password", notNull(password));
+        parent.put("persist", persist);
 
         return parent;
     }

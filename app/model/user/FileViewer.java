@@ -26,6 +26,7 @@ public class FileViewer extends ARole implements CallbackSink {
 
     private final int offset;
     private final String password;
+    private boolean lockPersist = false;
 
     public FileViewer(final TgApi api, final TfsService tfs, final UserService us, final JsonNode node) {
         super(api, tfs, us, node);
@@ -41,7 +42,9 @@ public class FileViewer extends ARole implements CallbackSink {
                 backToParent();
                 break;
             case unlock:
+                lockPersist = true;
                 tfs.unlockEntry(tfs.get(entryId, user));
+                lockPersist = false;
                 doView();
                 break;
             case lock:
@@ -126,6 +129,7 @@ public class FileViewer extends ARole implements CallbackSink {
         final ObjectNode parent = rootDump();
 
         parent.put("offset", offset);
+        parent.put("persist", lockPersist);
 
         return parent;
     }
