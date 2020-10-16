@@ -21,9 +21,11 @@ import static utils.TextUtils.*;
  */
 public class Unlocker extends ARole implements InputSink, CallbackSink {
     private String password;
+    private final boolean persist;
 
     public Unlocker(final TgApi api, final TfsService tfs, final UserService us, final JsonNode node) {
         super(api, tfs, us, node);
+        persist = node != null && node.has("persist") && node.get("persist").asBoolean();
     }
 
     @Override
@@ -49,7 +51,7 @@ public class Unlocker extends ARole implements InputSink, CallbackSink {
     private void fallback() {
         final TFile file = tfs.get(entryId, user);
 
-        if (!isEmpty(password) && !tfs.passwordFailed(entryId, password)) {
+        if (persist && !isEmpty(password) && !tfs.passwordFailed(entryId, password)) {
             tfs.unlockEntry(file);
             password = "";
         }

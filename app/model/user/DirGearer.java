@@ -1,6 +1,7 @@
 package model.user;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import model.Command;
 import model.CommandType;
 import model.TFile;
@@ -26,6 +27,7 @@ public class DirGearer extends APager<TFile> {
     private static final Logger.ALogger logger = Logger.of(DirGearer.class);
 
     private volatile TFile dir;
+    private boolean lockPersist = false;
 
     public DirGearer(final TgApi api, final TfsService tfs, final UserService us, final JsonNode node) {
         super(api, tfs, us, node);
@@ -36,7 +38,9 @@ public class DirGearer extends APager<TFile> {
         if (notPagerCall(command))
             switch (command.type) {
                 case unlock:
+                    lockPersist = true;
                     us.morphTo(Unlocker.class, user).doView();
+                    lockPersist = false;
                     break;
                 case lock:
                     us.morphTo(Locker.class, user).doView();
@@ -118,7 +122,10 @@ public class DirGearer extends APager<TFile> {
 
     @Override
     public JsonNode dump() {
-        return rootDump();
+        final ObjectNode node = rootDump();
+        node.put("persist", lockPersist);
+
+        return node;
     }
 
     @Override
