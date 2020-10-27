@@ -49,6 +49,11 @@ public class ShareGranter extends ARole implements CallbackSink {
         else {
             final User target = us.resolveUser(contact.getOwner(), user.lang, contact.name); // create user
 
+            if (target == null || target.id == user.id) {
+                doView();
+                return;
+            }
+
             if (tfs.entryNotGrantedTo(entryId, target.id, user.id))
                 tfs.entryGrantTo(entryId, target, target.name, user);
 

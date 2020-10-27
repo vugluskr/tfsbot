@@ -70,7 +70,8 @@ public abstract class ARole implements Role {
         if (share == null)
             doView();
         else {
-            entryId = tfs.applyShareByLink(share, user).getId();
+            final TFile f = tfs.applyShareByLink(share, user);
+            entryId = f == null ? user.rootId : f.getId();
 
             if (!(this instanceof DirViewer)) {
                 final DirViewer dw = us.morphTo(DirViewer.class, user);

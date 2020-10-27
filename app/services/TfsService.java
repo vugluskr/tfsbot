@@ -117,6 +117,9 @@ public class TfsService {
 
     @Transactional
     private TFile applyShare(final Share share, final String holderDirName, final String langTag, final long consumerId, final UUID consumerRootId) {
+        if (share.getOwner() == consumerId)
+            return null;
+
         final String tableName = tablePrefix + consumerId;
         final List<TFile> rootDirs = fs.selectRootDirs(tableName);
 
