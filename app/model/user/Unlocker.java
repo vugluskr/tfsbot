@@ -55,6 +55,9 @@ public class Unlocker extends ARole implements InputSink, CallbackSink {
         if (persist && !isEmpty(password) && !tfs.passwordFailed(entryId, password)) {
             tfs.unlockEntry(file);
             password = "";
+        } else {
+            doView(file);
+            return;
         }
 
         if (file.isFile())
