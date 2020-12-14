@@ -2,6 +2,7 @@ package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import model.*;
+import model.user.ShareGranter;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Http;
@@ -84,8 +85,12 @@ public class Handler extends Controller {
             CompletableFuture.runAsync(() -> api.deleteMessage(js.get("message").get("message_id").asLong(), js.get("message").get("from").get("id").asLong()));
 
             final JsonNode msg = js.get("message");
+
             final String text = msg.has("text") ? msg.get("text").asText() : null;
             user = getUser(msg.get("from"));
+
+            if (msg.has("forward_from") && user.getRole() instanceof ShareGranter)
+                logger.debug("Forward: " + js.toString());
 
             if (text != null) {
                 if (text.equals("/start")) {
@@ -185,7 +190,7 @@ public class Handler extends Controller {
 
             logger.info("User " + user.name + " #" + user.id + " rebuilded");
         }).exceptionally(e -> {
-            logger.error("Resetting user #"+userId+": " + e.getMessage(), e);
+            logger.error("Resetting user #" + userId + ": " + e.getMessage(), e);
             return null;
         });
     }

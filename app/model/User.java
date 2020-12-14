@@ -47,6 +47,10 @@ public final class User {
         setRole(role);
     }
 
+    public Role getRole() {
+        return role;
+    }
+
     public void setRole(final Role role) {
         this.role = role;
         ((ARole) this.role).user = this;
