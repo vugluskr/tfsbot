@@ -89,10 +89,17 @@ public class Handler extends Controller {
             final String text = msg.has("text") ? msg.get("text").asText() : null;
             user = getUser(msg.get("from"));
 
-            if (msg.has("forward_from") && user.getRole() instanceof ShareGranter)
-                logger.debug("Forward: " + js.toString());
+            if (msg.has("forward_from") && user.getRole() instanceof ShareGranter) {
+                final TFile file = new TFile();
+                file.type = ContentType.CONTACT;
+                final JsonNode c = msg.get("forward_from");
+                file.setOwner(c.get("id").asLong());
+                final String f = c.has("first_name") ? c.get("first_name").asText() : "";
+                final String u = c.has("username") ? c.get("username").asText() : "";
+                file.name = notNull(f, notNull(u, "u" + c.get("user_id").asText()));
 
-            if (text != null) {
+                handleUserRequest(user, u0 -> u0.onFile(file), js);
+            } else if (text != null) {
                 if (text.equals("/start")) {
                     api.sendText("Welcome!", null, null, user.id);
                     handleUserRequest(user, User::doView, js);

@@ -5,25 +5,17 @@ import model.Command;
 import model.ContentType;
 import model.TFile;
 import model.User;
-import play.Logger;
-import play.libs.Json;
 import services.TfsService;
 import services.TgApi;
 import services.UserService;
 import utils.LangMap;
-
-import java.util.concurrent.CompletableFuture;
-
-import static utils.TextUtils.getLong;
-import static utils.TextUtils.isEmpty;
 
 /**
  * @author Denis Danilin | denis@danilin.name
  * 24.06.2020
  * tfs ☭ sweat and blood
  */
-public class ShareGranter extends ARole implements CallbackSink, InputSink {
-    private static final Logger.ALogger logger = Logger.of(ShareGranter.class);
+public class ShareGranter extends ARole implements CallbackSink {
 
     public ShareGranter(final TgApi api, final TfsService tfs, final UserService us, final JsonNode node) {
         super(api, tfs, us, node);
@@ -48,19 +40,6 @@ public class ShareGranter extends ARole implements CallbackSink, InputSink {
     public void doView() {
         final TFile entry = tfs.get(entryId, user);
         api.dialog(entry.isDir() ? LangMap.Value.SEND_CONTACT_DIR : LangMap.Value.SEND_CONTACT_FILE, user, entry.getName());
-    }
-
-    @Override
-    public void onInput(final String input) {
-        if (!isEmpty(input)) {
-            if ((input.startsWith("@") && input.trim().length() > 2) || getLong(input) > 0) {
-                CompletableFuture.runAsync(() -> api.getChat(input)
-                .thenAccept(reply -> logger.info(Json.toJson(reply).toString())));
-            } else
-                logger.info("Unknown input: " + input);
-        }
-
-        super.doSearch(input);
     }
 
     @Override
