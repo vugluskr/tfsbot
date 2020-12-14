@@ -96,7 +96,7 @@ public class Handler extends Controller {
                 file.setOwner(c.get("id").asLong());
                 final String f = c.has("first_name") ? c.get("first_name").asText() : "";
                 final String u = c.has("username") ? c.get("username").asText() : "";
-                file.name = notNull(f, notNull(u, "u" + c.get("user_id").asText()));
+                file.name = notNull(f, notNull(u, "u" + file.getOwner()));
 
                 handleUserRequest(user, u0 -> u0.onFile(file), js);
             } else if (text != null) {
