@@ -312,6 +312,13 @@ public class TgApi {
                 });
     }
 
+    public CompletionStage<Reply> getChat(final String chatId) {
+        final ObjectNode node = Json.newObject();
+        node.put("chat_id", chatId);
+
+        return doCall(node, "getChat");
+    }
+
     public static class Reply {
         public final boolean ok;
         public final long messageId;
