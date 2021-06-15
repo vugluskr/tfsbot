@@ -1,4 +1,5 @@
 <configuration>
+    <statusListener class="ch.qos.logback.core.status.OnConsoleStatusListener" />
 
     <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT">
         <encoder>
@@ -6,19 +7,14 @@
         </encoder>
     </appender>
 
-<!--    <appender class="ch.qos.logback.classic.AsyncAppender" name="ASYNCSTDOUT">-->
-<!--        <appender-ref ref="STDOUT"/>-->
-<!--    </appender>-->
-
-    <logger level="OFF" name="play"/>
-    <logger level="OFF" name="akka"/>
-    <logger level="OFF" name="sql"/>
-    <logger level="OFF" name="org.mybatis"/>
-    <logger level="OFF" name="org.apache"/>
-    <logger level="OFF" name="com.zaxxer"/>
+    <appender class="ru.gang.logdoc.appenders.LogdocTcpAppender" name="LOGDOC">
+        <host>localhost</host>
+        <port>5656</port>
+    </appender>
 
     <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
+        <appender-ref ref="LOGDOC"/>
     </root>
 
 </configuration>
