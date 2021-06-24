@@ -12,7 +12,7 @@ resolvers += ("logdoc" at "http://jwebhelp.ru:8080/repository/logdoc-common").wi
 
 scalaVersion := "2.12.8"
 
-libraryDependencies += "logdoc" % "logback-appender" % "0.0.62"
+libraryDependencies += "logdoc" % "logback-appender" % "0.0.63"
 
 libraryDependencies ++= Seq(
   guice, javaJdbc, javaWs, ws,
