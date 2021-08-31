@@ -12,6 +12,8 @@ import model.*;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
+import play.libs.ws.WSResponse;
+import play.libs.ws.ahc.WsCurlLogger;
 import sql.MediaMessageMapper;
 import sql.TFileSystem;
 import utils.LangMap;
@@ -24,8 +26,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static utils.LangMap.v;
-import static utils.TextUtils.isEmpty;
-import static utils.TextUtils.notNull;
+import static utils.TextUtils.*;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -40,7 +41,7 @@ public class TgApi {
     private final String apiUrl;
     private final WSClient ws;
     private final TFileSystem fs;
-    private MediaMessageMapper mediaMessageMapper;
+    private final MediaMessageMapper mediaMessageMapper;
 
     @Inject
     public TgApi(final Config config, final WSClient ws, final TFileSystem fs, final MediaMessageMapper mediaMessageMapper) {
@@ -49,25 +50,18 @@ public class TgApi {
         apiUrl = config.getString("service.bot.api_url");
         this.mediaMessageMapper = mediaMessageMapper;
     }
-    public CompletionStage<ArrayList<JsonNode>> getUpdates(Long lastId) {
-        String offset = "";
-        if(lastId>0)
-            offset = "?offset="+lastId;
-        String url = apiUrl+"getUpdates"+offset;
-        return ws.url(url).get().thenApply(wsResponse -> {
-            logger.info("Request url="+wsResponse.getUri());
-            final   JsonNode jsonNode = wsResponse.asJson();
-            if(jsonNode.has("result") && jsonNode.get("result").isArray()){
-                ArrayList<JsonNode> messagesList = new  ObjectMapper().convertValue(jsonNode.get("result"), new TypeReference<List<JsonNode>>(){});
-                logger.info("Got number of messages="+ messagesList.size());
-                return messagesList;
-            } else
-                return  null;
-        }).exceptionally(e -> {
-            logger.error("On request [" + apiUrl   + "]:\n" +     "\ngot error: " + e.getMessage(), e);
-        return null;
-        });
 
+    public CompletionStage<List<JsonNode>> getUpdates(Long lastId) {
+        return ws.url(apiUrl + "getUpdates" + (getLong(lastId) > 0 ? "?offset=" + lastId : ""))
+                .setRequestFilter(new WsCurlLogger())
+                .get()
+                .thenApply(WSResponse::asJson)
+                .thenApply(jsonNode -> {
+                    if (jsonNode.has("result") && jsonNode.get("result").isArray())
+                        return new ObjectMapper().convertValue(jsonNode.get("result"), new TypeReference<List<JsonNode>>() {});
+
+                    return Collections.emptyList();
+                }); // exceptionally будет обработано в WsCurlLogger
     }
 
     public void cleanup(final long userId) {
@@ -129,7 +123,7 @@ public class TgApi {
 
             final Consumer<Reply> editSuccessConsumer = reply -> {
                 if (!reply.ok) {
-                    deleteMessage(user.lastMessageId, user.id);
+                    CompletableFuture.runAsync(() -> deleteMessage(user.lastMessageId, user.id));
                     user.lastMessageId = 0;
                     fs.updateLastMessageId(0, user.id);
                     if (cnt < 2)
@@ -197,8 +191,11 @@ public class TgApi {
 
     public void deleteMessage(final long messageId, final long userId) {
         if (messageId > 0) {
-            mediaMessageMapper.deleteMessageById(messageId, userId);
-            CompletableFuture.runAsync(() -> ws.url(apiUrl + "deleteMessage").setContentType("application/json").post("{\"chat_id\":" + userId + ",\"message_id\":" + messageId + "}"));
+            CompletableFuture.runAsync(() -> mediaMessageMapper.deleteMessageById(messageId, userId))
+                    .thenCompose(unused ->
+                            ws.url(apiUrl + "deleteMessage")
+                                    .setRequestFilter(new WsCurlLogger())
+                                    .setContentType("application/json").post("{\"chat_id\":" + userId + ",\"message_id\":" + messageId + "}"));
         }
     }
 
@@ -229,18 +226,14 @@ public class TgApi {
             node.set("reply_markup", keyboard);
 
         return ws.url(apiUrl + "editMessageText")
+                .setRequestFilter(new WsCurlLogger())
                 .post(node)
-                .thenApply(wsr -> {
-                    final JsonNode j = wsr.asJson();
-
+                .thenApply(WSResponse::asJson)
+                .thenApply(j -> {
                     if (j.get("ok").asBoolean())
                         return new Reply(updateMessageId);
 
                     return new Reply(j.get("description").asText());
-                })
-                .exceptionally(e -> {
-                    logger.error(e.getMessage(), e);
-                    return new Reply(e.getMessage());
                 });
     }
 
@@ -251,7 +244,9 @@ public class TgApi {
         node.put("show_alert", alert);
         node.put("cache_time", cacheTime);
 
-        CompletableFuture.runAsync(() -> ws.url(apiUrl + "answerCallbackQuery").post(node));
+        CompletableFuture.runAsync(() -> ws.url(apiUrl + "answerCallbackQuery")
+                .setRequestFilter(new WsCurlLogger())
+                .post(node));
     }
 
     public CompletionStage<Reply> editKeyboard(final JsonNode keyboard, final long userId, final long messageId) {
@@ -316,38 +311,24 @@ public class TgApi {
             node.set("reply_markup", keyboard);
 
         return doCall(node, type.getUrlPath()).thenApply(reply -> {
-            mediaMessageMapper.insertMessageId(reply.messageId,userId);
+            mediaMessageMapper.insertMessageId(reply.messageId, userId);
             return reply;
         });
     }
 
     private CompletionStage<Reply> doCall(final JsonNode node, final String partialUrl) {
         return ws.url(apiUrl + partialUrl)
+                .setRequestFilter(new WsCurlLogger())
                 .post(node)
-                .thenApply(wsr -> {
-                    final JsonNode j = wsr.asJson();
-
+                .thenApply(WSResponse::asJson)
+                .thenApply(j -> {
                     if (j.get("ok").asBoolean())
                         return new Reply(j.has("result") && j.get("result").has("message_id")
                                 ? j.get("result").get("message_id").asLong()
                                 : 0);
 
-                    logger.debug("On request [" + apiUrl + partialUrl + "]:\n" + node.toString() + "\ngot response:\n" + j.toString());
-                    System.out.println("On request [" + apiUrl + partialUrl + "]:\n" + node.toString() + "\ngot response:\n" + j.toString());
-
                     return new Reply(j.get("description").asText());
-                })
-                .exceptionally(e -> {
-                    logger.error("On request [" + apiUrl + partialUrl + "]:\n" + node.toString() + "\ngot error: " + e.getMessage(), e);
-                    return new Reply(e.getMessage());
                 });
-    }
-
-    public CompletionStage<Reply> getChat(final String chatId) {
-        final ObjectNode node = Json.newObject();
-        node.put("chat_id", chatId);
-
-        return doCall(node, "getChat");
     }
 
     public static class Reply {

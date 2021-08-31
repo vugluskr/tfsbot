@@ -2,23 +2,24 @@
 
 <mapper namespace="sql.MediaMessageMapper">
     <insert id="insertMessageId">
-        insert into media_message(message_id,user_id, created)
-        VALUES (#{messageId},#{user_id}, now())
+        insert into media_message(message_id, user_id)
+        VALUES (#{messageId}, #{user_id})
     </insert>
     <delete id="deleteMessages">
-            delete from media_message where created <![CDATA[<=#{dateTime}]]>
+        delete
+        from media_message
+        where created &lt;= #{dateTime}
     </delete>
     <delete id="deleteMessageById">
-        delete from media_message where message_id=#{messageId} and user_id=#{userId}
+        delete
+        from media_message
+        where message_id = #{messageId}
+          and user_id = #{userId}
     </delete>
-    <select id="selectMessagesByTime" resultMap="MediaMessageMap">
-        select message_id, user_id from media_message where created <![CDATA[<=#{dateTime}]]>
+    <select id="selectMessagesByTime" resultType="model.MediaMessage">
+        select message_id as "messageId",
+               user_id    as "userId"
+        from media_message
+        where created &lt;= #{dateTime}
     </select>
-
-    <resultMap id="MediaMessageMap" type="model.MediaMessage">
-        <id property="messageId" column="message_id"/>
-        <result property="userId" column="user_id"/>
-    </resultMap>
-
-
 </mapper>

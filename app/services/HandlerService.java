@@ -160,7 +160,7 @@ public class HandlerService {
         CompletableFuture.runAsync(() -> {
             api.cleanup(userId);
             if (user.lastMessageId > 0)
-                api.deleteMessage(user.lastMessageId, userId);
+                CompletableFuture.runAsync(() -> api.deleteMessage(user.lastMessageId, userId));
             userService.reset(user);
             tfs.reinitUserTables(userId);
             user.doView();

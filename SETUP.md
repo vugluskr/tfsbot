@@ -106,6 +106,16 @@ create table users
     data            text
 );
 
+create table media_message
+(
+  user_id bigint not null,
+  message_id bigint not null,
+  created timestamp default now() not null
+ );
+ 
+create index media_message_created_user_id_message_id_index
+ on media_message (created, user_id, message_id);  
+
 create function dotree(viewname text, dirid text, entryid text, shareownertablename text, shareid text) returns void
 	language plpgsql
 as $$
