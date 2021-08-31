@@ -1,6 +1,8 @@
 package services;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
@@ -10,6 +12,7 @@ import model.*;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
+import sql.MediaMessageMapper;
 import sql.TFileSystem;
 import utils.LangMap;
 import utils.TextUtils;
@@ -37,12 +40,34 @@ public class TgApi {
     private final String apiUrl;
     private final WSClient ws;
     private final TFileSystem fs;
+    private MediaMessageMapper mediaMessageMapper;
 
     @Inject
-    public TgApi(final Config config, final WSClient ws, final TFileSystem fs) {
+    public TgApi(final Config config, final WSClient ws, final TFileSystem fs, final MediaMessageMapper mediaMessageMapper) {
         this.ws = ws;
         this.fs = fs;
         apiUrl = config.getString("service.bot.api_url");
+        this.mediaMessageMapper = mediaMessageMapper;
+    }
+    public CompletionStage<ArrayList<JsonNode>> getUpdates(Long lastId) {
+        String offset = "";
+        if(lastId>0)
+            offset = "?offset="+lastId;
+        String url = apiUrl+"getUpdates"+offset;
+        return ws.url(url).get().thenApply(wsResponse -> {
+            logger.info("Request url="+wsResponse.getUri());
+            final   JsonNode jsonNode = wsResponse.asJson();
+            if(jsonNode.has("result") && jsonNode.get("result").isArray()){
+                ArrayList<JsonNode> messagesList = new  ObjectMapper().convertValue(jsonNode.get("result"), new TypeReference<List<JsonNode>>(){});
+                logger.info("Got number of messages="+ messagesList.size());
+                return messagesList;
+            } else
+                return  null;
+        }).exceptionally(e -> {
+            logger.error("On request [" + apiUrl   + "]:\n" +     "\ngot error: " + e.getMessage(), e);
+        return null;
+        });
+
     }
 
     public void cleanup(final long userId) {
@@ -171,8 +196,10 @@ public class TgApi {
     }
 
     public void deleteMessage(final long messageId, final long userId) {
-        if (messageId > 0)
+        if (messageId > 0) {
+            mediaMessageMapper.deleteMessageById(messageId, userId);
             CompletableFuture.runAsync(() -> ws.url(apiUrl + "deleteMessage").setContentType("application/json").post("{\"chat_id\":" + userId + ",\"message_id\":" + messageId + "}"));
+        }
     }
 
     public CompletionStage<Reply> sendText(final String text, final String format, final JsonNode replyMarkup, final long userId) {
@@ -288,7 +315,10 @@ public class TgApi {
         if (keyboard != null)
             node.set("reply_markup", keyboard);
 
-        return doCall(node, type.getUrlPath());
+        return doCall(node, type.getUrlPath()).thenApply(reply -> {
+            mediaMessageMapper.insertMessageId(reply.messageId,userId);
+            return reply;
+        });
     }
 
     private CompletionStage<Reply> doCall(final JsonNode node, final String partialUrl) {
@@ -303,6 +333,7 @@ public class TgApi {
                                 : 0);
 
                     logger.debug("On request [" + apiUrl + partialUrl + "]:\n" + node.toString() + "\ngot response:\n" + j.toString());
+                    System.out.println("On request [" + apiUrl + partialUrl + "]:\n" + node.toString() + "\ngot response:\n" + j.toString());
 
                     return new Reply(j.get("description").asText());
                 })
@@ -337,6 +368,7 @@ public class TgApi {
             this.desc = desc;
             messageId = indate = 0;
         }
+
     }
 
     public static class Keyboard {
