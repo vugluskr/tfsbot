@@ -7,7 +7,7 @@
         </encoder>
     </appender>
 
-    <appender class="ru.gang.logdoc.appenders.LogdocTcpAppender" name="LOGDOC">
+    <appender class="ru.gang.logdoc.appenders.LogdocUdpAppender" name="LOGDOC">
         <host>localhost</host>
         <port>5656</port>
     </appender>
