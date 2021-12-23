@@ -8,11 +8,11 @@ lazy val `tfs` = (project in file(".")).enablePlugins(PlayMinimalJava)
 javacOptions ++= Seq("-Xlint:all")
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
-resolvers += ("logdoc" at "http://jwebhelp.ru:8080/repository/logdoc-common").withAllowInsecureProtocol(true)
+resolvers += ("logdoc" at "http://archiva.jwebhelp.ru/repository/logdoc-common").withAllowInsecureProtocol(true)
 
 scalaVersion := "2.12.8"
 
-libraryDependencies += "logdoc" % "logback-appender" % "0.1.16"
+libraryDependencies += "ru.gang.logdoc" % "logback-lib" % "1.0.6"
 
 libraryDependencies ++= Seq(
   guice, javaJdbc, javaWs, ws,
