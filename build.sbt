@@ -13,7 +13,7 @@ resolvers += Resolver.mavenLocal
 
 scalaVersion := "2.12.8"
 
-libraryDependencies += "ru.gang.logdoc" % "logback-lib" % "1.0.7a"
+libraryDependencies += "ru.gang.logdoc" % "logback-lib" % "1.0.7"
 
 libraryDependencies ++= Seq(
   guice, javaJdbc, javaWs, ws,
