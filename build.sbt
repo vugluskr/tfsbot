@@ -9,10 +9,11 @@ javacOptions ++= Seq("-Xlint:all")
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 resolvers += ("logdoc" at "http://archiva.jwebhelp.ru/repository/logdoc-common").withAllowInsecureProtocol(true)
+resolvers += Resolver.mavenLocal
 
 scalaVersion := "2.12.8"
 
-libraryDependencies += "ru.gang.logdoc" % "logback-lib" % "1.0.6"
+libraryDependencies += "ru.gang.logdoc" % "logback-lib" % "1.0.7a"
 
 libraryDependencies ++= Seq(
   guice, javaJdbc, javaWs, ws,

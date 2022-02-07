@@ -107,8 +107,6 @@ public class TgApi {
                 user.lastMessageId = reply.messageId;
                 fs.updateLastMessageId(reply.messageId, user.id);
             } else {
-                if (!reply.desc.contains("bot can't initiate conversation"))
-                    sendContent(null, "Cant send appropriate message. Error from Telegram: " + reply.desc + "\n\nTry use command /reset", null, null, user, 0);
                 logger.error("Cant send content: " + reply.desc);
             }
         };

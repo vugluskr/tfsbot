@@ -91,11 +91,7 @@ public class Jobs {
 
         CompletableFuture.runAsync(() ->
                         mediaMessageMapper.selectMessagesByTime(timeToDelete)
-                                .forEach(msg -> {
-                                    CompletableFuture.runAsync(() -> api.deleteMessage(msg.getMessageId(), msg.getUserId()));
-
-                                    userService.morphTo(FileViewer.class, userService.resolveUser(msg.getUserId(), "en", "")).backToParent();
-                                }))
+                                .forEach(msg -> userService.morphTo(FileViewer.class, userService.resolveUser(msg.getUserId(), "en", "")).backToParent()))
                 .thenAccept(unused -> mediaMessageMapper.deleteMessages(timeToDelete));
     }
 }
