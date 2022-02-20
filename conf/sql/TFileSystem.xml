@@ -1,6 +1,10 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="sql.TFileSystem">
+    <select id="isEntrySharedTo" resultType="boolean">
+        select exists(select 1 from ${shareName} where parent_id = #{entryId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
+    </select>
+
     <insert id="makeEntry">
         insert into ${tableName} (name, parent_id, type, ref_id, options, id)
         values (#{name}, #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}, #{type}, #{refId}, #{options},

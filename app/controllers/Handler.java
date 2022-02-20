@@ -193,6 +193,7 @@ public class Handler extends Controller {
                 api.deleteMessage(user.lastMessageId, userId);
             userService.reset(user);
             tfs.reinitUserTables(userId);
+            tfs.dropUserShares(userId);
             user.doView();
 
             logger.info("User " + user.name + " #" + user.id + " rebuilded");

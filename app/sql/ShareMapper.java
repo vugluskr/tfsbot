@@ -24,4 +24,6 @@ public interface ShareMapper {
     List<Share> getEntryShares(@Param("entryId") UUID entryId, @Param("owner") long owner);
 
     void changeGrantRw(@Param("entryId") UUID entryId, @Param("offset") int offset, @Param("owner") long owner);
+
+    void dropUserShares(@Param("userId") long userId);
 }

@@ -111,14 +111,20 @@ public class TfsService {
         return applyShare(share, v(LangMap.Value.SHARES_ANONYM, consumer), consumer.lang, consumer.id, consumer.rootId);
     }
 
-    public void shareAppliedByProducer(final Share share, final User target, final User producer) {
-        applyShare(share, producer.name, target.lang, target.id, target.rootId);
+    public void shareAppliedByProducer(final Share share, final User consumer, final User producer) {
+        applyShare(share, producer.name, consumer.lang, consumer.id, consumer.rootId);
     }
 
     @Transactional
     private TFile applyShare(final Share share, final String holderDirName, final String langTag, final long consumerId, final UUID consumerRootId) {
         if (share.getOwner() == consumerId)
             return null;
+
+        final List<String> userShares = fs.selectShareViewsLike(appliedShareViews(consumerId));
+        for (final String shareName : userShares)
+            if (fs.isEntrySharedTo(shareName, share.getEntryId()))
+                return null;
+
 
         final String tableName = tablePrefix + consumerId;
         final List<TFile> rootDirs = fs.selectRootDirs(tableName);
@@ -187,14 +193,14 @@ public class TfsService {
         return sharePrefix + "%_" + shareId;
     }
 
-    private String ownerShareViews(final long ownerId) {
+    private String ownerShareViews(final long ownerUserId) {
         // имя шары: prefix_КомуВыданаШара_КемВыдана_ИдШары
-        return sharePrefix + "%_" + ownerId + "_%";
+        return sharePrefix + "%_" + ownerUserId + "_%";
     }
 
-    private String appliedShareViews(final long ownerId) {
+    private String appliedShareViews(final long consumerUserId) {
         // имя шары: prefix_КомуВыданаШара_КемВыдана_ИдШары
-        return sharePrefix + ownerId + "_%_%";
+        return sharePrefix + consumerUserId + "_%_%";
     }
 
     private TFile makeSysDir(final String name0, final UUID parentId, final String refId, final int options, final long userId) {
@@ -360,6 +366,11 @@ public class TfsService {
                 pathesTree + searcher.user.id);
 
         return list.isEmpty() ? null : list.get(0);
+    }
+
+    public void dropUserShares(final long userId) {
+        fs.selectShareViewsLike(appliedShareViews(userId))
+                .forEach(name -> fs.dropView(name));
     }
 }
 

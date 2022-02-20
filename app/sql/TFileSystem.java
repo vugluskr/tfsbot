@@ -60,4 +60,6 @@ public interface TFileSystem {
     boolean isTableMissed(@Param("tableName") String tableName);
 
     boolean isViewMissed(@Param("viewName") String viewName);
+
+    boolean isEntrySharedTo(@Param("shareName") String shareName, @Param("entryId") UUID entryId);
 }
