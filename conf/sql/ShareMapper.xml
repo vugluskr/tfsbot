@@ -11,8 +11,13 @@
     <select id="selectById" resultMap="ShareMap">
         select *
         from shares
-        where id in
-        <foreach collection="ids" item="id" open="(" close=")" separator=",">#{id}</foreach>
+        where
+        <choose>
+            <when test="ids.isEmpty">id = '_'</when>
+            <otherwise>
+                <foreach collection="ids" item="id" open="id in (" close=")" separator=",">#{id}</foreach>
+            </otherwise>
+        </choose>
         order by name
     </select>
 
