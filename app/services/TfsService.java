@@ -441,6 +441,7 @@ public class TfsService {
 
         fs.dropView(sharePrefix + user.id + "_" + share.getOwner() + "_" + share.getId());
         fs.createFsView(userFsPrefix + user.id, user.id, tablePrefix + user.id, fs.selectShareViewsLike(sharesByConsumer(user.id)));
+        fs.createFsTree(pathesTree + user.id, userFsPrefix + user.id);
     }
 
     public static class ShareView {
