@@ -1,6 +1,6 @@
 name := "tfs"
 
-version := "1.1"
+version := "1.2"
 maintainer := "denis@danilin.name"
 
 lazy val `tfs` = (project in file(".")).enablePlugins(PlayMinimalJava)
@@ -8,8 +8,6 @@ lazy val `tfs` = (project in file(".")).enablePlugins(PlayMinimalJava)
 javacOptions ++= Seq("-Xlint:all")
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
-resolvers += ("logdoc" at "http://archiva.jwebhelp.ru/repository/logdoc-common").withAllowInsecureProtocol(true)
-resolvers += Resolver.mavenLocal
 
 scalaVersion := "2.12.8"
 

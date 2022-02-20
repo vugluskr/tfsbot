@@ -7,19 +7,8 @@
         </encoder>
     </appender>
 
-    <appender class="ru.gang.logdoc.appenders.LogdocUdpAppender" name="LOGDOC">
-        <host>localhost</host>
-        <port>5455</port>
-    </appender>
-
-<!--    <appender class="ru.gang.logdoc.appenders.LogdocTcpAppender" name="LOGDOC">-->
-<!--        <host>localhost</host>-->
-<!--        <port>5456</port>-->
-<!--    </appender>-->
-
-    <root level="DEBUG">
+    <root level="WARN">
         <appender-ref ref="STDOUT"/>
-        <appender-ref ref="LOGDOC"/>
     </root>
 
 </configuration>
