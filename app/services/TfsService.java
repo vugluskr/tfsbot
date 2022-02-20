@@ -169,7 +169,7 @@ public class TfsService {
 
         // имя шары: fs_share_КомуВыданаШара_КемВыдана_ИдШары
         //           0 _ 1   _ 2            _ 3       _ 4
-        final Map<Long, List<String>> byConsumers = shareApplies.stream().collect(Collectors.groupingBy(shareName -> getLong(shareName.split(Pattern.quote("_"))[2])));
+        final Map<Long, List<String>> byConsumers = shareApplies.stream().collect(Collectors.groupingBy(shareName -> new ShareView(shareName).sharedToId));
 
         byConsumers.forEach((consumerId, value) -> {
             value.forEach(name -> fs.dropView(name));
@@ -380,7 +380,7 @@ public class TfsService {
         return (int) Stream
                 .concat(
                         shared.getDirectSharesByConsumerId(userId).stream(),
-                        shared.selectById(fs.selectShareViewsLike(sharesByConsumer(userId)).stream().map(shareName -> shareName.split(Pattern.quote("_"))[3]).collect(Collectors.toList())).stream()
+                        shared.selectById(fs.selectShareViewsLike(sharesByConsumer(userId)).stream().map(shareName -> new ShareView(shareName).shareId).collect(Collectors.toList())).stream()
                        )
                 .distinct()
                 .count();
@@ -390,7 +390,7 @@ public class TfsService {
         final List<Share> all = Stream
                 .concat(
                         shared.getDirectSharesByConsumerId(userId).stream(),
-                        shared.selectById(fs.selectShareViewsLike(sharesByConsumer(userId)).stream().map(shareName -> shareName.split(Pattern.quote("_"))[3]).collect(Collectors.toList())).stream()
+                        shared.selectById(fs.selectShareViewsLike(sharesByConsumer(userId)).stream().map(shareName -> new ShareView(shareName).shareId).collect(Collectors.toList())).stream()
                        )
                 .distinct()
                 .skip(offset)
@@ -417,7 +417,7 @@ public class TfsService {
         return Stream
                 .concat(
                         shared.getDirectSharesByConsumerId(userId).stream(),
-                        shared.selectById(fs.selectShareViewsLike(sharesByConsumer(userId)).stream().map(shareName -> shareName.split(Pattern.quote("_"))[3]).collect(Collectors.toList())).stream()
+                        shared.selectById(fs.selectShareViewsLike(sharesByConsumer(userId)).stream().map(shareName -> new ShareView(shareName).shareId).collect(Collectors.toList())).stream()
                        )
                 .distinct()
                 .skip(gearer.offset)
@@ -441,6 +441,20 @@ public class TfsService {
 
         fs.dropView(sharePrefix + user.id + "_" + share.getOwner() + "_" + share.getId());
         fs.createFsView(userFsPrefix + user.id, user.id, tablePrefix + user.id, fs.selectShareViewsLike(sharesByConsumer(user.id)));
+    }
+
+    public static class ShareView {
+        public final long sharedById, sharedToId;
+        public final String shareId;
+
+        public ShareView(final String viewName) {
+            // имя шары: prefix_КомуВыданаШара_КемВыдана_ИдШары
+            final String[] parts = viewName.replace(sharePrefix, "").split("_");
+
+            sharedToId = getLong(parts[0]);
+            sharedById = getLong(parts[1]);
+            shareId = notNull(parts[2]);
+        }
     }
 }
 
