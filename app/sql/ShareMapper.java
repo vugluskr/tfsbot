@@ -3,6 +3,7 @@ package sql;
 import model.Share;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,7 +15,7 @@ import java.util.UUID;
 public interface ShareMapper {
     boolean isIdAvailable(@Param("id") String id);
     void insertShare(@Param("share") Share share);
-    void dropShare(@Param("id") String id, @Param("owner") long owner);
+    void dropShare(@Param("id") String id);
     boolean isShareExists(@Param("entryId") UUID entryId, @Param("sharedTo") long sharedTo, @Param("owner") long owner);
     Share selectPublicShare(@Param("id") String id);
     List<Share> selectEntryGrants(@Param("entryId") UUID entryId, @Param("offset") int offset, @Param("limit") int limit, @Param("owner") long owner);
@@ -25,5 +26,6 @@ public interface ShareMapper {
 
     void changeGrantRw(@Param("entryId") UUID entryId, @Param("offset") int offset, @Param("owner") long owner);
 
-    void dropUserShares(@Param("userId") long userId);
+    List<Share> selectById(@Param("ids") List<String> ids);
+    List<Share> getDirectSharesByConsumerId(@Param("userId") long userId);
 }

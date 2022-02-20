@@ -20,6 +20,7 @@ import javax.inject.Inject;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static utils.LangMap.v;
 import static utils.TextUtils.*;
@@ -86,17 +87,19 @@ public class TfsService {
                 break;
         }
 
-        final Share nShare = new Share();
-        nShare.setName(name);
-        nShare.setId(tmp);
-        nShare.setOwner(user.id);
-        nShare.setEntryId(entryId);
-        nShare.setSharedTo(sharedTo == null ? 0 : sharedTo.id);
+        final Share share = new Share();
+        share.setName(name);
+        share.setId(tmp);
+        share.setOwner(user.id);
+        share.setEntryId(entryId);
+        share.setSharedTo(sharedTo == null ? 0 : sharedTo.id);
 
-        shared.insertShare(nShare);
+        shared.insertShare(share);
 
-        if (sharedTo != null)
-            shareAppliedByProducer(nShare, sharedTo, user);
+        if (sharedTo != null) {
+            share.setFromName(user.name);
+            shareAppliedByProducer(share, sharedTo, user);
+        }
     }
 
     public void updateMeta(final TFile file, final User user) {
@@ -105,7 +108,7 @@ public class TfsService {
     }
 
     public TFile applyShareByLink(final Share share, final User consumer) {
-        if (!share.isGlobal())
+        if (share.isPersonal())
             return null;
 
         return applyShare(share, v(LangMap.Value.SHARES_ANONYM, consumer), consumer.lang, consumer.id, consumer.rootId);
@@ -120,7 +123,7 @@ public class TfsService {
         if (share.getOwner() == consumerId)
             return null;
 
-        final List<String> userShares = fs.selectShareViewsLike(appliedShareViews(consumerId));
+        final List<String> userShares = fs.selectShareViewsLike(sharesByConsumer(consumerId));
         for (final String shareName : userShares)
             if (fs.isEntrySharedTo(shareName, share.getEntryId()))
                 return null;
@@ -152,25 +155,25 @@ public class TfsService {
                 shareHolder.getId().toString(),
                 tablePrefix + share.getOwner());
 
-        fs.createFsView(userFsPrefix + consumerId, consumerId, tablePrefix + consumerId, fs.selectShareViewsLike(appliedShareViews(consumerId)));
+        fs.createFsView(userFsPrefix + consumerId, consumerId, tablePrefix + consumerId, fs.selectShareViewsLike(sharesByConsumer(consumerId)));
 
         return shareHolder;
     }
 
     @Transactional
     public void shareRemoved(final Share share) {
-        final List<String> shareViews = fs.selectShareViewsLike(shareSharesViews(share.getId()));
+        final List<String> shareApplies = fs.selectShareViewsLike(sharesByEntry(share.getId()));
 
-        if (shareViews.isEmpty())
+        if (shareApplies.isEmpty())
             return;
 
         // имя шары: fs_share_КомуВыданаШара_КемВыдана_ИдШары
         //           0 _ 1   _ 2            _ 3       _ 4
-        final Map<Long, List<String>> byConsumers = shareViews.stream().collect(Collectors.groupingBy(name -> getLong(name.split(Pattern.quote("_"))[2])));
+        final Map<Long, List<String>> byConsumers = shareApplies.stream().collect(Collectors.groupingBy(shareName -> getLong(shareName.split(Pattern.quote("_"))[2])));
 
-        byConsumers.forEach((key, value) -> {
+        byConsumers.forEach((consumerId, value) -> {
             value.forEach(name -> fs.dropView(name));
-            fs.createFsView(userFsPrefix + key, key, tablePrefix + key, fs.selectShareViewsLike(ownerShareViews(key)));
+            fs.createFsView(userFsPrefix + consumerId, consumerId, tablePrefix + consumerId, fs.selectShareViewsLike(sharesByConsumer(consumerId)));
         });
     }
 
@@ -188,19 +191,19 @@ public class TfsService {
         return entries.getEntry(uuid, userFsPrefix + file.getOwner(), pathesTree + file.getOwner());
     }
 
-    private String shareSharesViews(final String shareId) {
+    private String sharesByEntry(final String shareId) {
         // имя шары: prefix_КомуВыданаШара_КемВыдана_ИдШары
         return sharePrefix + "%_" + shareId;
     }
 
-    private String ownerShareViews(final long ownerUserId) {
+    private String sharesByProvider(final long sharedByUserId) {
         // имя шары: prefix_КомуВыданаШара_КемВыдана_ИдШары
-        return sharePrefix + "%_" + ownerUserId + "_%";
+        return sharePrefix + "%_" + sharedByUserId + "_%";
     }
 
-    private String appliedShareViews(final long consumerUserId) {
+    private String sharesByConsumer(final long sharedToUserId) {
         // имя шары: prefix_КомуВыданаШара_КемВыдана_ИдШары
-        return sharePrefix + consumerUserId + "_%_%";
+        return sharePrefix + sharedToUserId + "_%_%";
     }
 
     private TFile makeSysDir(final String name0, final UUID parentId, final String refId, final int options, final long userId) {
@@ -279,8 +282,8 @@ public class TfsService {
         return entries.lsDirContent(dirId, offset, limit, userFsPrefix + userId, pathesTree + userId);
     }
 
-    public List<TFile> gearFolder(final UUID dirId, final DirGearer gearer) {
-        return entries.gearDirContent(dirId, gearer.offset, 10, userFsPrefix + gearer.user.id, pathesTree + gearer.user.id);
+    public List<TFile> gearFolder(final UUID dirId, final long userId, final int offset, final int limit) {
+        return entries.gearDirContent(dirId, offset, limit, userFsPrefix + userId, pathesTree + userId);
     }
 
     public int countFolder(final UUID dirId, final long userId) {
@@ -334,7 +337,7 @@ public class TfsService {
             return;
 
         shareRemoved(grants.get(0));
-        shared.dropShare(grants.get(0).getId(), owner.user.id);
+        shared.dropShare(grants.get(0).getId());
     }
 
     public void changeEntryGrantRw(final UUID entryId, final int idx, final Sharer owner) {
@@ -369,8 +372,75 @@ public class TfsService {
     }
 
     public void dropUserShares(final long userId) {
-        fs.selectShareViewsLike(appliedShareViews(userId))
+        fs.selectShareViewsLike(sharesByConsumer(userId))
                 .forEach(name -> fs.dropView(name));
+    }
+
+    public int countGearShares(final long userId) {
+        return (int) Stream
+                .concat(
+                        shared.getDirectSharesByConsumerId(userId).stream(),
+                        shared.selectById(fs.selectShareViewsLike(sharesByConsumer(userId)).stream().map(shareName -> shareName.split(Pattern.quote("_"))[3]).collect(Collectors.toList())).stream()
+                       )
+                .distinct()
+                .count();
+    }
+
+    public List<TFile> gearShares(final long userId, final String langTag, final int offset, final int limit) {
+        final List<Share> all = Stream
+                .concat(
+                        shared.getDirectSharesByConsumerId(userId).stream(),
+                        shared.selectById(fs.selectShareViewsLike(sharesByConsumer(userId)).stream().map(shareName -> shareName.split(Pattern.quote("_"))[3]).collect(Collectors.toList())).stream()
+                       )
+                .distinct()
+                .skip(offset)
+                .limit(limit)
+                .collect(Collectors.toList());
+
+        if (isEmpty(all))
+            return Collections.emptyList();
+
+        return all.stream()
+                .map(share -> {
+                    final TFile tf = new TFile();
+                    tf.setType(ContentType.LABEL);
+                    tf.setName(share.isPersonal()
+                            ? notNull(share.getFromName(), "user #" + share.getOwner()) + " => " + share.getName()
+                            : LangMap.v(LangMap.Value.SHARES_ANONYM, langTag) + " => " + share.getName());
+
+                    return tf;
+                })
+                .collect(Collectors.toList());
+    }
+
+    public Share getGearShareEntry(final long userId, final int elementIdx, final DirGearer gearer) {
+        return Stream
+                .concat(
+                        shared.getDirectSharesByConsumerId(userId).stream(),
+                        shared.selectById(fs.selectShareViewsLike(sharesByConsumer(userId)).stream().map(shareName -> shareName.split(Pattern.quote("_"))[3]).collect(Collectors.toList())).stream()
+                       )
+                .distinct()
+                .skip(gearer.offset)
+                .limit(10)
+                .collect(Collectors.toList()).get(elementIdx);
+    }
+
+    public Share getShare(final String shareId) {
+        final List<Share> list = shared.selectById(Collections.singletonList(shareId));
+        return isEmpty(list) ? null : list.get(0);
+    }
+
+    public void unshareFromMe(final String shareId, final User user) {
+        final Share share = getShare(shareId);
+
+        if (share == null)
+            return;
+
+        if (share.isPersonal())
+            shared.dropShare(shareId);
+
+        fs.dropView(sharePrefix + user.id + "_" + share.getOwner() + "_" + share.getId());
+        fs.createFsView(userFsPrefix + user.id, user.id, tablePrefix + user.id, fs.selectShareViewsLike(sharesByConsumer(user.id)));
     }
 }
 

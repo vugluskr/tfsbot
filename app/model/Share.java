@@ -1,5 +1,6 @@
 package model;
 
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -7,7 +8,7 @@ import java.util.UUID;
  * 24.05.2020
  * tfs ☭ sweat and blood
  */
-public class Share {
+public class Share implements Comparable<Share> {
     private String id;
 
     private String name, fromName;
@@ -64,8 +65,8 @@ public class Share {
         this.entryId = entryId;
     }
 
-    public boolean isGlobal() {
-        return sharedTo == 0;
+    public boolean isPersonal() {
+        return sharedTo > 0;
     }
 
     public long getSharedTo() {
@@ -74,5 +75,26 @@ public class Share {
 
     public void setSharedTo(final long sharedTo) {
         this.sharedTo = sharedTo;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final Share share = (Share) o;
+        return owner == share.owner && sharedTo == share.sharedTo && id.equals(share.id) && entryId.equals(share.entryId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, entryId, owner, sharedTo);
+    }
+
+    @Override
+    public int compareTo(final Share o) {
+        if (sharedTo != o.sharedTo)
+            return Long.compare(sharedTo, o.sharedTo);
+
+        return Integer.compare(hashCode(), o.hashCode());
     }
 }

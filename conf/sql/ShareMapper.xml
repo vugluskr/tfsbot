@@ -1,6 +1,21 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="sql.ShareMapper">
+    <select id="getDirectSharesByConsumerId" resultMap="ShareMap">
+        select *
+        from shares
+        where shared_to = #{userId}
+        order by name
+    </select>
+
+    <select id="selectById" resultMap="ShareMap">
+        select *
+        from shares
+        where id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">#{id}</foreach>
+        order by name
+    </select>
+
     <select id="selectEntryGrants" resultMap="ShareMap">
         select *
         from shares

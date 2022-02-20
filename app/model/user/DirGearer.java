@@ -59,7 +59,13 @@ public class DirGearer extends APager<TFile> {
                     us.morphTo(DirViewer.class, user).doView();
                     break;
                 case openLabel:
-                    us.morphTo(LabelViewer.class, user).doView(tfs.getGearEntry(entryId, command.elementIdx, this));
+                    if (dir == null)
+                        dir = tfs.get(entryId, user);
+
+                    if (dir.isSharesRoot())
+                        us.morphTo(ShareViewer.class, user).doView(tfs.getGearShareEntry(user.id, command.elementIdx, this));
+                    else
+                        us.morphTo(LabelViewer.class, user).doView(tfs.getGearEntry(entryId, command.elementIdx, this));
                     break;
                 case Void:
                     user.doView();
@@ -82,6 +88,9 @@ public class DirGearer extends APager<TFile> {
         if (dir == null)
             dir = tfs.get(entryId, user);
 
+        if (dir.isSharesRoot())
+            return tfs.countGearShares(user.id);
+
         return tfs.countDirLabels(entryId, user.id);
     }
 
@@ -92,7 +101,10 @@ public class DirGearer extends APager<TFile> {
 
     @Override
     protected List<TFile> selectScope(final int offset, final int limit) {
-        return tfs.gearFolder(entryId, this);
+        if (dir.isSharesRoot())
+            return tfs.gearShares(user.id, user.lang, offset, limit);
+
+        return tfs.gearFolder(entryId, user.id, offset, limit);
     }
 
     @Override
@@ -104,7 +116,7 @@ public class DirGearer extends APager<TFile> {
     protected TgApi.Keyboard initKeyboard() {
         final TgApi.Keyboard kbd = new TgApi.Keyboard();
 
-        if (isDeep()) {
+        if (isDeep() && !dir.isSharesRoot()) {
             if (dir.getOwner() == user.id) {
                 kbd.button(dir.isLocked() ? CommandType.unlock.b() : CommandType.lock.b());
                 kbd.button(CommandType.share.b());
