@@ -20,7 +20,7 @@ import static utils.TextUtils.escapeMd;
  * tfs ☭ sweat and blood
  */
 public class ShareViewer extends ARole implements CallbackSink {
-    private static final Logger.ALogger logger = Logger.of(LabelViewer.class);
+    private static final Logger.ALogger logger = Logger.of(ShareViewer.class);
 
     private String shareId;
 

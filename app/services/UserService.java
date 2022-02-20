@@ -36,6 +36,7 @@ public class UserService {
             map.put(LabelEditor.class.getName(), LabelEditor.class.getDeclaredConstructor(TgApi.class, TfsService.class, UserService.class, JsonNode.class));
             map.put(LabelMaker.class.getName(), LabelMaker.class.getDeclaredConstructor(TgApi.class, TfsService.class, UserService.class, JsonNode.class));
             map.put(LabelViewer.class.getName(), LabelViewer.class.getDeclaredConstructor(TgApi.class, TfsService.class, UserService.class, JsonNode.class));
+            map.put(ShareViewer.class.getName(), ShareViewer.class.getDeclaredConstructor(TgApi.class, TfsService.class, UserService.class, JsonNode.class));
             map.put(Locker.class.getName(), Locker.class.getDeclaredConstructor(TgApi.class, TfsService.class, UserService.class, JsonNode.class));
             map.put(Renamer.class.getName(), Renamer.class.getDeclaredConstructor(TgApi.class, TfsService.class, UserService.class, JsonNode.class));
             map.put(Searcher.class.getName(), Searcher.class.getDeclaredConstructor(TgApi.class, TfsService.class, UserService.class, JsonNode.class));
