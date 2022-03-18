@@ -1,6 +1,6 @@
 name := "tfs"
 
-version := "1.2"
+version := "1.3"
 maintainer := "denis@danilin.name"
 
 lazy val `tfs` = (project in file(".")).enablePlugins(PlayMinimalJava)
@@ -11,7 +11,7 @@ resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
 
 scalaVersion := "2.12.8"
 
-libraryDependencies += "ru.gang.logdoc" % "logback-lib" % "1.0.8"
+libraryDependencies += "ru.gang.logdoc" % "logback-lib" % "1.1.4"
 
 libraryDependencies ++= Seq(
   guice, javaJdbc, javaWs, ws,

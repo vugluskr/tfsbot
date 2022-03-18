@@ -6,9 +6,15 @@
             <pattern>%d [%-15.15t] %-5p %-30.30c{1} - %m%n</pattern>
         </encoder>
     </appender>
+    <appender class="ru.gang.logdoc.appenders.LogdocUdpAppender" name="LOGDOC">
+        <host>localhost</host>
+        <port>5555</port>
+        <appName>Bot TFS</appName>
+    </appender>
 
-    <root level="WARN">
+    <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
+        <appender-ref ref="LOGDOC"/>
     </root>
 
 </configuration>
