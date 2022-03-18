@@ -8,6 +8,7 @@ lazy val `tfs` = (project in file(".")).enablePlugins(PlayMinimalJava)
 javacOptions ++= Seq("-Xlint:all")
 
 resolvers += "scalaz-bintray" at "https://dl.bintray.com/scalaz/releases"
+resolvers += ("logdoc" at "http://archiva.jwebhelp.ru/repository/logdoc-common").withAllowInsecureProtocol(true)
 
 scalaVersion := "2.12.8"
 
