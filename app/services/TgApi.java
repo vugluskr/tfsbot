@@ -19,6 +19,7 @@ import sql.TFileSystem;
 import utils.LangMap;
 import utils.TextUtils;
 
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -42,13 +43,15 @@ public class TgApi {
     private final WSClient ws;
     private final TFileSystem fs;
     private final MediaMessageMapper mediaMessageMapper;
+    public final OpdsService opds;
 
     @Inject
-    public TgApi(final Config config, final WSClient ws, final TFileSystem fs, final MediaMessageMapper mediaMessageMapper) {
+    public TgApi(final Config config, final WSClient ws, final TFileSystem fs, final MediaMessageMapper mediaMessageMapper, final OpdsService opds) {
         this.ws = ws;
         this.fs = fs;
         apiUrl = config.getString("service.bot.api_url");
         this.mediaMessageMapper = mediaMessageMapper;
+        this.opds = opds;
     }
 
     public CompletionStage<List<JsonNode>> getUpdates(Long lastId) {
@@ -312,6 +315,13 @@ public class TgApi {
             mediaMessageMapper.insertMessageId(reply.messageId, userId);
             return reply;
         });
+    }
+
+    public CompletionStage<JsonNode> upload(final File file) {
+        return ws.url(apiUrl + "sendDocument")
+                .setRequestFilter(new WsCurlLogger())
+                .post(file)
+                .thenApply(WSResponse::asJson);
     }
 
     private CompletionStage<Reply> doCall(final JsonNode node, final String partialUrl) {

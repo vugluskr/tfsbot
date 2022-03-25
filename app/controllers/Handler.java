@@ -109,6 +109,8 @@ public class Handler extends Controller {
                     handleUserRequest(user, u -> api.dialogUnescaped(u.doHelp(), u, TgApi.voidKbd), js);
                 else if (text.startsWith("/start shared-"))
                     handleUserRequest(user, u -> u.joinShare(notNull(text).substring(14)), js);
+                else if (text.startsWith("/opds"))
+                    handleUserRequest(user, u -> u.startOpds(notNull(text).substring(5)), js);
                 else
                     handleUserRequest(user, u -> u.onInput(text), js);
             } else {

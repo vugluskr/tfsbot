@@ -1,0 +1,85 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="sql.OpdsMapper">
+    <insert id="insertOpds">
+        insert into opds(title, url, updated)
+        VALUES (#{o.title}, #{o.url}, #{o.updated})
+    </insert>
+
+    <insert id="insertFolder">
+        insert into opds_folders(parent_id, opds_id, title, "desc", path, updated, tag)
+        VALUES (#{f.parentId}, #{f.opdsId}, #{f.title}, #{f.desc}, #{f.path}, #{f.updated}, #{f.tag})
+    </insert>
+
+    <insert id="insertBook">
+        insert into opds_books(opds_id, folder_id, updated, title, author, "desc", tag, fb_link, epub_link, ref_id)
+        VALUES (#{b.opdsId}, #{b.folderId}, #{b.updated}, #{b.title}, #{b.author}, #{b.desc}, #{b.tag}, #{b.fbLink}, #{b.epubLink}, #{b.refId})
+    </insert>
+
+    <update id="updateFolder">
+        update opds_folders
+        set desc    = #{f.desc},
+            title   = #{f.title},
+            path    = #{f.path},
+            updated = #{f.updated},
+            tag     = #{f.tag}
+        where id = #{f.id}
+    </update>
+
+    <update id="updateBook">
+        update opds_books
+        set updated   = #{b.update},
+            title     = #{b.title},
+            author    = #{b.author},
+            year      = #{b.year},
+            desc      = #{b.desc},
+            tag       = #{b.tag},
+            fb_link   = #{b.fbLink},
+            epub_link = #{b.epubLink},
+            ref_id    = #{b.refId}
+        where id = #{b.id}
+    </update>
+
+    <select id="opdsExhausted" resultType="boolean">
+        select exists(select 1 from opds where url = #{url} and updated &lt; #{time})
+    </select>
+
+    <select id="opdsExists" resultType="java.lang.Boolean">
+        select exists(select 1 from opds where url = #{url})
+    </select>
+    <select id="findRawOpdsByUrl" resultType="model.opds.Opds">
+        select id, title, url, updated
+        from opds
+        where url = #{url}
+    </select>
+
+    <select id="selectChilds" resultType="model.opds.Folder">
+        select id,
+               parent_id as "parentId",
+               opds_id   as "opdsId",
+               title,
+               "desc",
+               path,
+               updated,
+               tag
+        from opds_folders
+        where parent_id = #{id}
+    </select>
+
+    <select id="selectBooks" resultType="model.opds.Book">
+        select id,
+               opds_id   as "opdsId",
+               folder_id as "folderId",
+               updated,
+               title,
+               author,
+               year,
+               "desc",
+               tag,
+               fb_link   as "fbLink",
+               epub_link as "epubLink",
+               ref_id    as "refId"
+        from opds_books
+        where folder_id = #{id}
+    </select>
+</mapper>

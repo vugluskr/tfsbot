@@ -71,6 +71,7 @@ public final class User {
         return data;
     }
 
+
     public void joinShare(final String id) {
         ((ARole) role).joinShare(id);
     }
@@ -99,5 +100,11 @@ public final class User {
 
     public UUID entryId() {
         return ((ARole) role).entryId;
+    }
+
+    public void startOpds(final String parts) {
+        final String[] partz = parts.split("\\s");
+
+        ((ARole) role).api.opds.requestOpds(partz[0], partz.length > 1 ? partz[1] : null, ((ARole) role).entryId, id);
     }
 }
