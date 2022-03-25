@@ -247,8 +247,8 @@ public class OpdsServiceImpl implements OpdsService {
         try {
             final URLConnection cn = new URL(url).openConnection();
 
-            cn.setDoInput(false);
-            cn.setDoOutput(true);
+            cn.setDoInput(true);
+            cn.setDoOutput(false);
 
             ((HttpURLConnection) cn).setRequestMethod("POST");
             ((HttpURLConnection) cn).setInstanceFollowRedirects(false);
