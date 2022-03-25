@@ -19,8 +19,8 @@ import java.util.UUID;
  */
 public abstract class ARole implements Role {
     protected final TfsService tfs;
-    public final TgApi api;
-    protected final UserService us;
+    protected final TgApi api;
+    public final UserService us;
 
     public UUID entryId;
     public User user;

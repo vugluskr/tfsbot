@@ -105,6 +105,6 @@ public final class User {
     public void startOpds(final String parts) {
         final String[] partz = parts.split("\\s");
 
-        ((ARole) role).api.opds.requestOpds(partz[0], partz.length > 1 ? partz[1] : null, ((ARole) role).entryId, id);
+        ((ARole) role).us.opds.requestOpds(partz[0], partz.length > 1 ? partz[1] : null, ((ARole) role).entryId, id);
     }
 }

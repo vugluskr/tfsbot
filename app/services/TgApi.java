@@ -43,15 +43,13 @@ public class TgApi {
     private final WSClient ws;
     private final TFileSystem fs;
     private final MediaMessageMapper mediaMessageMapper;
-    public final OpdsService opds;
 
     @Inject
-    public TgApi(final Config config, final WSClient ws, final TFileSystem fs, final MediaMessageMapper mediaMessageMapper, final OpdsService opds) {
+    public TgApi(final Config config, final WSClient ws, final TFileSystem fs, final MediaMessageMapper mediaMessageMapper) {
         this.ws = ws;
         this.fs = fs;
         apiUrl = config.getString("service.bot.api_url");
         this.mediaMessageMapper = mediaMessageMapper;
-        this.opds = opds;
     }
 
     public CompletionStage<List<JsonNode>> getUpdates(Long lastId) {
