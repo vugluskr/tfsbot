@@ -1,24 +1,24 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="sql.OpdsMapper">
-    <insert id="insertOpds">
+    <insert id="insertOpds" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
         insert into opds(title, url, updated)
         VALUES (#{o.title}, #{o.url}, #{o.updated})
     </insert>
 
-    <insert id="insertFolder">
+    <insert id="insertFolder" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
         insert into opds_folders(parent_id, opds_id, title, "desc", path, updated, tag)
         VALUES (#{f.parentId}, #{f.opdsId}, #{f.title}, #{f.desc}, #{f.path}, #{f.updated}, #{f.tag})
     </insert>
 
-    <insert id="insertBook">
+    <insert id="insertBook" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
         insert into opds_books(opds_id, folder_id, updated, title, author, "desc", tag, fb_link, epub_link, ref_id)
         VALUES (#{b.opdsId}, #{b.folderId}, #{b.updated}, #{b.title}, #{b.author}, #{b.desc}, #{b.tag}, #{b.fbLink}, #{b.epubLink}, #{b.refId})
     </insert>
 
     <update id="updateFolder">
         update opds_folders
-        set desc    = #{f.desc},
+        set "desc"  = #{f.desc},
             title   = #{f.title},
             path    = #{f.path},
             updated = #{f.updated},
@@ -32,7 +32,7 @@
             title     = #{b.title},
             author    = #{b.author},
             year      = #{b.year},
-            desc      = #{b.desc},
+            "desc"    = #{b.desc},
             tag       = #{b.tag},
             fb_link   = #{b.fbLink},
             epub_link = #{b.epubLink},

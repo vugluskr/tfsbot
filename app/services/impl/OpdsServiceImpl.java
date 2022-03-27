@@ -158,8 +158,6 @@ public class OpdsServiceImpl implements OpdsService {
         else
             mapper.insertFolder(f);
 
-        logger.debug("Got folder: " + f);
-
         handleFolder(f, opdsId, urler.apply(f.getPath()), urler);
     }
 
@@ -211,8 +209,6 @@ public class OpdsServiceImpl implements OpdsService {
                             mapper.updateBook(b);
                         else
                             mapper.insertBook(b);
-
-                        logger.debug("Got book: " + b);
                     } else
                         throw new IOException("Failed to upload book: " + Json.stringify(rpl));
                 } catch (IOException e) {
