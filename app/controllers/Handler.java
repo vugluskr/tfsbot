@@ -115,7 +115,7 @@ public class Handler extends Controller {
                 else if (text.startsWith("/start shared-"))
                     handleUserRequest(user, u -> u.joinShare(notNull(text).substring(14)), js);
                 else if (text.startsWith("/opds")) {
-                    final String[] parts = notNull(text).substring(5).split("\\s");
+                    final String[] parts = notNull(text).substring(5).trim().split("\\s");
                     final String url = notNull(parts[0]);
                     final String title = parts.length > 1 ? notNull(parts[1]) : null;
 
