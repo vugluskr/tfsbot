@@ -49,6 +49,10 @@ public class Xmls {
                 final Node child = el.getChildNodes().item(j);
 
                 switch (child.getNodeName()) {
+                    case "category":
+                    case "author":
+                    case "dc:format":
+                    case "dc:language":
                     case "dc:issued":
                         continue OUTER;
                     case "updated":
