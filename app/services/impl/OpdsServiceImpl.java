@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.sun.org.apache.xerces.internal.util.XMLChar;
 import model.ContentType;
 import model.TFile;
-import model.User;
 import model.opds.Book;
 import model.opds.Folder;
 import model.opds.Opds;

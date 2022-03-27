@@ -120,10 +120,12 @@ public class Handler extends Controller {
                     final String title = parts.length > 1 ? notNull(parts[1]) : null;
 
                     handleUserRequest(user, u -> {
-                        if (!isEmpty(url) && u.getRole() instanceof DirViewer && opdsService.requestOpds(url, title, u.entryId(), u.id, user.lang))
+                        if (!isEmpty(url) && tfs.get(u.entryId(), user).isDir() && opdsService.requestOpds(url, title, u.entryId(), u.id, user.lang))
                             api.dialog(LangMap.Value.OPDS_STARTED, u);
-                        else
+                        else {
+                            logger.debug(url + " :: " + title + " :: " + tfs.get(u.entryId(), user).isDir());
                             api.dialog(LangMap.Value.OPDS_FAILED, u);
+                        }
                     }, js);
                 } else
                     handleUserRequest(user, u -> u.onInput(text), js);
