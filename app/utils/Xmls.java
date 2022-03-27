@@ -22,7 +22,7 @@ import static utils.TextUtils.isEmpty;
  * tfs ☭ sweat and blood
  */
 public class Xmls {
-    public static Opds makeOpds(final String url, final String title, final Document document) {
+    public static Opds makeOpds(final String url, final Document document) {
         final Opds opds = new Opds();
 
         opds.setUrl(url);
@@ -30,8 +30,6 @@ public class Xmls {
         opds.setUpdated(LocalDateTime.parse(document.getElementsByTagName("updated").item(0).getTextContent(), DateTimeFormatter.ISO_OFFSET_DATE_TIME));
 
         opds.childs.addAll(getFolders(document.getElementsByTagName("entry")));
-        if (!isEmpty(title))
-            opds.setTitle(title);
 
         return opds;
     }

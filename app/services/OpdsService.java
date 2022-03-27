@@ -12,5 +12,5 @@ import java.util.UUID;
  */
 @ImplementedBy(OpdsServiceImpl.class)
 public interface OpdsService {
-    void requestOpds(String url, String title, UUID dir, long userId);
+    boolean requestOpds(String url, String title, UUID dir, long userId);
 }

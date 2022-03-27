@@ -18,26 +18,19 @@
 
     <update id="updateFolder">
         update opds_folders
-        set "desc"  = #{f.desc},
-            title   = #{f.title},
-            path    = #{f.path},
-            updated = #{f.updated},
-            tag     = #{f.tag}
-        where id = #{f.id}
+        set "desc"    = #{f.desc},
+            title     = #{f.title},
+            path      = #{f.path},
+            updated   = #{f.updated},
+            parent_id = #{f.parentId}
+        where opds_id = #{f.opdsId}
+          and tag = #{f.tag}
     </update>
 
-    <update id="updateBook">
-        update opds_books
-        set updated   = #{b.update},
-            title     = #{b.title},
-            author    = #{b.author},
-            year      = #{b.year},
-            "desc"    = #{b.desc},
-            tag       = #{b.tag},
-            fb_link   = #{b.fbLink},
-            epub_link = #{b.epubLink},
-            ref_id    = #{b.refId}
-        where id = #{b.id}
+    <update id="updateOpdsUpdated">
+        update opds
+        set updated = #{updated}
+        where url = #{url}
     </update>
 
     <select id="opdsExhausted" resultType="boolean">
@@ -81,5 +74,24 @@
                ref_id    as "refId"
         from opds_books
         where folder_id = #{id}
+    </select>
+    <select id="folderExists" resultType="java.lang.Boolean">
+        select exists(select 1 from opds_folders where tag = #{tag} and opds_id = #{opdsId})
+    </select>
+    <select id="bookMissed" resultType="java.lang.Boolean">
+        select not exists(select 1 from opds_books where opds_id = #{opdsId} and tag = #{tag})
+    </select>
+    <select id="selectOpdsChilds" resultType="model.opds.Folder">
+        select id,
+               parent_id as "parentId",
+               opds_id   as "opdsId",
+               title,
+               "desc",
+               path,
+               updated,
+               tag
+        from opds_folders
+        where parent_id = 0
+          and opds_id = #{opdsId}
     </select>
 </mapper>

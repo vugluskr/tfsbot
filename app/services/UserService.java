@@ -62,9 +62,6 @@ public class UserService {
     @Inject
     private Config config;
 
-    @Inject
-    public OpdsService opds;
-
     public String getBotName() {
         return config.getString("service.bot.nick");
     }

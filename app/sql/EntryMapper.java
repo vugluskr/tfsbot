@@ -29,6 +29,8 @@ public interface EntryMapper {
 
     TFile getEntry(@Param("id") UUID id, @Param("v1") String v1, @Param("v2") String v2);
 
+    TFile findEntry(@Param("id") UUID id, @Param("name") String name, @Param("v1") String v1, @Param("v2") String v2);
+
     void rmList(@Param("uuids") List<UUID> uuids, @Param("t") String t);
 
     List<TFile> getTree(@Param("id") UUID id, @Param("v1") String v1);

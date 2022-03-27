@@ -2,22 +2,24 @@ package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import model.*;
+import model.user.DirViewer;
 import model.user.ShareGranter;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
+import services.OpdsService;
 import services.TfsService;
 import services.TgApi;
 import services.UserService;
+import utils.LangMap;
 
 import javax.inject.Inject;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import static utils.TextUtils.getInt;
-import static utils.TextUtils.notNull;
+import static utils.TextUtils.*;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -36,6 +38,9 @@ public class Handler extends Controller {
 
     @Inject
     private TfsService tfs;
+
+    @Inject
+    private OpdsService opdsService;
 
     public Result get() {
         return ok();
@@ -109,9 +114,18 @@ public class Handler extends Controller {
                     handleUserRequest(user, u -> api.dialogUnescaped(u.doHelp(), u, TgApi.voidKbd), js);
                 else if (text.startsWith("/start shared-"))
                     handleUserRequest(user, u -> u.joinShare(notNull(text).substring(14)), js);
-                else if (text.startsWith("/opds"))
-                    handleUserRequest(user, u -> u.startOpds(notNull(text).substring(5)), js);
-                else
+                else if (text.startsWith("/opds")) {
+                    final String[] parts = notNull(text).substring(5).split("\\s");
+                    final String url = notNull(parts[0]);
+                    final String title = parts.length > 1 ? notNull(parts[1]) : null;
+
+                    handleUserRequest(user, u -> {
+                        if (!isEmpty(url) && u.getRole() instanceof DirViewer && opdsService.requestOpds(url, title, u.entryId(), u.id))
+                            api.dialogUnescaped(LangMap.Value.OPDS_STARTED, u, TgApi.voidKbd);
+                        else
+                            api.dialogUnescaped(LangMap.Value.OPDS_FAILED, u, TgApi.voidKbd);
+                    }, js);
+                } else
                     handleUserRequest(user, u -> u.onInput(text), js);
             } else {
                 final JsonNode attachNode;

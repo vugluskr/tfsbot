@@ -4,28 +4,26 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.sun.org.apache.xerces.internal.util.XMLChar;
 import model.ContentType;
 import model.TFile;
+import model.User;
 import model.opds.Book;
 import model.opds.Folder;
 import model.opds.Opds;
 import org.w3c.dom.Document;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 import play.Logger;
 import play.libs.Json;
 import services.OpdsService;
 import services.TfsService;
 import services.TgApi;
+import services.UserService;
 import sql.OpdsMapper;
+import utils.LangMap;
 import utils.TFileFactory;
 import utils.Xmls;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -41,7 +39,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static utils.TextUtils.*;
+import static utils.TextUtils.isEmpty;
+import static utils.TextUtils.notNull;
 
 /**
  * @author Denis Danilin | me@loslobos.ru
@@ -63,21 +62,41 @@ public class OpdsServiceImpl implements OpdsService {
     @Inject
     private TfsService tfs;
 
+    @Inject
+    private UserService userService;
+
     @Override
-    public void requestOpds(final String url, final String title, final UUID rootId, final long userId) {
+    public boolean requestOpds(final String url0, final String title, final UUID rootId, final long userId) {
+        String url = null;
+        final URL base;
+        try {
+            base = new URL(url0);
+        } catch (final Exception e) {
+            return false;
+        }
+
+        try {url = new URL(base.getProtocol(), base.getHost(), base.getPort(), base.getPath()).toExternalForm();} catch (final Exception ignore) {}
+
+        if (url == null)
+            return false;
+
         waitQueues.putIfAbsent(url, new HashSet<>());
         waitQueues.get(url).add(new UserWait(userId, rootId, title));
 
         if (beingProcessed.contains(url))
-            return;
+            return true;
 
         if (mapper.opdsExists(url))
             if (mapper.opdsExhausted(url, LocalDateTime.now().minus(6, ChronoUnit.MONTHS)))
-                doOpds(url, title);
-            else
-                sync2users(url);
+                doOpds(url);
+            else {
+                final String finalUrl = url;
+                CompletableFuture.runAsync(() -> sync2users(finalUrl));
+            }
         else
-            doOpds(url, title);
+            doOpds(url);
+
+        return true;
     }
 
     private void sync2users(final String url) {
@@ -85,30 +104,70 @@ public class OpdsServiceImpl implements OpdsService {
 
         final Set<UserWait> waits = waitQueues.remove(url);
 
-        waits.forEach(uw -> {
-            final UUID parent = uw.dirId;
+        if (opds == null || isEmpty(waits))
+            return;
 
-            opds.childs.forEach(f -> fs(f, uw, parent));
-        });
+        for (final UserWait userWait : waits)
+            try {
+                TFile dir = tfs.find(userWait.dirId, notNull(userWait.title, opds.getTitle()), userWait.userId);
+                if (dir == null)
+                    dir = tfs.mk(TFileFactory.dir(notNull(userWait.title, opds.getTitle()), userWait.dirId, userWait.userId));
+
+                childs2fs(dir, mapper.selectOpdsChilds(opds.getId()), Collections.emptyList());
+
+                final User user = userService.resolveUser(userWait.userId, "", "");
+                api.dialogUnescaped(LangMap.Value.OPDS_DONE, user, TgApi.voidKbd, userWait.title);
+            } catch (final Exception e) {
+                logger.error(userWait + " :: " + e.getMessage(), e);
+            }
+
     }
 
-    private void fs(final Folder f, final UserWait uw, final UUID rootId) {
-        final TFile dir = tfs.mk(TFileFactory.dir(f.getTitle(), rootId, uw.userId));
+    private void childs2fs(final TFile parent, final List<Folder> folders, final List<Book> books) {
+        final Map<Long, UUID> togo = new HashMap<>(0);
 
-        mapper.selectChilds(f.getId()).forEach(sub -> fs(sub, uw, dir.getId()));
-        mapper.selectBooks(f.getId()).forEach(b -> {
-            final TFile file = new TFile();
-            file.setOwner(uw.userId);
-            file.setId(generateUuid());
-            file.setName(b.getTitle());
-            file.setParentId(dir.getId());
-            file.setType(ContentType.DOCUMENT);
+        for (final Folder sub : folders)
+            if (!isEmpty(sub.getTitle()))
+                try {
+                    TFile dir = tfs.find(parent.getId(), notNull(sub.getTitle()), parent.getOwner());
+                    if (dir == null)
+                        dir = tfs.mk(TFileFactory.dir(notNull(sub.getTitle()), parent.getId(), parent.getOwner()));
 
-            tfs.mk(file);
-        });
+                    togo.put(sub.getId(), dir.getId());
+                } catch (final Exception e) {
+                    logger.error("User #" + parent.getOwner() + " Folder #" + sub.getId() + " '" + sub.getTitle() + "' :: " + e.getMessage(), e);
+                }
+
+        for (final Book book : books)
+            try {
+                if (!isEmpty(book.getEpubLink()) && tfs.entryMissed(book.getTitle() + " [EPUB]", parent.getId(), parent.getOwner()))
+                    makeTFile(book.getTitle() + " [EPUB]", book.getEpubLink(), parent.getId(), parent.getOwner());
+
+                if (!isEmpty(book.getFbLink()) && tfs.entryMissed(book.getTitle() + " [FB2]", parent.getId(), parent.getOwner()))
+                    makeTFile(book.getTitle() + " [FB2]", book.getFbLink(), parent.getId(), parent.getOwner());
+            } catch (final Exception e) {
+                logger.error("User #" + parent.getOwner() + " Book #" + book.getId() + " '" + book.getTitle() + "' :: " + e.getMessage(), e);
+            }
+
+        togo.forEach((folderId, dirId) ->
+                childs2fs(
+                        tfs.get(dirId, parent.getOwner()),
+                        mapper.selectChilds(folderId),
+                        mapper.selectBooks(folderId)));
     }
 
-    private void doOpds(final String url, final String title) {
+    private void makeTFile(final String title, final String refId, final UUID parentDirId, final long owner) {
+        final TFile file = new TFile();
+        file.setOwner(owner);
+        file.setName(title);
+        file.setParentId(parentDirId);
+        file.setType(ContentType.DOCUMENT);
+        file.setRefId(refId);
+
+        tfs.mk(file);
+    }
+
+    private void doOpds(final String url) {
         final URL base;
         try {
             base = new URL(url);
@@ -128,21 +187,20 @@ public class OpdsServiceImpl implements OpdsService {
         beingProcessed.add(url);
         CompletableFuture.runAsync(() -> {
             try {
-                final Document doc = getXml(base.toExternalForm());
+                final Document doc = getXml(url);
 
-                final Opds opds = Xmls.makeOpds(url, title, doc);
+                final Opds opds = Xmls.makeOpds(url, doc);
 
-                opds.childs.addAll(Xmls.getFolders(doc.getElementsByTagName("entry")));
+                if (!mapper.opdsExists(url))
+                    mapper.insertOpds(opds);
 
-                if (isEmpty(opds.childs)) {
-                    logger.warn("OPDS " + url + " doesnt have folders");
-                    return;
-                }
+                processChilds(opds.getId(), 0,
+                        Xmls.getFolders(doc.getElementsByTagName("entry")),
+                        Xmls.getBooks(doc.getElementsByTagName("entry")),
+                        urler
+                             );
 
-                mapper.insertOpds(opds);
-
-                for (final Folder f : opds.childs)
-                    saveProcessFolder(f, opds.getId(), urler);
+                mapper.updateOpdsUpdated(url, LocalDateTime.now());
             } catch (final Exception e) {
                 logger.error(e.getMessage(), e);
             } finally {
@@ -153,72 +211,62 @@ public class OpdsServiceImpl implements OpdsService {
         });
     }
 
-    private void saveProcessFolder(final Folder f, final int opdsId, final Function<String, String> urler) throws ParserConfigurationException, IOException, SAXException {
-        f.setOpdsId(opdsId);
-        if (f.getId() > 0)
-            mapper.updateFolder(f);
-        else
-            mapper.insertFolder(f);
+    private void processChilds(final int opdsId, final long parentFolderId, final Collection<Folder> subfolders, final Collection<Book> books, final Function<String, String> urler) {
+        subfolders.forEach(f -> {
+            f.setOpdsId(opdsId);
+            f.setParentId(parentFolderId);
+            f.setUpdated(LocalDateTime.now());
 
-        handleFolder(f, opdsId, urler.apply(f.getPath()), urler);
-    }
+            if (mapper.folderExists(opdsId, f.getTag()))
+                mapper.updateFolder(f);
+            else
+                mapper.insertFolder(f);
+        });
 
-    private void handleFolder(final Folder f, final int opdsId, final String url, final Function<String, String> urler) throws ParserConfigurationException, IOException, SAXException {
-        if (url == null)
-            return;
-
-        final Document doc = getXml(url);
-        f.mergeChilds(Xmls.getFolders(doc.getElementsByTagName("entry")));
-        f.mergeBooks(Xmls.getBooks(doc.getElementsByTagName("entry")));
-
-        final NodeList links = doc.getElementsByTagName("link");
-
-        for (int i = 0; i < links.getLength(); i++) {
-            final Node linkNode = links.item(i);
-            final NamedNodeMap attrs = linkNode.getAttributes();
-
-            String href = "";
-            boolean next = false;
-
-            for (int j = 0; j < attrs.getLength(); j++) {
-                final Node a = attrs.item(j);
-
-                if (a.getNodeName().equals("rel"))
-                    next = a.getNodeValue().equals("next");
-                else if (a.getNodeName().equals("href"))
-                    href = a.getNodeValue();
-            }
-
-            if (next && !isEmpty(href)) {
-                handleFolder(f, opdsId, urler.apply(href), urler);
-                return;
-            }
-        }
-
-        for (final Book b : f.books)
-            if (!isEmpty(b.getFbLink()))
+        for (final Book book : books)
+            if (mapper.bookMissed(opdsId, book.getTag()))
                 try {
-                    final File tmp = File.createTempFile(b.getId() + "_" + System.currentTimeMillis(), ".fb2");
-                    try (final FileOutputStream bos = new FileOutputStream(tmp)) {
-                        getFile(urler.apply(b.getFbLink()), bos);
-                    }
+                    if (!isEmpty(book.getFbLink()))
+                        loadFile(urler.apply(book.getFbLink()), book::setFbLink, ".fb2.zip");
+                    if (!isEmpty(book.getEpubLink()))
+                        loadFile(urler.apply(book.getEpubLink()), book::setEpubLink, ".epub");
 
-                    final JsonNode rpl = api.upload(tmp).toCompletableFuture().join();
-
-                    if (rpl.has("document")) {
-                        b.setRefId(rpl.get("document").get("file_id").asText());
-                        if (b.getId() > 0)
-                            mapper.updateBook(b);
-                        else
-                            mapper.insertBook(b);
-                    } else
-                        throw new IOException("Failed to upload book: " + Json.stringify(rpl));
-                } catch (IOException e) {
-                    logger.error(e.getMessage(), e);
+                    mapper.insertBook(book);
+                } catch (final Exception e) {
+                    logger.error(book + " :: " + e.getMessage(), e);
                 }
 
-        for (final Folder sub : f.childs)
-            saveProcessFolder(sub, opdsId, urler);
+        for (final Folder f : subfolders)
+            try {
+                final Document doc = getXml(urler.apply(f.getPath()));
+
+                processChilds(
+                        opdsId,
+                        f.getId(),
+                        Xmls.getFolders(doc.getElementsByTagName("entry")),
+                        Xmls.getBooks(doc.getElementsByTagName("entry")),
+                        urler);
+            } catch (final Exception e) {
+                logger.error(urler.apply(f.getPath()) + " :: " + e.getMessage(), e);
+            }
+    }
+
+    private void loadFile(final String url, final Consumer<String> refConsumer, final String ext) {
+        try {
+            final File tmp = File.createTempFile(String.valueOf(System.currentTimeMillis()), ext);
+            try (final FileOutputStream bos = new FileOutputStream(tmp)) {
+                getFile(url, bos);
+            }
+
+            final JsonNode rpl = api.upload(tmp).toCompletableFuture().join();
+
+            if (rpl.has("document"))
+                refConsumer.accept(rpl.get("document").get("file_id").asText());
+            else
+                throw new IOException("Failed to upload book: " + Json.stringify(rpl));
+        } catch (IOException e) {
+            logger.error(url + " :: " + e.getMessage(), e);
+        }
     }
 
     private Document getXml(final String url) {
@@ -308,6 +356,15 @@ public class OpdsServiceImpl implements OpdsService {
         @Override
         public int hashCode() {
             return Objects.hash(userId, dirId);
+        }
+
+        @Override
+        public String toString() {
+            return "UserWait{" +
+                    "userId=" + userId +
+                    ", dirId=" + dirId +
+                    ", title='" + title + '\'' +
+                    '}';
         }
     }
 

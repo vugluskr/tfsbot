@@ -12,7 +12,7 @@
         from ${v1} f
                  left join ${v2} fp on (f.id = fp.id)
         where f.parent_id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-        and f.type = 'LABEL'
+          and f.type = 'LABEL'
         order by f.name
         offset #{offset} limit #{limit}
     </select>
@@ -20,7 +20,7 @@
         select count(f.*)
         from ${v1} f
         where parent_id = #{dirId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
-        and type = 'LABEL'
+          and type = 'LABEL'
     </select>
 
     <select id="searchContent" resultMap="EntryMap">
@@ -106,6 +106,16 @@
         where f.id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
         limit 1
     </select>
+
+    <select id="findEntry" resultMap="EntryMap">
+        select f.*, fp.path
+        from ${v1} f
+                 left join ${v2} fp on (f.id = fp.id)
+        where f.parent_id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+          and f.name = #{name}
+        limit 1
+    </select>
+
     <select id="getTree" resultMap="EntryMap">
         select f.*
         from ${v1} f

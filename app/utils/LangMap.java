@@ -85,9 +85,9 @@ public class LangMap {
                         mdBold("1. ") + mdItalic("files upload") + escapeMd(" bot's main goal is to keep access to your folders and files according to your structure. Any time " +
                         "you can extend your collection just simple send any number of files, all of it will be stored in a current folder, where you are while send it.. " +
                         "No special command or action is required, just send files to bot and thats it. ") + mdItalic(
-                                "Be aware, simple 'documents' are saved with original filenames, but its not so for media files - unfortunately, telegram loses its filenames, so" +
-                                        " bot have to construct it from the file's types.\n" +
-                        "Hint: if you will apply a comment while sending a file, then bot will use it as filename\n\n") +
+                        "Be aware, simple 'documents' are saved with original filenames, but its not so for media files - unfortunately, telegram loses its filenames, so" +
+                                " bot have to construct it from the file's types.\n" +
+                                "Hint: if you will apply a comment while sending a file, then bot will use it as filename\n\n") +
                         mdBold("2. ") + escapeMd("'/reset' command - reset bot's state if it is unconscious and takes you here, to the root folder.\n\n") +
                         mdBold("3. ") + escapeMd("'/help' - context help, reflects on your actions and current position. If you're missed and dont know what to do - use this " +
                         "command.\n\n") +
@@ -128,7 +128,7 @@ public class LangMap {
         init(Value.SHARE_DIR_HELP, mdBold("Manage folder's access sharing\n") +
                         escapeMd("In TeleFS you can share folder in two ways: public anonymous link and personal grants..\n\n" +
                                 "Anonymous access is granted via public http-link. You can achieve it with click on " + Strings.Uni.link + " button. Second click removes public " +
-                                        "link." +
+                                "link." +
                                 "With clicking on this link a user achieves a 'read-only' access to your folder.\n\n" +
                                 "Personal access is granted individually for every user. If you click a " + Strings.Uni.mkGrant + " button, then bot will ask you to share with " +
                                 "it contact of the person you want grant access to. It means that a person must be telegram user and you must have him in contacts. " +
@@ -278,6 +278,12 @@ public class LangMap {
         init(Value.TYPE_PASSWORD_FILE, "File '%s' is protected with password, type it:", "Доступ к Файлу '%s' ограничен, напиши пароль:");
         init(Value.TYPE_PASSWORD_DIR, "Folder '%s' is protected with password, type it:", "Доступ к папке '%s' ограничен, напиши пароль:");
         init(Value.PASSWORD_FAILED, "Wrong password", "Неверный пароль");
+
+        init(Value.OPDS_DONE, "OPDS catalog '%s' synchronization done", "Синхронизация OPDS каталога '%s' завершена");
+        init(Value.OPDS_STARTED, "OPDS synchronization started. You'll be notified when it get done", "Синхронизация OPDS каталога начата. По завершению вы получите " +
+                "уведомление.");
+        init(Value.OPDS_FAILED, "OPDS synchronization failed. You have to be in any folder to start it, although valid URL required.", "Синхронизация OPDS каталога не может быть" +
+                " запущена. Для успешного запуска необходимо предоставить верный URL и находиться в какой-либо собственной папке.");
     }
 
     private static void init(final Value key, final String en, final String ru) {
@@ -291,7 +297,7 @@ public class LangMap {
         RESULTS_FOUND, UPLOADED, None, CHECK_ALL, NO_GLOBAL_LINK, NO_PERSONAL_GRANTS, GEARING, PASS_RESET, PASS_DROP, PASSWORD_SET, PASSWORD_NOT_SET, VALID_ONETIME,
         VALID_UNTILL, VALID_CANCEL, VALID_NOT_SET, VALID_SET_OTU, VALID_SET_UNTILL, LINK_DELETED, LINK_SAVED, PASS_SET, TYPE_PASSWORD, TYPE_PASSWORD2, PASSWORD_SET_TXT,
         PASSWORD_NOT_MATCH, PASSWORD_CLEARED, VALID_CLEARED, OTU_SET, SEND_CONTACT_DIR, SEND_CONTACT_FILE, CANT_GRANT, SHARE_RW, SHARE_RO, SHARES, SHARES_ANONYM, NOT_ALLOWED,
-        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_REWRITE, SHARE_DIR_HELP, TYPE_LOCK_DIR, TYPE_LOCK_FILE, TYPE_PASSWORD_FILE, TYPE_PASSWORD_DIR, PASSWORD_FAILED, DIR_ACCESS
+        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_REWRITE, SHARE_DIR_HELP, TYPE_LOCK_DIR, TYPE_LOCK_FILE, TYPE_PASSWORD_FILE, TYPE_PASSWORD_DIR, PASSWORD_FAILED, OPDS_DONE, OPDS_STARTED, OPDS_FAILED, DIR_ACCESS
     }
 
     public static String v(final Value name, final User user, final Object... args) {
@@ -306,7 +312,7 @@ public class LangMap {
             final String value = (langTag.equalsIgnoreCase("ru") ? ruData : enData).getOrDefault(name, name.name());
 
             return TextUtils.isEmpty(args) ? value : String.format(value, args);
-        } catch (final Exception ignore) { }
+        } catch (final Exception ignore) {}
 
         return name.name();
     }

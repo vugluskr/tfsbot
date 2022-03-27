@@ -20,8 +20,6 @@ public interface OpdsMapper {
 
     void insertFolder(@Param("f") Folder f);
 
-    void updateBook(@Param("b") Book b);
-
     void insertBook(@Param("b") Book b);
 
     boolean opdsExists(@Param("url") String url);
@@ -33,4 +31,12 @@ public interface OpdsMapper {
     List<Folder> selectChilds(@Param("id") long id);
 
     List<Book> selectBooks(@Param("folderId") long id);
+
+    void updateOpdsUpdated(@Param("url") String url, @Param("updated") LocalDateTime now);
+
+    boolean folderExists(@Param("opdsId") int opdsId, @Param("tag") String tag);
+
+    boolean bookMissed(@Param("opdsId") int opdsId, @Param("tag") String tag);
+
+    List<Folder> selectOpdsChilds(@Param("opdsId") int opdsId);
 }

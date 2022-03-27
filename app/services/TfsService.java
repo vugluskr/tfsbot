@@ -235,8 +235,20 @@ public class TfsService {
         return !fs.isEntryExist(name, user.entryId(), userFsPrefix + user.id);
     }
 
+    public boolean entryMissed(final String name, final UUID parentEntryId, final long userId) {
+        return !fs.isEntryExist(name, parentEntryId, userFsPrefix + userId);
+    }
+
     public TFile get(final UUID id, final User user) {
         return entries.getEntry(id, userFsPrefix + user.id, pathesTree + user.id);
+    }
+
+    public TFile get(final UUID id, final long userId) {
+        return entries.getEntry(id, userFsPrefix + userId, pathesTree + userId);
+    }
+
+    public TFile find(final UUID parentId, final String name, final long userId) {
+        return entries.findEntry(parentId, name, userFsPrefix + userId, pathesTree + userId);
     }
 
     public void rm(final UUID entryId, final User user) {

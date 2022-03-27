@@ -56,15 +56,15 @@ public final class User {
         ((ARole) this.role).user = this;
     }
 
-    public final void doView() {
+    public void doView() {
         role.doView();
     }
 
-    public final LangMap.Value doHelp() {
+    public LangMap.Value doHelp() {
         return role.helpValue();
     }
 
-    public final JsonNode dump() {
+    public JsonNode dump() {
         final ObjectNode data = (ObjectNode) role.dump();
         data.put("_class", role.getClass().getName());
 
@@ -100,11 +100,5 @@ public final class User {
 
     public UUID entryId() {
         return ((ARole) role).entryId;
-    }
-
-    public void startOpds(final String parts) {
-        final String[] partz = parts.trim().split("\\s");
-
-        ((ARole) role).us.opds.requestOpds(partz[0], partz.length > 1 ? partz[1] : null, ((ARole) role).entryId, id);
     }
 }
