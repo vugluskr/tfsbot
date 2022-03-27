@@ -66,7 +66,7 @@ public class OpdsServiceImpl implements OpdsService {
     private UserService userService;
 
     @Override
-    public boolean requestOpds(final String url0, final String title, final UUID rootId, final long userId) {
+    public boolean requestOpds(final String url0, final String title, final UUID rootId, final long userId, final String lang) {
         String url = null;
         final URL base;
         try {
@@ -81,7 +81,7 @@ public class OpdsServiceImpl implements OpdsService {
             return false;
 
         waitQueues.putIfAbsent(url, new HashSet<>());
-        waitQueues.get(url).add(new UserWait(userId, rootId, title));
+        waitQueues.get(url).add(new UserWait(userId, rootId, title, lang));
 
         if (beingProcessed.contains(url))
             return true;
@@ -115,8 +115,7 @@ public class OpdsServiceImpl implements OpdsService {
 
                 childs2fs(dir, mapper.selectOpdsChilds(opds.getId()), Collections.emptyList());
 
-                final User user = userService.resolveUser(userWait.userId, "", "");
-                api.dialogUnescaped(LangMap.Value.OPDS_DONE, user, TgApi.voidKbd, userWait.title);
+                api.dialog(LangMap.Value.OPDS_DONE, userService.resolveUser(userWait.userId, userWait.lang, ""), userWait.title);
             } catch (final Exception e) {
                 logger.error(userWait + " :: " + e.getMessage(), e);
             }
@@ -337,12 +336,13 @@ public class OpdsServiceImpl implements OpdsService {
     private static class UserWait {
         public final long userId;
         public final UUID dirId;
-        public final String title;
+        public final String title, lang;
 
-        public UserWait(final long userId, final UUID dirId, final String title) {
+        public UserWait(final long userId, final UUID dirId, final String title, final String lang) {
             this.userId = userId;
             this.dirId = dirId;
             this.title = title;
+            this.lang = lang;
         }
 
         @Override
