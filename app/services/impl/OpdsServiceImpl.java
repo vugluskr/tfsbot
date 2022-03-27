@@ -127,7 +127,8 @@ public class OpdsServiceImpl implements OpdsService {
 
         CompletableFuture.runAsync(() -> {
             try {
-                final Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(get(base.toExternalForm()));
+                final Document doc =
+                        DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new ByteArrayInputStream(get(base.toExternalForm()).getBytes(StandardCharsets.UTF_8)));
                 final Opds opds = Xmls.makeOpds(url, title, doc);
 
                 opds.childs.addAll(Xmls.getFolders(doc.getElementsByTagName("entry")));
