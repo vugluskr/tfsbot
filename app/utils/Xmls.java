@@ -65,7 +65,7 @@ public class Xmls {
                         break;
                     case "link":
                         for (int k = 0; k < child.getAttributes().getLength(); k++)
-                            if (child.getAttributes().item(k).getNodeName().equals("rel") && child.getAttributes().item(k).getNodeValue().endsWith("/sort/new") && child.getAttributes().item(k).getNodeValue().endsWith("/sort/popular"))
+                            if (child.getAttributes().item(k).getNodeName().equals("rel") && (child.getAttributes().item(k).getNodeValue().endsWith("/sort/new") || child.getAttributes().item(k).getNodeValue().endsWith("/sort/popular")))
                                 continue OUTER;
                             else if (child.getAttributes().item(k).getNodeName().equals("href"))
                                 f.setPath(child.getAttributes().item(k).getNodeValue());
