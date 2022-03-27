@@ -72,10 +72,9 @@ public class OpdsServiceImpl implements OpdsService {
             return;
 
         if (mapper.opdsExists(url))
-            if (mapper.opdsExhausted(url, LocalDateTime.now().minus(6, ChronoUnit.MONTHS))) {
-                beingProcessed.add(url);
+            if (mapper.opdsExhausted(url, LocalDateTime.now().minus(6, ChronoUnit.MONTHS)))
                 doOpds(url, title);
-            } else
+            else
                 sync2users(url);
         else
             doOpds(url, title);
@@ -126,6 +125,7 @@ public class OpdsServiceImpl implements OpdsService {
             return null;
         };
 
+        beingProcessed.add(url);
         CompletableFuture.runAsync(() -> {
             try {
                 final Document doc = getXml(base.toExternalForm());
@@ -145,6 +145,8 @@ public class OpdsServiceImpl implements OpdsService {
                     saveProcessFolder(f, opds.getId(), urler);
             } catch (final Exception e) {
                 logger.error(e.getMessage(), e);
+            } finally {
+                beingProcessed.remove(url);
             }
 
             sync2users(url);
