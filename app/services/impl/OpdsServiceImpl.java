@@ -1,6 +1,7 @@
 package services.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.sun.org.apache.xerces.internal.util.XMLChar;
 import model.ContentType;
 import model.TFile;
 import model.opds.Book;
@@ -10,6 +11,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import play.Logger;
 import play.libs.Json;
@@ -156,6 +158,8 @@ public class OpdsServiceImpl implements OpdsService {
         else
             mapper.insertFolder(f);
 
+        logger.debug("Got folder: " + f);
+
         handleFolder(f, opdsId, urler.apply(f.getPath()), urler);
     }
 
@@ -224,7 +228,7 @@ public class OpdsServiceImpl implements OpdsService {
 
         get(url, is -> {
             try {
-                doc.set(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is));
+                doc.set(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new InputSource(new InvalidXmlCharacterFilter(new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))))));
             } catch (final Exception e) {
                 logger.error(url + " :: " + e.getMessage(), e);
                 throw new RuntimeException(e);
@@ -306,6 +310,23 @@ public class OpdsServiceImpl implements OpdsService {
         @Override
         public int hashCode() {
             return Objects.hash(userId, dirId);
+        }
+    }
+
+    private static class InvalidXmlCharacterFilter extends FilterReader {
+        protected InvalidXmlCharacterFilter(Reader in) {
+            super(in);
+        }
+
+        @Override
+        public int read(char[] cbuf, int off, int len) throws IOException {
+            int read = super.read(cbuf, off, len);
+            if (read == -1) return read;
+
+            for (int i = off; i < off + read; i++) {
+                if (!XMLChar.isValid(cbuf[i])) cbuf[i] = '?';
+            }
+            return read;
         }
     }
 }
