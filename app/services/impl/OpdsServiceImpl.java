@@ -267,8 +267,10 @@ public class OpdsServiceImpl implements OpdsService {
 
             final int code = ((HttpURLConnection) cn).getResponseCode();
 
-            if (code / 200 == 1 && code % 200 < 100)
+            if (code / 200 == 1 && code % 200 < 100) {
                 os.accept(cn.getInputStream());
+                return;
+            }
 
             try (final ByteArrayOutputStream bos = new ByteArrayOutputStream(128); final InputStream is = ((HttpURLConnection) cn).getErrorStream()) {
                 int read;
