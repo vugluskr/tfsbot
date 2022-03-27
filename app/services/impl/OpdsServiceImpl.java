@@ -39,8 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static utils.TextUtils.generateUuid;
-import static utils.TextUtils.isEmpty;
+import static utils.TextUtils.*;
 
 /**
  * @author Denis Danilin | me@loslobos.ru
@@ -127,10 +126,8 @@ public class OpdsServiceImpl implements OpdsService {
 
         CompletableFuture.runAsync(() -> {
             try {
-                logger.debug("Getting by url: " + base);
-                final String xml = get(base.toExternalForm());
-                logger.debug("Got: " + xml);
-                final Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+                final Document doc = getXml(base.toExternalForm());
+
                 final Opds opds = Xmls.makeOpds(url, title, doc);
 
                 opds.childs.addAll(Xmls.getFolders(doc.getElementsByTagName("entry")));
@@ -166,7 +163,7 @@ public class OpdsServiceImpl implements OpdsService {
         if (url == null)
             return;
 
-        final Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(get(url));
+        final Document doc = getXml(url);
         f.mergeChilds(Xmls.getFolders(doc.getElementsByTagName("entry")));
         f.mergeBooks(Xmls.getBooks(doc.getElementsByTagName("entry")));
 
@@ -196,57 +193,63 @@ public class OpdsServiceImpl implements OpdsService {
 
         for (final Book b : f.books)
             if (!isEmpty(b.getFbLink()))
-                get(urler.apply(b.getFbLink()), is -> {
-                    try {
-                        final File tmp = File.createTempFile(b.getId() + "_" + System.currentTimeMillis(), ".fb2");
-
-                        try (final FileOutputStream bos = new FileOutputStream(tmp)) {
-                            int read;
-                            while ((read = is.read()) != -1)
-                                bos.write(read);
-
-                            bos.flush();
-                        }
-
-
-                        final JsonNode rpl = api.upload(tmp).toCompletableFuture().join();
-
-                        if (rpl.has("document")) {
-                            b.setRefId(rpl.get("document").get("file_id").asText());
-                            if (b.getId() > 0)
-                                mapper.updateBook(b);
-                            else
-                                mapper.insertBook(b);
-                        } else
-                            throw new IOException("Failed to upload book: " + Json.stringify(rpl));
-                    } catch (IOException e) {
-                        logger.error(e.getMessage(), e);
+                try {
+                    final File tmp = File.createTempFile(b.getId() + "_" + System.currentTimeMillis(), ".fb2");
+                    try (final FileOutputStream bos = new FileOutputStream(tmp)) {
+                        getFile(urler.apply(b.getFbLink()), bos);
                     }
-                });
 
+                    final JsonNode rpl = api.upload(tmp).toCompletableFuture().join();
+
+                    if (rpl.has("document")) {
+                        b.setRefId(rpl.get("document").get("file_id").asText());
+                        if (b.getId() > 0)
+                            mapper.updateBook(b);
+                        else
+                            mapper.insertBook(b);
+
+                        logger.debug("Got book: " + b);
+                    } else
+                        throw new IOException("Failed to upload book: " + Json.stringify(rpl));
+                } catch (IOException e) {
+                    logger.error(e.getMessage(), e);
+                }
 
         for (final Folder sub : f.childs)
             saveProcessFolder(sub, opdsId, urler);
     }
 
-    public String get(final String url) {
-        final AtomicReference<String> holder = new AtomicReference<>(null);
-        get(url, is -> {
-            try (final ByteArrayOutputStream bos = new ByteArrayOutputStream(128)) {
-                int read;
-                while ((read = is.read()) != -1)
-                    bos.write(read);
+    private Document getXml(final String url) {
+        final AtomicReference<Document> doc = new AtomicReference<>(null);
 
-                holder.set(new String(bos.toByteArray(), StandardCharsets.UTF_8));
+        get(url, is -> {
+            try {
+                doc.set(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(is));
             } catch (final Exception e) {
+                logger.error(url + " :: " + e.getMessage(), e);
                 throw new RuntimeException(e);
             }
         });
 
-        return holder.get();
+        return doc.get();
     }
 
-    public void get(final String url, final Consumer<InputStream> isHandler) {
+    private void getFile(final String url, final FileOutputStream os) {
+        get(url, is -> {
+            try {
+                int read;
+                while ((read = is.read()) != -1)
+                    os.write(read);
+
+                os.flush();
+            } catch (final Exception any) {
+                logger.error(url + " :: " + any.getMessage(), any);
+                throw new RuntimeException(any);
+            }
+        });
+    }
+
+    private void get(final String url, final Consumer<InputStream> os) {
         try {
             final URLConnection cn = new URL(url).openConnection();
 
@@ -265,15 +268,15 @@ public class OpdsServiceImpl implements OpdsService {
             final int code = ((HttpURLConnection) cn).getResponseCode();
 
             if (code / 200 == 1 && code % 200 < 100)
-                isHandler.accept(cn.getInputStream());
-            else
-                try (final ByteArrayOutputStream bos = new ByteArrayOutputStream(128); final InputStream is = ((HttpURLConnection) cn).getErrorStream()) {
-                    int read;
-                    while ((read = is.read()) != -1)
-                        bos.write(read);
+                os.accept(cn.getInputStream());
 
-                    throw new Exception("CH response error message: " + new String(bos.toByteArray(), StandardCharsets.UTF_8));
-                }
+            try (final ByteArrayOutputStream bos = new ByteArrayOutputStream(128); final InputStream is = ((HttpURLConnection) cn).getErrorStream()) {
+                int read;
+                while ((read = is.read()) != -1)
+                    bos.write(read);
+
+                throw new Exception("CH response error message: " + new String(bos.toByteArray(), StandardCharsets.UTF_8));
+            }
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
