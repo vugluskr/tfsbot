@@ -222,6 +222,7 @@ public class OpdsServiceImpl implements OpdsService {
         });
 
         for (final Book book : books)
+/*
             if (mapper.bookMissed(opdsId, book.getTag()))
                 try {
                     if (!isEmpty(book.getFbLink()))
@@ -233,6 +234,7 @@ public class OpdsServiceImpl implements OpdsService {
                 } catch (final Exception e) {
                     logger.error(book + " :: " + e.getMessage(), e);
                 }
+*/
 
         for (final Folder f : subfolders)
             try {

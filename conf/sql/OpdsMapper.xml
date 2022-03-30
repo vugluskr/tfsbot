@@ -12,7 +12,7 @@
     </insert>
 
     <insert id="insertBook" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
-        insert into opds_books(opds_id, folder_id, updated, title, author, "desc", tag, fb_link, epub_link, ref_id)
+        insert into opds_books(opds, folder_id, updated, title, author, "desc", tag, fb_link, epub_link, ref_id)
         VALUES (#{b.opdsId}, #{b.folderId}, #{b.updated}, #{b.title}, #{b.author}, #{b.desc}, #{b.tag}, #{b.fbLink}, #{b.epubLink}, #{b.refId})
     </insert>
 
@@ -61,7 +61,7 @@
 
     <select id="selectBooks" resultType="model.opds.Book">
         select id,
-               opds_id   as "opdsId",
+               opds      as "opdsId",
                folder_id as "folderId",
                updated,
                title,
@@ -79,7 +79,7 @@
         select exists(select 1 from opds_folders where tag = #{tag} and opds_id = #{opdsId})
     </select>
     <select id="bookMissed" resultType="java.lang.Boolean">
-        select not exists(select 1 from opds_books where opds_id = #{opdsId} and tag = #{tag})
+        select not exists(select 1 from opds_books where opds = #{opds} and tag = #{tag})
     </select>
     <select id="selectOpdsChilds" resultType="model.opds.Folder">
         select id,
@@ -93,5 +93,22 @@
         from opds_folders
         where parent_id = 0
           and opds_id = #{opdsId}
+    </select>
+
+    <select id="findBook" resultType="model.opds.Book">
+        select id,
+               folder_id as "folderId",
+               updated,
+               title,
+               author,
+               year,
+               "desc",
+               tag,
+               fb_link   as "fbLink",
+               epub_link as "epubLink",
+               ref_id    as "refId"
+        from opds_books
+        where opds = #{opds}
+          and tag = #{tag}
     </select>
 </mapper>

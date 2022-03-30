@@ -36,7 +36,9 @@ public interface OpdsMapper {
 
     boolean folderExists(@Param("opdsId") int opdsId, @Param("tag") String tag);
 
-    boolean bookMissed(@Param("opdsId") int opdsId, @Param("tag") String tag);
+    boolean bookMissed(@Param("opds") String opds, @Param("tag") String tag);
 
     List<Folder> selectOpdsChilds(@Param("opdsId") int opdsId);
+
+    Book findBook(@Param("opds") String opds, @Param("tag") String tag);
 }

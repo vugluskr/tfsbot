@@ -1,23 +1,45 @@
 package services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.sun.org.apache.xerces.internal.util.XMLChar;
 import model.ContentType;
 import model.Share;
 import model.TFile;
 import model.User;
+import model.opds.Book;
+import model.opds.Folder;
 import model.user.DirGearer;
 import model.user.DirViewer;
 import model.user.Searcher;
 import model.user.Sharer;
 import org.mybatis.guice.transactional.Transactional;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 import play.Logger;
+import play.libs.Json;
+import services.impl.OpdsServiceImpl;
 import sql.EntryMapper;
+import sql.OpdsMapper;
 import sql.ShareMapper;
 import sql.TFileSystem;
 import utils.LangMap;
+import utils.TFileFactory;
 import utils.TextUtils;
+import utils.Xmls;
 
 import javax.inject.Inject;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,6 +64,12 @@ public class TfsService {
 
     @Inject
     private EntryMapper entries;
+
+    @Inject
+    private OpdsMapper bookMapper;
+
+    @Inject
+    private TgApi api;
 
     @Transactional
     public UUID initUserTables(final long userId) {
@@ -454,6 +482,174 @@ public class TfsService {
         fs.dropView(sharePrefix + user.id + "_" + share.getOwner() + "_" + share.getId());
         fs.createFsView(userFsPrefix + user.id, user.id, tablePrefix + user.id, fs.selectShareViewsLike(sharesByConsumer(user.id)));
         fs.createFsTree(pathesTree + user.id, userFsPrefix + user.id);
+    }
+
+    public void syncOpdsDir(final TFile dir, final User owner) {
+        try {
+            final Document doc = getXml(dir.refId);
+            final URL base = new URL(dir.getRefId());
+
+            final Function<String, String> urler = path -> {
+                try {
+                    return new URL(base.getProtocol(), base.getHost(), base.getPort(), path).toExternalForm();
+                } catch (MalformedURLException e) {
+                    logger.error(e.getMessage(), e);
+                }
+
+                return null;
+            };
+
+            processChilds(
+                    dir.getId(),
+                    Xmls.getFolders(doc.getElementsByTagName("entry")),
+                    Xmls.getBooks(doc.getElementsByTagName("entry")),
+                    urler, dir.getOwner());
+        } catch (final Exception e) {
+            logger.error("Failed to make OPDS from " + dir.getRefId() + " :: " + e.getMessage(), e);
+        } finally {
+            dir.setOpdsSynced();
+            updateMeta(dir, owner);
+        }
+    }
+
+    private void processChilds(final UUID parentFolderId, final Collection<Folder> subfolders, final Collection<Book> books,
+                               final Function<String, String> urler, final long owner) {
+        subfolders.forEach(f -> mk(TFileFactory.opdsDir(f.getTitle(), urler.apply(f.getPath()), parentFolderId, owner)));
+
+        for (Book book : books) {
+            if (bookMapper.bookMissed(urler.apply("/"), book.getTag())) {
+                if (!isEmpty(book.getFbLink()))
+                    loadFile(urler.apply(book.getFbLink()), book::setFbLink, ".fb2.zip");
+                if (!isEmpty(book.getEpubLink()))
+                    loadFile(urler.apply(book.getEpubLink()), book::setEpubLink, ".epub");
+
+                bookMapper.insertBook(book);
+            } else
+                book = bookMapper.findBook(urler.apply("/"), book.getTag());
+
+            try {
+                final TFile bookDir = mk(TFileFactory.dir(book.getTitle(), parentFolderId, owner));
+
+                if (!isEmpty(book.getEpubLink()) && entryMissed(book.getTitle() + " [EPUB]", bookDir.getId(), owner))
+                    makeTFile(book.getTitle() + " [EPUB]", book.getEpubLink(), bookDir.getId(), owner);
+
+                if (!isEmpty(book.getFbLink()) && entryMissed(book.getTitle() + " [FB2]", bookDir.getId(), owner))
+                    makeTFile(book.getTitle() + " [FB2]", book.getFbLink(), bookDir.getId(), owner);
+            } catch (final Exception e) {
+                logger.error(book + " :: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    private void makeTFile(final String title, final String refId, final UUID parentDirId, final long owner) {
+        final TFile file = new TFile();
+        file.setOwner(owner);
+        file.setName(title);
+        file.setParentId(parentDirId);
+        file.setType(ContentType.DOCUMENT);
+        file.setRefId(refId);
+
+        mk(file);
+    }
+
+    private void loadFile(final String url, final Consumer<String> refConsumer, final String ext) {
+        try {
+            final File tmp = File.createTempFile(String.valueOf(System.currentTimeMillis()), ext);
+            try (final FileOutputStream bos = new FileOutputStream(tmp)) {
+                getFile(url, bos);
+            }
+
+            final JsonNode rpl = api.upload(tmp).toCompletableFuture().join();
+
+            if (rpl.has("document"))
+                refConsumer.accept(rpl.get("document").get("file_id").asText());
+            else
+                throw new IOException("Failed to upload book: " + Json.stringify(rpl));
+        } catch (IOException e) {
+            logger.error(url + " :: " + e.getMessage(), e);
+        }
+    }
+
+    private Document getXml(final String url) {
+        final AtomicReference<Document> doc = new AtomicReference<>(null);
+
+        get(url, is -> {
+            try {
+                doc.set(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new InputSource(new InvalidXmlCharacterFilter(new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))))));
+            } catch (final Exception e) {
+                logger.error(url + " :: " + e.getMessage(), e);
+                throw new RuntimeException(e);
+            }
+        });
+
+        return doc.get();
+    }
+
+    private void getFile(final String url, final FileOutputStream os) {
+        get(url, is -> {
+            try {
+                int read;
+                while ((read = is.read()) != -1)
+                    os.write(read);
+
+                os.flush();
+            } catch (final Exception any) {
+                logger.error(url + " :: " + any.getMessage(), any);
+                throw new RuntimeException(any);
+            }
+        });
+    }
+
+    private void get(final String url, final Consumer<InputStream> os) {
+        try {
+            final URLConnection cn = new URL(url).openConnection();
+
+            cn.setDoInput(true);
+            cn.setDoOutput(true);
+
+            ((HttpURLConnection) cn).setRequestMethod("POST");
+            ((HttpURLConnection) cn).setInstanceFollowRedirects(false);
+            cn.setUseCaches(false);
+
+            cn.setConnectTimeout(15000);
+            cn.setReadTimeout(15000);
+
+            cn.connect();
+
+            final int code = ((HttpURLConnection) cn).getResponseCode();
+
+            if (code / 200 == 1 && code % 200 < 100) {
+                os.accept(cn.getInputStream());
+                return;
+            }
+
+            try (final ByteArrayOutputStream bos = new ByteArrayOutputStream(128); final InputStream is = ((HttpURLConnection) cn).getErrorStream()) {
+                int read;
+                while ((read = is.read()) != -1)
+                    bos.write(read);
+
+                throw new Exception("CH response error message: " + new String(bos.toByteArray(), StandardCharsets.UTF_8));
+            }
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static class InvalidXmlCharacterFilter extends FilterReader {
+        protected InvalidXmlCharacterFilter(Reader in) {
+            super(in);
+        }
+
+        @Override
+        public int read(char[] cbuf, int off, int len) throws IOException {
+            int read = super.read(cbuf, off, len);
+            if (read == -1) return read;
+
+            for (int i = off; i < off + read; i++) {
+                if (!XMLChar.isValid(cbuf[i])) cbuf[i] = '?';
+            }
+            return read;
+        }
     }
 
     public static class ShareView {

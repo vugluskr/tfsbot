@@ -13,6 +13,7 @@ import services.TfsService;
 import services.TgApi;
 import services.UserService;
 import utils.LangMap;
+import utils.TFileFactory;
 
 import javax.inject.Inject;
 import java.util.TreeMap;
@@ -116,17 +117,10 @@ public class Handler extends Controller {
                     handleUserRequest(user, u -> u.joinShare(notNull(text).substring(14)), js);
                 else if (text.startsWith("/opds")) {
                     final String[] parts = notNull(text).substring(5).trim().split("\\s");
-                    final String url = notNull(parts[0]);
-                    final String title = parts.length > 1 ? notNull(parts[1]) : null;
+                    if (parts.length == 2 && !isEmpty(parts[0]) && !isEmpty(parts[1]))
+                        tfs.mk(TFileFactory.opdsDir(parts[1].trim(), parts[0].trim(), user.entryId(), user.id));
 
-                    handleUserRequest(user, u -> {
-                        if (!isEmpty(url) && tfs.get(u.entryId(), user).isDir() && opdsService.requestOpds(url, title, u.entryId(), u.id, user.lang))
-                            api.dialog(LangMap.Value.OPDS_STARTED, u);
-                        else {
-                            logger.debug(url + " :: " + title + " :: " + tfs.get(u.entryId(), user).isDir());
-                            api.dialog(LangMap.Value.OPDS_FAILED, u);
-                        }
-                    }, js);
+                    handleUserRequest(user, User::doView, js);
                 } else
                     handleUserRequest(user, u -> u.onInput(text), js);
             } else {

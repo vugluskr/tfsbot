@@ -38,4 +38,11 @@ public class TFileFactory {
 
         return f;
     }
+
+    public static TFile opdsDir(final String name, final String url, final UUID parentId, final long owner) {
+        final TFile f = dir(name, parentId, owner);
+        f.asOpds(url);
+
+        return f;
+    }
 }

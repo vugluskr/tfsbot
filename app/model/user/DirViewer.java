@@ -119,6 +119,9 @@ public class DirViewer extends APager<TFile> {
         if (dir == null)
             dir = tfs.get(entryId, user);
 
+        if (dir.isOpdsUnsynced())
+            tfs.syncOpdsDir(dir, user);
+
         return tfs.countFolder(entryId, user.id);
     }
 

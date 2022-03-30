@@ -180,6 +180,19 @@ public class TFile implements Comparable<TFile>, Optioned {
         refId = String.valueOf(shareOwner);
     }
 
+    public void asOpds(final String url) {
+        if (!isDir())
+            return;
+
+        Optz.Opds.set(this);
+        Optz.OpdsUnsynced.set(this);
+        setRefId(url);
+    }
+
+    public void setOpdsSynced() {
+        Optz.OpdsUnsynced.remove(this);
+    }
+
     public boolean isShareFor() {
         return Optz.shareFor.is(this);
     }
@@ -192,7 +205,11 @@ public class TFile implements Comparable<TFile>, Optioned {
         Optz.locked.remove(this);
     }
 
+    public boolean isOpdsUnsynced() {
+        return Optz.OpdsUnsynced.is(this);
+    }
+
     enum Optz implements BMasked {
-        unused, locked, sharesRoot, shareFor, unused2
+        unused, locked, sharesRoot, shareFor, Opds, OpdsUnsynced
     }
 }
