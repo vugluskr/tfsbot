@@ -640,7 +640,6 @@ public class TfsService {
 
             cn.setConnectTimeout(15000);
             cn.setReadTimeout(15000);
-            ((HttpURLConnection) cn).setInstanceFollowRedirects(true);
 
             cn.connect();
 
@@ -648,6 +647,9 @@ public class TfsService {
 
             if (code / 200 == 1 && code % 200 < 100) {
                 os.accept(cn.getInputStream());
+                return;
+            } else if (code / 300 == 1 && code % 300 < 100) {
+                get(cn.getHeaderField("location"), os);
                 return;
             } else
                 logger.warn("Not succeded code: " + code);
