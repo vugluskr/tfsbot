@@ -648,7 +648,8 @@ public class TfsService {
             if (code / 200 == 1 && code % 200 < 100) {
                 os.accept(cn.getInputStream());
                 return;
-            }
+            } else
+                logger.warn("Not succeded code: " + code);
 
             try (final ByteArrayOutputStream bos = new ByteArrayOutputStream(128); final InputStream is = ((HttpURLConnection) cn).getErrorStream()) {
                 int read;
@@ -658,6 +659,7 @@ public class TfsService {
                 throw new Exception("CH response error message: " + new String(bos.toByteArray(), StandardCharsets.UTF_8));
             }
         } catch (final Exception e) {
+            logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
