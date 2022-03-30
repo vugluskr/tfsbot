@@ -640,6 +640,7 @@ public class TfsService {
 
             cn.setConnectTimeout(15000);
             cn.setReadTimeout(15000);
+            ((HttpURLConnection) cn).setInstanceFollowRedirects(true);
 
             cn.connect();
 
