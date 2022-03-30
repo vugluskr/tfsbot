@@ -14,6 +14,8 @@ import model.user.Searcher;
 import model.user.Sharer;
 import org.mybatis.guice.transactional.Transactional;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import play.Logger;
 import play.libs.Json;
@@ -504,6 +506,28 @@ public class TfsService {
                     Xmls.getFolders(doc.getElementsByTagName("entry")),
                     Xmls.getBooks(doc.getElementsByTagName("entry")),
                     urler, dir.getOwner());
+
+            final NodeList links = doc.getElementsByTagName("link");
+            for (int i = 0; i < links.getLength(); i++)
+                if (links.item(i).hasAttributes()) {
+                    boolean next = false;
+                    String href = "";
+
+                    for (int j = 0; j < links.item(i).getAttributes().getLength(); j++) {
+                        final Node n = links.item(i).getAttributes().item(j);
+
+                        if (n.getNodeName().equals("rel") && n.getNodeValue().equals("next"))
+                            next = true;
+                        else if (n.getNodeName().equals("href"))
+                            href = n.getNodeValue();
+                    }
+
+                    if (next && !isEmpty(href)) {
+                        dir.setRefId(urler.apply(href));
+                        syncOpdsDir(dir, owner);
+                        break;
+                    }
+                }
         } catch (final Exception e) {
             logger.error("Failed to make OPDS from " + dir.getRefId() + " :: " + e.getMessage(), e);
         } finally {
