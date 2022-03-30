@@ -73,7 +73,7 @@
                epub_link as "epubLink",
                ref_id    as "refId"
         from opds_books
-        where folder_id = #{id}
+        where folder_id = #{folderId}
     </select>
     <select id="folderExists" resultType="java.lang.Boolean">
         select exists(select 1 from opds_folders where tag = #{tag} and opds_id = #{opdsId})

@@ -30,7 +30,7 @@ public interface OpdsMapper {
 
     List<Folder> selectChilds(@Param("id") long id);
 
-    List<Book> selectBooks(@Param("folderId") long id);
+    List<Book> selectBooks(@Param("folderId") long folderId);
 
     void updateOpdsUpdated(@Param("url") String url, @Param("updated") LocalDateTime now);
 
