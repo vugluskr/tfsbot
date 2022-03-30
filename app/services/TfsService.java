@@ -628,6 +628,7 @@ public class TfsService {
 
     private void get(final String url, final Consumer<InputStream> os) {
         try {
+            logger.debug("HTTP to: " + url);
             final URLConnection cn = new URL(url).openConnection();
 
             cn.setDoInput(true);
