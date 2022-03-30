@@ -134,8 +134,6 @@ public class Xmls {
                             b.setFbLink(href);
                         else if (type.contains("/epub"))
                             b.setEpubLink(href);
-                        else
-                            continue OUTER;
 
                         break;
                 }
