@@ -488,6 +488,7 @@ public class TfsService {
 
     public void syncOpdsDir(final TFile dir, final User owner) {
         try {
+            logger.debug("Loading: " + dir.getRefId());
             final Document doc = getXml(dir.refId);
             final URL base = new URL(dir.getRefId());
 
@@ -538,6 +539,7 @@ public class TfsService {
 
     private void processChilds(final UUID parentFolderId, final Collection<Folder> subfolders, final Collection<Book> books,
                                final Function<String, String> urler, final long owner) {
+        logger.debug("Processing " + subfolders.size() + " folders and " + books.size() + " books");
         subfolders.forEach(f -> mk(TFileFactory.opdsDir(f.getTitle(), urler.apply(f.getPath()), parentFolderId, owner)));
 
         for (Book book : books) {
