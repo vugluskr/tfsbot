@@ -321,7 +321,7 @@ public class TgApi {
     public CompletionStage<JsonNode> upload(final File file) {
         return ws.url(apiUrl + "sendDocument")
                 .setRequestFilter(new WsCurlLogger())
-                .post(Source.from(Collections.singleton(new FilePart<>("file", file.getName(), "application/octet-stream", FileIO.fromFile(file)))))
+                .post(Source.from(Collections.singleton(new FilePart<>("document", file.getName(), "application/octet-stream", FileIO.fromFile(file)))))
                 .thenApply(WSResponse::asJson);
 
     }
