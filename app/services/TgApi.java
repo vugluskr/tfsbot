@@ -1,5 +1,8 @@
 package services;
 
+import akka.stream.javadsl.FileIO;
+import akka.stream.javadsl.Source;
+import akka.util.ByteString;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,12 +17,14 @@ import play.libs.Json;
 import play.libs.ws.WSClient;
 import play.libs.ws.WSResponse;
 import play.libs.ws.ahc.WsCurlLogger;
+import play.mvc.Http.MultipartFormData.FilePart;
 import sql.MediaMessageMapper;
 import sql.TFileSystem;
 import utils.LangMap;
 import utils.TextUtils;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -318,8 +323,9 @@ public class TgApi {
     public CompletionStage<JsonNode> upload(final File file) {
         return ws.url(apiUrl + "sendDocument")
                 .setRequestFilter(new WsCurlLogger())
-                .post(file)
+                .post(Source.from(Collections.singleton(new FilePart<>("file", file.getName(), "application/octet-stream", FileIO.fromFile(file)))))
                 .thenApply(WSResponse::asJson);
+
     }
 
     private CompletionStage<Reply> doCall(final JsonNode node, final String partialUrl) {
