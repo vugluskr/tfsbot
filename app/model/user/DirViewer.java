@@ -122,12 +122,13 @@ public class DirViewer extends APager<TFile> {
 
         if (dir.isOpdsUnsynced() && dir.isRw() && dir.getOwner() == user.id) {
             api.dialog(LangMap.Value.OPDS_STARTED, user, dir.name);
+            final TFile d  = tfs.get(entryId, user);
             CompletableFuture.runAsync(() -> {
                 try {
-                    dir.setOpdsSynced();
-                    tfs.updateMeta(dir, user);
-                    tfs.syncOpdsDir(dir, user);
-                    api.dialog(LangMap.Value.OPDS_DONE, user, dir.name);
+                    d.setOpdsSynced();
+                    tfs.updateMeta(d, user);
+                    tfs.syncOpdsDir(d, user);
+                    api.dialog(LangMap.Value.OPDS_DONE, user, d.name);
                 } catch (final Exception e) {
                     logger.error("OPDS :: " + e.getMessage(), e);
                 }
