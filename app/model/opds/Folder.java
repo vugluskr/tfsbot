@@ -1,7 +1,5 @@
 package model.opds;
 
-import akka.stream.impl.fusing.Fold;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;

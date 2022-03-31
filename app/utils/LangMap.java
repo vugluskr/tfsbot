@@ -280,8 +280,7 @@ public class LangMap {
         init(Value.PASSWORD_FAILED, "Wrong password", "Неверный пароль");
 
         init(Value.OPDS_DONE, "OPDS catalog '%s' synchronization done", "Синхронизация OPDS каталога '%s' завершена");
-        init(Value.OPDS_STARTED, "OPDS synchronization started. You'll be notified when it get done", "Синхронизация OPDS каталога начата. По завершению вы получите " +
-                "уведомление.");
+        init(Value.OPDS_STARTED, "OPDS synchronization for folder '%s' started. You'll be notified when it get done", "Синхронизация OPDS каталога '%s' начата. По завершению вы получите уведомление.");
         init(Value.OPDS_FAILED, "OPDS synchronization failed. You have to be in any folder to start it, although valid URL required.", "Синхронизация OPDS каталога не может быть" +
                 " запущена. Для успешного запуска необходимо предоставить верный URL и находиться в какой-либо собственной папке.");
     }

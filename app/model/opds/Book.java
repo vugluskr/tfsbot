@@ -137,6 +137,9 @@ public class Book {
     }
 
     public void addAuthor(final String author) {
+        if (this.author == null)
+            this.author = "";
+
         this.author += (isEmpty(this.author) ? "" : ", ") + author;
     }
 }

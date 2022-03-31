@@ -531,9 +531,6 @@ public class TfsService {
                 }
         } catch (final Exception e) {
             logger.error("Failed to make OPDS from " + dir.getRefId() + " :: " + e.getMessage(), e);
-        } finally {
-            dir.setOpdsSynced();
-            updateMeta(dir, owner);
         }
     }
 

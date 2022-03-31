@@ -12,6 +12,7 @@ import utils.LangMap;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 import static utils.LangMap.v;
 import static utils.TextUtils.escapeMd;
@@ -119,8 +120,15 @@ public class DirViewer extends APager<TFile> {
         if (dir == null)
             dir = tfs.get(entryId, user);
 
-        if (dir.isOpdsUnsynced())
-            tfs.syncOpdsDir(dir, user);
+        if (dir.isOpdsUnsynced() && dir.isRw() && dir.getOwner() == user.id) {
+            api.dialog(LangMap.Value.OPDS_STARTED, user, dir.name);
+            CompletableFuture.runAsync(() -> {
+                dir.setOpdsSynced();
+                tfs.updateMeta(dir, user);
+                tfs.syncOpdsDir(dir, user);
+                api.dialog(LangMap.Value.OPDS_DONE, user, dir.name);
+            });
+        }
 
         return tfs.countFolder(entryId, user.id);
     }
