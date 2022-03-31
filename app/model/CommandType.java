@@ -48,7 +48,8 @@ public enum CommandType {
     unlock(Strings.Uni.lock),
     lock(Strings.Uni.keyLock),
     unlockFile(null),
-    unlockDir(null);
+    unlockDir(null),
+    reOpds(Strings.Uni.syncOpds);
 
     private final String icon;
     private TgApi.Button button;

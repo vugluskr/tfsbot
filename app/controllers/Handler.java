@@ -2,17 +2,14 @@ package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import model.*;
-import model.user.DirViewer;
 import model.user.ShareGranter;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
-import services.OpdsService;
 import services.TfsService;
 import services.TgApi;
 import services.UserService;
-import utils.LangMap;
 import utils.TFileFactory;
 
 import javax.inject.Inject;
@@ -39,9 +36,6 @@ public class Handler extends Controller {
 
     @Inject
     private TfsService tfs;
-
-    @Inject
-    private OpdsService opdsService;
 
     public Result get() {
         return ok();

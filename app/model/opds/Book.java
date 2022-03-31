@@ -1,7 +1,5 @@
 package model.opds;
 
-import java.time.LocalDateTime;
-
 import static utils.TextUtils.isEmpty;
 
 /**
@@ -11,25 +9,14 @@ import static utils.TextUtils.isEmpty;
  */
 public class Book {
     private long id;
-    private int opdsId;
-    private long folderId;
-    private LocalDateTime updated;
     private String title;
     private String author;
     private int year;
-    private String desc;
-    private String tag;
+    private String opdsTag;
     private String fbLink;
     private String epubLink;
-    private String refId;
-
-    public String getRefId() {
-        return refId;
-    }
-
-    public void setRefId(final String refId) {
-        this.refId = refId;
-    }
+    private String fbRefId;
+    private String epubRefId;
 
     public long getId() {
         return id;
@@ -37,30 +24,6 @@ public class Book {
 
     public void setId(final long id) {
         this.id = id;
-    }
-
-    public int getOpdsId() {
-        return opdsId;
-    }
-
-    public void setOpdsId(final int opdsId) {
-        this.opdsId = opdsId;
-    }
-
-    public long getFolderId() {
-        return folderId;
-    }
-
-    public void setFolderId(final long folderId) {
-        this.folderId = folderId;
-    }
-
-    public LocalDateTime getUpdated() {
-        return updated;
-    }
-
-    public void setUpdated(final LocalDateTime updated) {
-        this.updated = updated;
     }
 
     public String getTitle() {
@@ -87,20 +50,12 @@ public class Book {
         this.year = year;
     }
 
-    public String getDesc() {
-        return desc;
+    public String getOpdsTag() {
+        return opdsTag;
     }
 
-    public void setDesc(final String desc) {
-        this.desc = desc;
-    }
-
-    public String getTag() {
-        return tag;
-    }
-
-    public void setTag(final String tag) {
-        this.tag = tag;
+    public void setOpdsTag(final String opdsTag) {
+        this.opdsTag = opdsTag;
     }
 
     public String getFbLink() {
@@ -119,21 +74,20 @@ public class Book {
         this.epubLink = epubLink;
     }
 
-    @Override
-    public String toString() {
-        return "Book{" +
-                "id=" + id +
-                ", opdsId=" + opdsId +
-                ", folderId=" + folderId +
-                ", updated=" + updated +
-                ", title='" + title + '\'' +
-                ", author='" + author + '\'' +
-                ", year=" + year +
-                ", desc='" + desc + '\'' +
-                ", tag='" + tag + '\'' +
-                ", fbLink='" + fbLink + '\'' +
-                ", epubLink='" + epubLink + '\'' +
-                '}';
+    public String getFbRefId() {
+        return fbRefId;
+    }
+
+    public void setFbRefId(final String fbRefId) {
+        this.fbRefId = fbRefId;
+    }
+
+    public String getEpubRefId() {
+        return epubRefId;
+    }
+
+    public void setEpubRefId(final String epubRefId) {
+        this.epubRefId = epubRefId;
     }
 
     public void addAuthor(final String author) {

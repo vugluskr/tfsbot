@@ -209,6 +209,10 @@ public class TFile implements Comparable<TFile>, Optioned {
         return Optz.OpdsUnsynced.is(this);
     }
 
+    public boolean isOpds() {
+        return Optz.Opds.is(this);
+    }
+
     enum Optz implements BMasked {
         unused, locked, sharesRoot, shareFor, Opds, OpdsUnsynced
     }

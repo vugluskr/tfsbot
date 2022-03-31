@@ -25,5 +25,6 @@ public interface Strings {
         String link = "\uD83D\uDD17"; // 🔗
         String People = "\uD83D\uDC65"; // 👥
         String mkGrant = "\uD83D\uDC64"; // 👤
+        String syncOpds = "\uD83D\uDCBE"; // 💾
     }
 }

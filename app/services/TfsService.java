@@ -1,6 +1,5 @@
 package services;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.sun.org.apache.xerces.internal.util.XMLChar;
 import model.ContentType;
 import model.Share;
@@ -18,8 +17,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import play.Logger;
-import play.libs.Json;
-import services.impl.OpdsServiceImpl;
 import sql.EntryMapper;
 import sql.OpdsMapper;
 import sql.ShareMapper;
@@ -37,12 +34,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -282,6 +277,10 @@ public class TfsService {
     }
 
     public void rm(final UUID entryId, final User user) {
+        rm(entryId, user, true);
+    }
+
+    public void rm(final UUID entryId, final User user, final boolean selfIncluded) {
         final List<TFile> all = entries.getTree(entryId, userFsPrefix + user.id).stream().filter(TFile::isRw).collect(Collectors.toList());
 
         all.forEach(entry -> {
@@ -290,7 +289,8 @@ public class TfsService {
         });
 
         all.stream().collect(Collectors.groupingBy(TFile::getOwner))
-                .forEach((userId, tFiles) -> entries.rmList(tFiles.stream().map(TFile::getId).collect(Collectors.toList()), tablePrefix + userId));
+                .forEach((userId, tFiles) -> entries.rmList(tFiles.stream().map(TFile::getId).filter(id -> (selfIncluded || !id.equals(entryId))).collect(Collectors.toList()),
+                        tablePrefix + userId));
     }
 
     public List<TFile> search(final Searcher searcher) {
@@ -486,7 +486,7 @@ public class TfsService {
         fs.createFsTree(pathesTree + user.id, userFsPrefix + user.id);
     }
 
-    public void syncOpdsDir(final TFile dir, final User owner) {
+    public void syncOpdsDir(final TFile dir) {
         try {
             logger.debug("Loading: " + dir.getRefId());
             final Document doc = getXml(dir.refId);
@@ -525,7 +525,7 @@ public class TfsService {
 
                     if (next && !isEmpty(href)) {
                         dir.setRefId(urler.apply(href));
-                        syncOpdsDir(dir, owner);
+                        syncOpdsDir(dir);
                         break;
                     }
                 }
@@ -536,41 +536,48 @@ public class TfsService {
 
     private void processChilds(final UUID parentFolderId, final Collection<Folder> subfolders, final Collection<Book> books,
                                final Function<String, String> urler, final long owner) {
-        logger.debug("Processing " + subfolders.size() + " folders and " + books.size() + " books");
         subfolders.forEach(f -> mk(TFileFactory.opdsDir(f.getTitle(), urler.apply(f.getPath()), parentFolderId, owner)));
+
+        final String opdsRoot = urler.apply("/");
 
         for (Book book : books) {
             final boolean fb = !isEmpty(book.getFbLink());
             final boolean ep = !isEmpty(book.getEpubLink());
 
-            if (bookMapper.bookMissed(urler.apply("/"), book.getTag())) {
+            Book db = bookMapper.findBook(opdsRoot + book.getOpdsTag());
+            if (db == null) {
                 if (fb) book.setFbLink(urler.apply(book.getFbLink()));
                 if (ep) book.setEpubLink(urler.apply(book.getEpubLink()));
+                book.setOpdsTag(opdsRoot + book.getOpdsTag());
                 bookMapper.insertBook(book);
             } else
-                book = bookMapper.findBook(urler.apply("/"), book.getTag());
+                book = db;
+
+            final String fbt = book.getTitle() + " [FB2]";
+            final String ept = book.getTitle() + " [EPUB]";
 
             if (fb && ep) {
                 final TFile bookDir = mk(TFileFactory.dir(book.getTitle(), parentFolderId, owner));
-                makeTFile(book.getTitle() + " [EPUB]", bookDir.getId(), owner, book.getEpubLink(), book.getTag());
-                makeTFile(book.getTitle() + " [FB2]", bookDir.getId(), owner, book.getFbLink(), book.getTag());
+                if (isEmpty(book.getEpubRefId()))
+                    mk(TFileFactory.opdsFile(ept, bookDir.getId(), owner, book.getEpubLink()));
+                else
+                    mk(TFileFactory.file(ept, bookDir.getId(), owner, book.getEpubRefId()));
+
+                if (isEmpty(book.getFbRefId()))
+                    mk(TFileFactory.opdsFile(fbt, bookDir.getId(), owner, book.getFbLink()));
+                else
+                    mk(TFileFactory.file(fbt, bookDir.getId(), owner, book.getFbRefId()));
             } else if (fb) {
-                makeTFile(book.getTitle() + " [FB2]", parentFolderId, owner, book.getFbLink(), book.getTag());
+                if (isEmpty(book.getFbRefId()))
+                    mk(TFileFactory.opdsFile(fbt, parentFolderId, owner, book.getFbLink()));
+                else
+                    mk(TFileFactory.file(fbt, parentFolderId, owner, book.getFbRefId()));
             } else if (ep)
-                makeTFile(book.getTitle() + " [EPUB]", parentFolderId, owner, book.getEpubLink(), book.getTag());
+                if (isEmpty(book.getEpubRefId()))
+                    mk(TFileFactory.opdsFile(ept, parentFolderId, owner, book.getEpubLink()));
+                else
+                    mk(TFileFactory.file(ept, parentFolderId, owner, book.getEpubRefId()));
         }
-    }
-
-    private void makeTFile(final String title, final UUID parentDirId, final long owner, final String url, final String tag) {
-        final TFile file = new TFile();
-        file.uniqId = tag;
-        file.setOwner(owner);
-        file.setName(title);
-        file.setParentId(parentDirId);
-        file.setType(ContentType.DOCUMENT);
-        file.asOpds(url);
-
-        mk(file);
     }
 
     public File loadFile(final TFile file, final String ext) {
@@ -586,24 +593,6 @@ public class TfsService {
         }
 
         return null;
-    }
-
-    private void loadFile(final String url, final Consumer<String> refConsumer, final String ext) {
-        try {
-            final File tmp = File.createTempFile(String.valueOf(System.currentTimeMillis()), ext);
-            try (final FileOutputStream bos = new FileOutputStream(tmp)) {
-                getFile(url, bos);
-            }
-
-            final JsonNode rpl = api.upload(tmp).toCompletableFuture().join();
-
-            if (rpl.has("document"))
-                refConsumer.accept(rpl.get("document").get("file_id").asText());
-            else
-                throw new IOException("Failed to upload book: " + Json.stringify(rpl));
-        } catch (IOException e) {
-            logger.error(url + " :: " + e.getMessage(), e);
-        }
     }
 
     private Document getXml(final String url) {

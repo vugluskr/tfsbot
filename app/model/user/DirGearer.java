@@ -67,6 +67,14 @@ public class DirGearer extends APager<TFile> {
                     else
                         us.morphTo(LabelViewer.class, user).doView(tfs.getGearEntry(entryId, command.elementIdx, this));
                     break;
+                case reOpds:
+                    tfs.rm(entryId, user, false);
+                    if (dir == null)
+                        dir = tfs.get(entryId, user);
+                    dir.asOpds(dir.getRefId());
+                    tfs.updateMeta(dir, user);
+                    us.morphTo(DirViewer.class, user).doView();
+                    break;
                 case Void:
                     user.doView();
                     break;
@@ -123,8 +131,12 @@ public class DirGearer extends APager<TFile> {
             }
             if (dir.isRw())
                 kbd.button(CommandType.renameDir.b());
-            if (dir.getOwner() == user.id)
+            if (dir.getOwner() == user.id) {
+                if (dir.isOpds() && !dir.isOpdsUnsynced())
+                    kbd.button(CommandType.reOpds.b());
+
                 kbd.button(CommandType.dropDir.b());
+            }
         }
 
         kbd.button(CommandType.cancel.b());

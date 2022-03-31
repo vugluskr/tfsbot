@@ -45,4 +45,22 @@ public class TFileFactory {
 
         return f;
     }
+
+    public static TFile opdsFile(final String title, final UUID parentDirId, final long owner, final String url) {
+        final TFile file = file(title, parentDirId, owner, null);
+        file.asOpds(url);
+
+        return file;
+    }
+
+    public static TFile file(final String title, final UUID parentDirId, final long owner, final String refId) {
+        final TFile file = new TFile();
+        file.setOwner(owner);
+        file.setName(title);
+        file.setParentId(parentDirId);
+        file.setType(ContentType.DOCUMENT);
+        file.setRefId(refId);
+
+        return file;
+    }
 }

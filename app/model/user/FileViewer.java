@@ -116,7 +116,6 @@ public class FileViewer extends ARole implements CallbackSink {
             if (file.getOwner() == user.id) {
                 kbd.button(file.isLocked() ? CommandType.unlock.b() : CommandType.lock.b());
                 kbd.button(CommandType.share.b());
-
             }
 
             kbd.button(CommandType.renameFile.b(), CommandType.dropFile.b());

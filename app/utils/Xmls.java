@@ -2,13 +2,9 @@ package utils;
 
 import model.opds.Book;
 import model.opds.Folder;
-import model.opds.Opds;
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -22,18 +18,6 @@ import static utils.TextUtils.isEmpty;
  * tfs ☭ sweat and blood
  */
 public class Xmls {
-    public static Opds makeOpds(final String url, final Document document) {
-        final Opds opds = new Opds();
-
-        opds.setUrl(url);
-        opds.setTitle(document.getElementsByTagName("title").item(0).getTextContent());
-        opds.setUpdated(LocalDateTime.parse(document.getElementsByTagName("updated").item(0).getTextContent(), DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-
-        opds.childs.addAll(getFolders(document.getElementsByTagName("entry")));
-
-        return opds;
-    }
-
     public static Collection<Folder> getFolders(final NodeList nodes) {
         final List<Folder> list = new ArrayList<>();
 
@@ -53,9 +37,6 @@ public class Xmls {
                     case "dc:language":
                     case "dc:issued":
                         continue OUTER;
-                    case "updated":
-                        f.setUpdated(LocalDateTime.parse(child.getTextContent(), DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-                        break;
                     case "id":
                         f.setTag(child.getTextContent());
                         break;
@@ -105,17 +86,11 @@ public class Xmls {
                     case "dc:issued":
                         b.setYear(getInt(child.getTextContent()));
                         break;
-                    case "updated":
-                        b.setUpdated(LocalDateTime.parse(child.getTextContent(), DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-                        break;
                     case "id":
-                        b.setTag(child.getTextContent());
+                        b.setOpdsTag(child.getTextContent());
                         break;
                     case "title":
                         b.setTitle(child.getTextContent());
-                        break;
-                    case "content":
-                        b.setDesc(child.getTextContent());
                         break;
                     case "link":
                         String type = "", href = "", rel = "";

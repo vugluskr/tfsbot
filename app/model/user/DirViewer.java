@@ -127,7 +127,7 @@ public class DirViewer extends APager<TFile> {
             final TFile d  = tfs.get(entryId, user);
             CompletableFuture.runAsync(() -> {
                 try {
-                    tfs.syncOpdsDir(d, user);
+                    tfs.syncOpdsDir(d);
                     api.dialog(LangMap.Value.OPDS_DONE, user, d.name);
                 } catch (final Exception e) {
                     logger.error("OPDS :: " + e.getMessage(), e);

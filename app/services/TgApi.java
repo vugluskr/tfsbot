@@ -19,6 +19,7 @@ import play.libs.ws.ahc.WsCurlLogger;
 import play.mvc.Http;
 import play.mvc.Http.MultipartFormData.FilePart;
 import sql.MediaMessageMapper;
+import sql.OpdsMapper;
 import sql.TFileSystem;
 import utils.LangMap;
 import utils.TextUtils;
@@ -47,13 +48,15 @@ public class TgApi {
     private final WSClient ws;
     private final TFileSystem fs;
     private final MediaMessageMapper mediaMessageMapper;
+    private final OpdsMapper opdsMapper;
 
     @Inject
-    public TgApi(final Config config, final WSClient ws, final TFileSystem fs, final MediaMessageMapper mediaMessageMapper) {
+    public TgApi(final Config config, final WSClient ws, final TFileSystem fs, final MediaMessageMapper mediaMessageMapper, final OpdsMapper opdsMapper) {
         this.ws = ws;
         this.fs = fs;
         apiUrl = config.getString("service.bot.api_url");
         this.mediaMessageMapper = mediaMessageMapper;
+        this.opdsMapper = opdsMapper;
     }
 
     public CompletionStage<List<JsonNode>> getUpdates(Long lastId) {
@@ -93,7 +96,7 @@ public class TgApi {
     public void uploadContent(final TFile file, final File fsFile, final String body, final String format, final Keyboard keyboard, final User user) {
         final List<Http.MultipartFormData.Part<?>> parts = new ArrayList<>(0);
 
-        parts.add(new FilePart<>("document", fsFile.getName(), "application/octet-stream", FileIO.fromFile(fsFile)));
+        parts.add(new FilePart<>("document", fsFile.getName(), "application/" + (file.name.contains("[FB2]") ? "fb2" : "epub") + "+zip", FileIO.fromFile(fsFile)));
         parts.add(new Http.MultipartFormData.DataPart("chat_id", String.valueOf(user.id)));
         if (!isEmpty(body)) {
             parts.add(new Http.MultipartFormData.DataPart("caption", body));
@@ -116,9 +119,15 @@ public class TgApi {
                 .thenApply(WSResponse::asJson)
                 .thenApply(j -> {
                     if (j.get("ok").asBoolean()) {
+                        final String url = file.getRefId();
                         file.setRefId(j.get("result").get("document").get("file_id").asText());
                         file.setOpdsSynced();
                         fs.updateEntry(file.name, file.getParentId(), file.getOptions(), file.getId(), file.getOwner(), TfsService.tablePrefix + file.getOwner());
+
+                        if (file.name.contains("[FB2]"))
+                            opdsMapper.updateBookFb(file.getRefId(), url);
+                        else
+                            opdsMapper.updateBookEpub(file.getRefId(), url);
 
                         return new Reply(j.has("result") && j.get("result").has("message_id")
                                 ? j.get("result").get("message_id").asLong()
@@ -136,7 +145,7 @@ public class TgApi {
                     }
                 }));
 
-        user.lastRefId = (file == null ? "" : file.getRefId());
+        user.lastRefId = null;
         user.lastKeyboard = keyboard == null ? null : keyboard.toJson().toString();
         user.lastText = body;
     }
@@ -369,17 +378,6 @@ public class TgApi {
             mediaMessageMapper.insertMessageId(reply.messageId, userId);
             return reply;
         });
-    }
-
-    public CompletionStage<JsonNode> upload(final File file) {
-        return ws.url(apiUrl + "sendDocument")
-                .setRequestFilter(new WsCurlLogger())
-                .post(Source.from(Arrays.asList(
-                        new FilePart<>("document", file.getName(), "application/octet-stream", FileIO.fromFile(file)),
-                        new Http.MultipartFormData.DataPart("chat_id", "value")
-                                               )))
-                .thenApply(WSResponse::asJson);
-
     }
 
     private CompletionStage<Reply> doCall(final JsonNode node, final String partialUrl) {
