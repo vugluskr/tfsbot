@@ -543,39 +543,52 @@ public class TfsService {
         subfolders.forEach(f -> mk(TFileFactory.opdsDir(f.getTitle(), urler.apply(f.getPath()), parentFolderId, owner)));
 
         for (Book book : books) {
-            if (bookMapper.bookMissed(urler.apply("/"), book.getTag())) {
-                if (!isEmpty(book.getFbLink()))
-                    loadFile(urler.apply(book.getFbLink()), book::setFbLink, ".fb2.zip");
-                if (!isEmpty(book.getEpubLink()))
-                    loadFile(urler.apply(book.getEpubLink()), book::setEpubLink, ".epub");
+            final boolean fb = !isEmpty(book.getFbLink());
+            final boolean ep = !isEmpty(book.getEpubLink());
 
+            if (bookMapper.bookMissed(urler.apply("/"), book.getTag())) {
+                if (fb) book.setFbLink(urler.apply(book.getFbLink()));
+                if (ep) book.setEpubLink(urler.apply(book.getEpubLink()));
                 bookMapper.insertBook(book);
             } else
                 book = bookMapper.findBook(urler.apply("/"), book.getTag());
 
-            try {
+            if (fb && ep) {
                 final TFile bookDir = mk(TFileFactory.dir(book.getTitle(), parentFolderId, owner));
-
-                if (!isEmpty(book.getEpubLink()) && entryMissed(book.getTitle() + " [EPUB]", bookDir.getId(), owner))
-                    makeTFile(book.getTitle() + " [EPUB]", book.getEpubLink(), bookDir.getId(), owner);
-
-                if (!isEmpty(book.getFbLink()) && entryMissed(book.getTitle() + " [FB2]", bookDir.getId(), owner))
-                    makeTFile(book.getTitle() + " [FB2]", book.getFbLink(), bookDir.getId(), owner);
-            } catch (final Exception e) {
-                logger.error(book + " :: " + e.getMessage(), e);
-            }
+                makeTFile(book.getTitle() + " [EPUB]", bookDir.getId(), owner, book.getEpubLink(), book.getTag());
+                makeTFile(book.getTitle() + " [FB2]", bookDir.getId(), owner, book.getFbLink(), book.getTag());
+            } else if (fb) {
+                makeTFile(book.getTitle() + " [FB2]", parentFolderId, owner, book.getFbLink(), book.getTag());
+            } else if (ep)
+                makeTFile(book.getTitle() + " [EPUB]", parentFolderId, owner, book.getEpubLink(), book.getTag());
         }
     }
 
-    private void makeTFile(final String title, final String refId, final UUID parentDirId, final long owner) {
+    private void makeTFile(final String title, final UUID parentDirId, final long owner, final String url, final String tag) {
         final TFile file = new TFile();
+        file.uniqId = tag;
         file.setOwner(owner);
         file.setName(title);
         file.setParentId(parentDirId);
         file.setType(ContentType.DOCUMENT);
-        file.setRefId(refId);
+        file.asOpds(url);
 
         mk(file);
+    }
+
+    public File loadFile(final TFile file, final String ext) {
+        try {
+            final File tmp = File.createTempFile(String.valueOf(System.currentTimeMillis()), ext);
+            try (final FileOutputStream bos = new FileOutputStream(tmp)) {
+                getFile(file.getRefId(), bos);
+            }
+
+            return tmp;
+        } catch (IOException e) {
+            logger.error(file.getRefId() + " :: " + e.getMessage(), e);
+        }
+
+        return null;
     }
 
     private void loadFile(final String url, final Consumer<String> refConsumer, final String ext) {

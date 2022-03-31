@@ -116,12 +116,16 @@ public class FileViewer extends ARole implements CallbackSink {
             if (file.getOwner() == user.id) {
                 kbd.button(file.isLocked() ? CommandType.unlock.b() : CommandType.lock.b());
                 kbd.button(CommandType.share.b());
+
             }
 
             kbd.button(CommandType.renameFile.b(), CommandType.dropFile.b());
         }
 
-        api.sendContent(file, escapeMd(file.getPath()), ParseMode.md2, kbd, user);
+        if (file.isOpdsUnsynced() && file.isRw() && file.getOwner() == user.id)
+            api.uploadContent(file, tfs.loadFile(file, file.getName().contains("[FB2]") ? ".fb2.zip" : ".epub"), escapeMd(file.getPath()), ParseMode.md2, kbd, user);
+        else
+            api.sendContent(file, escapeMd(file.getPath()), ParseMode.md2, kbd, user);
     }
 
     @Override

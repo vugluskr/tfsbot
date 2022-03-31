@@ -16,6 +16,7 @@ import play.libs.Json;
 import play.libs.ws.WSClient;
 import play.libs.ws.WSResponse;
 import play.libs.ws.ahc.WsCurlLogger;
+import play.mvc.Http;
 import play.mvc.Http.MultipartFormData.FilePart;
 import sql.MediaMessageMapper;
 import sql.TFileSystem;
@@ -88,6 +89,51 @@ public class TgApi {
         CompletableFuture.runAsync(() -> sendText(v(text, user, args), ParseMode.md2, kbd.toJson(), user.id)
                 .thenAccept(reply -> fs.addServiceWin(reply.messageId, user.id)));
     }
+
+    public void uploadContent(final TFile file, final File fsFile, final String body, final String format, final Keyboard keyboard, final User user) {
+        final List<Http.MultipartFormData.Part<?>> parts = new ArrayList<>(0);
+
+        final ObjectNode node = Json.newObject();
+        parts.add(new FilePart<>("document", fsFile.getName(), "application/octet-stream", FileIO.fromFile(fsFile)));
+        parts.add(new Http.MultipartFormData.DataPart("chat_id", String.valueOf(user.id)));
+        if (!isEmpty(body)) {
+            parts.add(new Http.MultipartFormData.DataPart("caption", body));
+
+            if (!isEmpty(format))
+                parts.add(new Http.MultipartFormData.DataPart("parse_mode", format));
+        }
+        if (keyboard != null)
+            parts.add(new Http.MultipartFormData.DataPart("reply_markup", keyboard.toJson().toString()));
+
+        CompletableFuture.runAsync(() -> {
+            ws.url(apiUrl + "sendDocument")
+                    .setRequestFilter(new WsCurlLogger())
+                    .post(Source.from(parts))
+                    .thenApply(WSResponse::asJson)
+                    .thenApply(j -> {
+                        if (j.get("ok").asBoolean()) {
+/*
+                            if (rpl.has("document"))
+                                refConsumer.accept(rpl.get("document").get("file_id").asText());
+*/
+                            return new Reply(j.has("result") && j.get("result").has("message_id")
+                                    ? j.get("result").get("message_id").asLong()
+                                    : 0);
+                        }
+
+                        return new Reply(j.get("description").asText());
+                    })
+                    .thenAccept(reply -> {
+                        if (reply.ok) {
+                            user.lastMessageId = reply.messageId;
+                            fs.updateLastMessageId(reply.messageId, user.id);
+                        } else {
+                            logger.error("Cant send content: " + reply.desc);
+                        }
+                    });
+        });
+    }
+
 
     public void sendContent(final TFile file, final String body, final String format, final Keyboard keyboard, final User user) {
         sendContent(file, body, format, keyboard, user, 0);
@@ -321,7 +367,10 @@ public class TgApi {
     public CompletionStage<JsonNode> upload(final File file) {
         return ws.url(apiUrl + "sendDocument")
                 .setRequestFilter(new WsCurlLogger())
-                .post(Source.from(Collections.singleton(new FilePart<>("document", file.getName(), "application/octet-stream", FileIO.fromFile(file)))))
+                .post(Source.from(Arrays.asList(
+                        new FilePart<>("document", file.getName(), "application/octet-stream", FileIO.fromFile(file)),
+                        new Http.MultipartFormData.DataPart("chat_id", "value")
+                                               )))
                 .thenApply(WSResponse::asJson);
 
     }

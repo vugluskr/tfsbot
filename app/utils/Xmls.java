@@ -85,7 +85,6 @@ public class Xmls {
     public static Collection<Book> getBooks(final NodeList nodes) {
         final List<Book> list = new ArrayList<>();
 
-        OUTER:
         for (int i = 0; i < nodes.getLength(); i++) {
             final Node el = nodes.item(i);
 
@@ -119,21 +118,30 @@ public class Xmls {
                         b.setDesc(child.getTextContent());
                         break;
                     case "link":
-                        String type = "", href = "";
+                        String type = "", href = "", rel = "";
 
                         for (int k = 0; k < child.getAttributes().getLength(); k++) {
                             final Node a = child.getAttributes().item(k);
 
-                            if (a.getNodeName().equals("type"))
-                                type = a.getNodeValue();
-                            else if (a.getNodeName().equals("href"))
-                                href = a.getNodeValue();
+                            switch (a.getNodeName()) {
+                                case "type":
+                                    type = a.getNodeValue();
+                                    break;
+                                case "href":
+                                    href = a.getNodeValue();
+                                    break;
+                                case "rel":
+                                    rel = a.getNodeValue();
+                                    break;
+                            }
                         }
 
-                        if (type.contains("/fb2"))
-                            b.setFbLink(href);
-                        else if (type.contains("/epub"))
-                            b.setEpubLink(href);
+                        if (rel.equals("http://opds-spec.org/acquisition/open-access")) {
+                            if (type.contains("/fb2"))
+                                b.setFbLink(href);
+                            else if (type.contains("/epub"))
+                                b.setEpubLink(href);
+                        }
 
                         break;
                 }
