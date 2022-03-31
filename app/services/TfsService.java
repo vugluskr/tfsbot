@@ -289,8 +289,12 @@ public class TfsService {
         });
 
         all.stream().collect(Collectors.groupingBy(TFile::getOwner))
-                .forEach((userId, tFiles) -> entries.rmList(tFiles.stream().map(TFile::getId).filter(id -> (selfIncluded || !id.equals(entryId))).collect(Collectors.toList()),
-                        tablePrefix + userId));
+                .forEach((userId, tFiles) -> {
+                    final List<UUID> uuids = tFiles.stream().map(TFile::getId).filter(id -> (selfIncluded || !id.equals(entryId))).collect(Collectors.toList());
+
+                    if (!isEmpty(uuids))
+                        entries.rmList(uuids, tablePrefix + userId);
+                });
     }
 
     public List<TFile> search(final Searcher searcher) {
