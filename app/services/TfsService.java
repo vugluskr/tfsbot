@@ -56,7 +56,7 @@ import static utils.TextUtils.*;
  */
 public class TfsService {
     private static final Logger.ALogger logger = Logger.of(TfsService.class);
-    private final static String tablePrefix = "fs_data_", userFsPrefix = "fs_user_", pathesTree = "fs_paths_", sharePrefix = "fs_share_";
+    public final static String tablePrefix = "fs_data_", userFsPrefix = "fs_user_", pathesTree = "fs_paths_", sharePrefix = "fs_share_";
 
     @Inject
     private TFileSystem fs;

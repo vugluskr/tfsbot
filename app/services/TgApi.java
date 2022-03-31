@@ -93,7 +93,6 @@ public class TgApi {
     public void uploadContent(final TFile file, final File fsFile, final String body, final String format, final Keyboard keyboard, final User user) {
         final List<Http.MultipartFormData.Part<?>> parts = new ArrayList<>(0);
 
-        final ObjectNode node = Json.newObject();
         parts.add(new FilePart<>("document", fsFile.getName(), "application/octet-stream", FileIO.fromFile(fsFile)));
         parts.add(new Http.MultipartFormData.DataPart("chat_id", String.valueOf(user.id)));
         if (!isEmpty(body)) {
@@ -105,33 +104,41 @@ public class TgApi {
         if (keyboard != null)
             parts.add(new Http.MultipartFormData.DataPart("reply_markup", keyboard.toJson().toString()));
 
-        CompletableFuture.runAsync(() -> {
-            ws.url(apiUrl + "sendDocument")
-                    .setRequestFilter(new WsCurlLogger())
-                    .post(Source.from(parts))
-                    .thenApply(WSResponse::asJson)
-                    .thenApply(j -> {
-                        if (j.get("ok").asBoolean()) {
-/*
-                            if (rpl.has("document"))
-                                refConsumer.accept(rpl.get("document").get("file_id").asText());
-*/
-                            return new Reply(j.has("result") && j.get("result").has("message_id")
-                                    ? j.get("result").get("message_id").asLong()
-                                    : 0);
-                        }
+        if (user.lastMessageId > 0) {
+            final long toDel = user.lastMessageId;
+            CompletableFuture.runAsync(() -> deleteMessage(toDel, user.id));
+            user.lastMessageId = 0;
+        }
 
-                        return new Reply(j.get("description").asText());
-                    })
-                    .thenAccept(reply -> {
-                        if (reply.ok) {
-                            user.lastMessageId = reply.messageId;
-                            fs.updateLastMessageId(reply.messageId, user.id);
-                        } else {
-                            logger.error("Cant send content: " + reply.desc);
-                        }
-                    });
-        });
+        CompletableFuture.runAsync(() -> ws.url(apiUrl + "sendDocument")
+                .setRequestFilter(new WsCurlLogger())
+                .post(Source.from(parts))
+                .thenApply(WSResponse::asJson)
+                .thenApply(j -> {
+                    if (j.get("ok").asBoolean()) {
+                        file.setRefId(j.get("result").get("document").get("file_id").asText());
+                        file.setOpdsSynced();
+                        fs.updateEntry(file.name, file.getParentId(), file.getOptions(), file.getId(), file.getOwner(), TfsService.tablePrefix + file.getOwner());
+
+                        return new Reply(j.has("result") && j.get("result").has("message_id")
+                                ? j.get("result").get("message_id").asLong()
+                                : 0);
+                    }
+
+                    return new Reply(j.get("description").asText());
+                })
+                .thenAccept(reply -> {
+                    if (reply.ok) {
+                        user.lastMessageId = reply.messageId;
+                        fs.updateLastMessageId(reply.messageId, user.id);
+                    } else {
+                        logger.error("Cant send content: " + reply.desc);
+                    }
+                }));
+
+        user.lastRefId = (file == null ? "" : file.getRefId());
+        user.lastKeyboard = keyboard == null ? null : keyboard.toJson().toString();
+        user.lastText = body;
     }
 
 
