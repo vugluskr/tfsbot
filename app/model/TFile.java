@@ -181,7 +181,7 @@ public class TFile implements Comparable<TFile>, Optioned {
     }
 
     public void asOpds(final String url) {
-        if (!isDir())
+        if (isLabel())
             return;
 
         Optz.Opds.set(this);
