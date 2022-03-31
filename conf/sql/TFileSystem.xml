@@ -127,6 +127,12 @@
         where id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
     </update>
 
+    <update id="updateEntryRef">
+        update ${tableName}
+        set ref_id   = #{refId}
+        where id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
+    </update>
+
     <select id="isEntryExist" resultType="_boolean">
         select exists(select 1 from ${viewName} where name = #{name} and parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
     </select>

@@ -38,8 +38,9 @@ public interface TFileSystem {
 
     void dropEntry(@Param("name") String name, @Param("parentId") UUID parentId, @Param("owner") long owner, @Param("viewName") String viewName);
 
-    void updateEntry(@Param("name") String name, @Param("parentId") UUID parentId, @Param("options") int options, @Param("id") UUID id, @Param("owner") long owner,
-                     @Param("tableName") String tableName);
+    void updateEntry(@Param("name") String name, @Param("parentId") UUID parentId, @Param("options") int options, @Param("id") UUID id, @Param("tableName") String tableName);
+
+    void updateEntryRef(@Param("refId") String refId, @Param("id") UUID id, @Param("tableName") String tableName);
 
     boolean isEntryExist(@Param("name") String name, @Param("parentId") UUID parentId, @Param("viewName") String viewName);
 

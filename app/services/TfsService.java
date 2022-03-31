@@ -129,7 +129,7 @@ public class TfsService {
 
     public void updateMeta(final TFile file, final User user) {
         if (file.isRw())
-            fs.updateEntry(file.getName(), file.getParentId(), file.getOptions(), file.getId(), user.id, tablePrefix + file.getOwner());
+            fs.updateEntry(file.getName(), file.getParentId(), file.getOptions(), file.getId(), tablePrefix + file.getOwner());
     }
 
     public TFile applyShareByLink(final Share share, final User consumer) {
@@ -308,13 +308,13 @@ public class TfsService {
         fs.dropLock(entry.getId());
         fs.createLock(entry.getId(), salt, password);
         entry.setLocked();
-        fs.updateEntry(entry.getName(), entry.getParentId(), entry.getOptions(), entry.getId(), entry.getOwner(), tablePrefix + entry.getOwner());
+        fs.updateEntry(entry.getName(), entry.getParentId(), entry.getOptions(), entry.getId(), tablePrefix + entry.getOwner());
     }
 
     public void unlockEntry(final TFile entry) {
         fs.dropLock(entry.getId());
         entry.setUnlocked();
-        fs.updateEntry(entry.getName(), entry.getParentId(), entry.getOptions(), entry.getId(), entry.getOwner(), tablePrefix + entry.getOwner());
+        fs.updateEntry(entry.getName(), entry.getParentId(), entry.getOptions(), entry.getId(), tablePrefix + entry.getOwner());
     }
 
     public boolean passwordFailed(final UUID uuid, final String password) {

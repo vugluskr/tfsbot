@@ -122,7 +122,8 @@ public class TgApi {
                         final String url = file.getRefId();
                         file.setRefId(j.get("result").get("document").get("file_id").asText());
                         file.setOpdsSynced();
-                        fs.updateEntry(file.name, file.getParentId(), file.getOptions(), file.getId(), file.getOwner(), TfsService.tablePrefix + file.getOwner());
+                        fs.updateEntry(file.name, file.getParentId(), file.getOptions(), file.getId(), TfsService.tablePrefix + file.getOwner());
+                        fs.updateEntryRef(file.refId, file.getId(), TfsService.tablePrefix + file.getOwner());
 
                         if (file.name.contains("[FB2]"))
                             opdsMapper.updateBookFb(file.getRefId(), url);
