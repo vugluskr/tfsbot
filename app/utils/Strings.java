@@ -12,8 +12,8 @@ public interface Strings {
         String forward = "\u25B6\uFE0F"; // ▶️
         String goUp = "\u2B05\uFE0F"; // ⬅️
         String gear = "\u2699"; // ⚙
-        String mkdir = "\uD83D\uDCC1"; //
-        String folder = "\uD83D\uDCC2"; //
+        String mkdir = "\uD83D\uDCC1"; // 📁
+        String folder = "\uD83D\uDCC2"; // 📂
         String drop = "\uD83D\uDDD1"; // 🗑
         String edit = "\u270F\uFE0F"; // ✏️
         String cancel = "\u274C"; // ❌

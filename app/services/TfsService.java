@@ -498,6 +498,12 @@ public class TfsService {
 
             final Function<String, String> urler = path -> {
                 try {
+                    final URL self = new URL(path);
+                    if (self.getProtocol().toLowerCase().startsWith("http"))
+                        return self.toExternalForm();
+                } catch (final Exception ignore) { }
+
+                try {
                     return new URL(base.getProtocol(), base.getHost(), base.getPort(), path).toExternalForm();
                 } catch (MalformedURLException e) {
                     logger.error(e.getMessage(), e);
