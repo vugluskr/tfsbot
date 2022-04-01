@@ -109,12 +109,16 @@ public class Handler extends Controller {
                     handleUserRequest(user, u -> api.dialogUnescaped(u.doHelp(), u, TgApi.voidKbd), js);
                 else if (text.startsWith("/start shared-"))
                     handleUserRequest(user, u -> u.joinShare(notNull(text).substring(14)), js);
-                else if (text.startsWith("/opds")) {
+                else if (text.startsWith("/opds ")) {
                     final String[] parts = notNull(text).substring(5).trim().split("\\s");
                     if (parts.length == 2 && !isEmpty(parts[0]) && !isEmpty(parts[1]))
                         tfs.mk(TFileFactory.opdsDir(parts[1].trim(), parts[0].trim(), user.entryId(), user.id));
 
                     handleUserRequest(user, User::doView, js);
+                } else if (text.startsWith("/fbs ")) {
+                    final String q = notNull(text.substring(3));
+
+
                 } else
                     handleUserRequest(user, u -> u.onInput(text), js);
             } else {
@@ -137,6 +141,7 @@ public class Handler extends Controller {
                     attachNode = msg.get("video");
                     file.type = ContentType.VIDEO;
                 } else if (msg.has("document")) {
+                    logger.debug("We've got document!\n" + msg);
                     attachNode = msg.get("document");
                     file.name = attachNode.get("file_name").asText();
                     file.type = ContentType.DOCUMENT;
