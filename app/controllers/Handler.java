@@ -119,7 +119,7 @@ public class Handler extends Controller {
                     final String q = notNull(text.substring(3));
 
                     api.sendText("[ссылка](/logme), а тут просто /command " +
-                            "Вторая [ссылка-2](/logme@telefsBot)", ParseMode.md2, null, user.id);
+                            "Вторая [ссылка2](/logme@telefsBot)", ParseMode.md2, null, user.id);
                 } else
                     handleUserRequest(user, u -> u.onInput(text), js);
             } else {
