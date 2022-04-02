@@ -118,7 +118,8 @@ public class Handler extends Controller {
                 } else if (text.startsWith("/fbs ")) {
                     final String q = notNull(text.substring(3));
 
-                    api.sendText("<a href=\"/logme@telefsBot\">ссылка</a>, а тут просто /command", ParseMode.html, null, user.id);
+                    api.sendText("[ссылка](/logme), а тут просто /command \n" +
+                            "Вторая [ссылка-2](/logme@telefsBot)", ParseMode.md2, null, user.id);
                 } else
                     handleUserRequest(user, u -> u.onInput(text), js);
             } else {
