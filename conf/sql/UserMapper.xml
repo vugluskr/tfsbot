@@ -2,26 +2,28 @@
 
 <mapper namespace="sql.UserMapper">
     <insert id="insertUser">
-        insert into users(id)
-        VALUES (#{id})
+        insert into users(id, last_message_id, last_ref_id, last_text, last_kbd, data)
+        VALUES (#{u.id}, #{u.msgId}, #{u.s1}, #{u.s2}, #{u.s3}, #{u.s4})
     </insert>
 
-    <select id="getUser" resultType="java.util.Map">
-        select u.*, fs.id as root_id
-        from users u
-                 left join fs_data_${id} fs on fs.parent_id is null
-        where u.id = #{id}
-    </select>
-    <select id="isUserMissed" resultType="_boolean">
-        select not exists(select 1 from users where id = #{id})
+    <select id="getUser" resultType="model.user.UDbData">
+        select id,
+               last_message_id as "msgId",
+               last_ref_id     as "s1",
+               last_text       as "s2",
+               last_kbd        as "s3",
+               data            as "s4"
+        from users
+        where id = #{id}
     </select>
 
     <update id="updateUser">
         update users
-        set last_ref_id = #{lastRefId},
-            last_text   = #{lastText},
-            last_kbd    = #{lastKbd},
-            data        = #{data}
-        where id = #{id}
+        set last_message_id = #{u.msgId},
+            last_ref_id     = #{u.s1},
+            last_text       = #{u.s2},
+            last_kbd        = #{u.s3},
+            data            = #{u.s4}
+        where id = #{u.id}
     </update>
 </mapper>

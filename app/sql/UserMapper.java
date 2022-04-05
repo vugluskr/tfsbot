@@ -1,8 +1,7 @@
 package sql;
 
+import model.user.UDbData;
 import org.apache.ibatis.annotations.Param;
-
-import java.util.Map;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -10,15 +9,9 @@ import java.util.Map;
  * tfs ☭ sweat and blood
  */
 public interface UserMapper {
-    Map<String, Object> getUser(@Param("id") long id);
+    UDbData getUser(@Param("id") long id);
 
-    void insertUser(@Param("id") long id);
+    void insertUser(@Param("u") UDbData u);
 
-    void updateUser(@Param("lastRefId") String lastRefId,
-                    @Param("lastText") String lastText,
-                    @Param("lastKbd") String lastKeyboard,
-                    @Param("data") String data,
-                    @Param("id") long id);
-
-    boolean isUserMissed(@Param("id") long id);
+    void updateUser(@Param("u") UDbData u);
 }

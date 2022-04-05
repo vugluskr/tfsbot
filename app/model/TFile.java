@@ -1,6 +1,7 @@
 package model;
 
-import services.TgApi;
+import services.BotApi;
+import utils.AsButton;
 import utils.BMasked;
 import utils.Optioned;
 import utils.Strings;
@@ -15,7 +16,7 @@ import static utils.TextUtils.notNull;
  * 01.05.2020
  * tfs ☭ sweat and blood
  */
-public class TFile implements Comparable<TFile>, Optioned {
+public class TFile implements Comparable<TFile>, Optioned, AsButton {
     public String uniqId;
     private UUID id, parentId;
     private long owner;
@@ -26,30 +27,16 @@ public class TFile implements Comparable<TFile>, Optioned {
     private int options;
     private boolean rw;
 
-    public TgApi.Button toButton(final int idx) {
-        return new TgApi.Button(
-                (isDir() ? Strings.Uni.folder + " " : "")
+    @Override
+    public BotApi.Button toButton(final int idx) {
+        return new BotApi.Button(
+                (isDir() ? (isBookStore() ? Strings.Uni.bookStore : Strings.Uni.folder) + " " : "")
                         + name,
                 (isDir()
                         ? CommandType.openDir
                         : isFile()
                         ? CommandType.openFile
                         : CommandType.openLabel).toString()
-                        + idx
-        );
-    }
-
-    public TgApi.Button toSearchedButton(final int pathSkip, final int idx) {
-        final String label = path.substring(pathSkip);
-
-        return new TgApi.Button(
-                (isDir() ? Strings.Uni.folder + " " : "")
-                        + label,
-                (isDir()
-                        ? CommandType.openSearchedDir
-                        : isFile()
-                        ? CommandType.openSearchedFile
-                        : CommandType.openSearchedLabel).toString()
                         + idx
         );
     }
@@ -213,7 +200,18 @@ public class TFile implements Comparable<TFile>, Optioned {
         return Optz.Opds.is(this);
     }
 
+    public boolean isBookStore() {
+        return Optz.BookStore.is(this);
+    }
+
+    public void changeBookStore() {
+        if (isBookStore())
+            Optz.BookStore.remove(this);
+        else
+            Optz.BookStore.set(this);
+    }
+
     enum Optz implements BMasked {
-        unused, locked, sharesRoot, shareFor, Opds, OpdsUnsynced
+        unused, locked, sharesRoot, shareFor, Opds, BookStore, OpdsUnsynced
     }
 }

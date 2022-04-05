@@ -1,23 +1,17 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import model.*;
-import model.user.ShareGranter;
+import model.request.CallbackRequest;
+import model.request.TgRequest;
 import play.Logger;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
-import services.TfsService;
-import services.TgApi;
-import services.UserService;
-import utils.TFileFactory;
+import services.BotApi;
+import services.Router;
 
 import javax.inject.Inject;
-import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
-
-import static utils.TextUtils.*;
 
 /**
  * @author Denis Danilin | denis@danilin.name
@@ -27,15 +21,11 @@ import static utils.TextUtils.*;
 public class Handler extends Controller {
     private static final Logger.ALogger logger = Logger.of(Handler.class);
 
+    @Inject
+    private BotApi api;
 
     @Inject
-    private TgApi api;
-
-    @Inject
-    private UserService userService;
-
-    @Inject
-    private TfsService tfs;
+    private Router router;
 
     public Result get() {
         return ok();
@@ -44,12 +34,14 @@ public class Handler extends Controller {
     public Result post(final Http.Request request) {
         try {
             final JsonNode js;
-            if (request.hasBody() && (js = request.body().asJson()) != null)
-                CompletableFuture.runAsync(() -> handleJson(js))
-                        .exceptionally(e -> {
-                            logger.error(e.getMessage(), e);
-                            return null;
-                        });
+            final TgRequest r = request.hasBody() && ((js = request.body().asJson()) != null) ? TgRequest.resolve(js) : null;
+
+            if (r != null) {
+                if (!(r instanceof CallbackRequest))
+                    CompletableFuture.runAsync(() -> api.dropMessage(BotApi.Chat.of(r.user.id), request.body().asJson().get("message").get("message_id").asLong()));
+
+                CompletableFuture.runAsync(() -> router.handle(r));
+            }
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
         }
@@ -57,6 +49,7 @@ public class Handler extends Controller {
         return ok();
     }
 
+/*
     private void handleJson(final JsonNode js) {
         final User user;
 
@@ -109,18 +102,7 @@ public class Handler extends Controller {
                     handleUserRequest(user, u -> api.dialogUnescaped(u.doHelp(), u, TgApi.voidKbd), js);
                 else if (text.startsWith("/start shared-"))
                     handleUserRequest(user, u -> u.joinShare(notNull(text).substring(14)), js);
-                else if (text.startsWith("/opds ")) {
-                    final String[] parts = notNull(text).substring(5).trim().split("\\s");
-                    if (parts.length == 2 && !isEmpty(parts[0]) && !isEmpty(parts[1]))
-                        tfs.mk(TFileFactory.opdsDir(parts[1].trim(), parts[0].trim(), user.entryId(), user.id));
-
-                    handleUserRequest(user, User::doView, js);
-                } else if (text.startsWith("/fbs ")) {
-                    final String q = notNull(text.substring(3));
-
-                    api.sendText("/рус02834 /\uD83D\uDCC2 /k /ч и просто текст " +
-                            "Вторая [ссылка2](/logme@telefsBot)", ParseMode.md2, null, user.id);
-                } else
+                else
                     handleUserRequest(user, u -> u.onInput(text), js);
             } else {
                 final JsonNode attachNode;
@@ -195,26 +177,28 @@ public class Handler extends Controller {
             logger.debug("Необслуживаемый тип сообщения");
         }
     }
+*/
 
-    private void doReset(final User user) {
-        final long userId = user.id;
+//    private void doReset(final User user) {
+//        final long userId = user.id;
+//
+//        CompletableFuture.runAsync(() -> {
+//            api.cleanup(userId);
+//            if (user.lastMessageId > 0)
+//                api.deleteMessage(user.lastMessageId, userId);
+//            userService.reset(user);
+//            tfs.reinitUserTables(userId);
+//            tfs.dropUserShares(userId);
+//            user.doView();
+//
+//            logger.info("User " + user.name + " #" + user.id + " rebuilded");
+//        }).exceptionally(e -> {
+//            logger.error("Resetting user #" + userId + ": " + e.getMessage(), e);
+//            return null;
+//        });
+//    }
 
-        CompletableFuture.runAsync(() -> {
-            api.cleanup(userId);
-            if (user.lastMessageId > 0)
-                api.deleteMessage(user.lastMessageId, userId);
-            userService.reset(user);
-            tfs.reinitUserTables(userId);
-            tfs.dropUserShares(userId);
-            user.doView();
-
-            logger.info("User " + user.name + " #" + user.id + " rebuilded");
-        }).exceptionally(e -> {
-            logger.error("Resetting user #" + userId + ": " + e.getMessage(), e);
-            return null;
-        });
-    }
-
+/*
     private void handleUserRequest(final User user, final Consumer<User> task, final JsonNode input) {
         CompletableFuture.runAsync(() -> {
             try {
@@ -227,19 +211,5 @@ public class Handler extends Controller {
             return null;
         });
     }
-
-    private User getUser(final JsonNode node) {
-        final String f = node.has("first_name") ? node.get("first_name").asText() : null;
-        final String l = node.has("last_name") ? node.get("last_name").asText() : null;
-        final String n = node.has("username") ? node.get("username").asText() : null;
-        final long id = node.get("id").asLong();
-
-        try {
-            return userService.resolveUser(id,
-                    node.has("language_code") ? node.get("language_code").asText() : "en",
-                    notNull((notNull(f) + " " + notNull(l)), notNull(n, "u" + id)));
-        } finally {
-            api.cleanup(id);
-        }
-    }
+*/
 }

@@ -1,6 +1,6 @@
 package model;
 
-import services.TgApi;
+import services.BotApi;
 import utils.Strings;
 
 import static utils.TextUtils.getInt;
@@ -17,7 +17,7 @@ public enum CommandType {
     changeGrantRw(null),
     mkDir(Strings.Uni.folder),
     mkLabel(Strings.Uni.label),
-    gear(Strings.Uni.gear),
+    gearDir(Strings.Uni.gear),
     Void(Strings.Uni.cancel),
     cancel(Strings.Uni.cancel),
     dropGrant(null),
@@ -26,10 +26,10 @@ public enum CommandType {
     makeEntryLink(Strings.Uni.link),
 
     share(Strings.Uni.share),
-    dropDir(Strings.Uni.drop),
+    drop(Strings.Uni.drop),
     dropFile(Strings.Uni.drop),
     dropLabel(Strings.Uni.drop),
-    renameDir(Strings.Uni.edit),
+    rename(Strings.Uni.edit),
     renameFile(Strings.Uni.edit),
     editLabel(Strings.Uni.edit),
     openDir(null),
@@ -42,36 +42,46 @@ public enum CommandType {
     joinPublicShare(null),
     doSearch(null),
     uploadFile(null),
-    cancelSearch(Strings.Uni.goUp),
-    contextHelp(null),
+    exitSearch(Strings.Uni.goUp),
+    contextHelp(Strings.Uni.put),
     grantAccess(null),
     unlock(Strings.Uni.lock),
     lock(Strings.Uni.keyLock),
     unlockFile(null),
     unlockDir(null),
-    reOpds(Strings.Uni.syncOpds);
+    reOpds(Strings.Uni.syncOpds),
+    openShare(null),
+    setBooks(Strings.Uni.bookStore),
+    rewindGearDir(Strings.Uni.rewind),
+    forwardGearDir(Strings.Uni.forward),
+    rewindShares(Strings.Uni.rewind),
+    forwardShares(Strings.Uni.forward),
+    exitLabelGear(Strings.Uni.goUp),
+    exitGearShares(Strings.Uni.goUp),
+    goBack(Strings.Uni.goUp),
+    confirm(Strings.Uni.put);
 
     private final String icon;
-    private TgApi.Button button;
+    private BotApi.Button button;
 
     CommandType(final String icon) {this.icon = icon;}
 
-    public TgApi.Button b() {
+    public BotApi.Button b() {
         if (icon == null)
             return null;
 
         if (button == null)
-            button = new TgApi.Button(icon, this);
+            button = new BotApi.Button(icon, this);
 
         return button;
     }
 
-    public TgApi.Button b(final int idx) {
-        return icon == null ? null : new TgApi.Button(icon, toString() + idx);
+    public BotApi.Button b(final int idx) {
+        return icon == null ? null : new BotApi.Button(icon, toString() + idx);
     }
 
-    public TgApi.Button b(final String label, final int idx) {
-        return icon != null ? null : new TgApi.Button(label, toString() + idx);
+    public BotApi.Button b(final String label, final int idx) {
+        return icon != null ? null : new BotApi.Button(label, toString() + idx);
     }
 
     public static CommandType ofString(final String callback) {

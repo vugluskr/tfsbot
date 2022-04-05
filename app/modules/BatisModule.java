@@ -3,7 +3,7 @@ package modules;
 import com.google.inject.name.Names;
 import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import play.db.Database;
-import sql.TFileSystem;
+import sql.TfsMapper;
 import utils.UUIDTypeHandler;
 
 import javax.inject.Inject;
@@ -30,7 +30,7 @@ public class BatisModule extends org.mybatis.guice.MyBatisModule {
         addTypeHandlerClass(UUIDTypeHandler.class);
         addSimpleAlias(UUIDTypeHandler.class);
         addSimpleAlias(UUID.class);
-        addMapperClasses(TFileSystem.class.getPackage().getName());
+        addMapperClasses(TfsMapper.class.getPackage().getName());
     }
 
     @Singleton

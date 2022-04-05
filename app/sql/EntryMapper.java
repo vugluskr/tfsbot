@@ -20,7 +20,7 @@ public interface EntryMapper {
 
     List<TFile> lsDirContent(@Param("dirId") UUID dirId, @Param("offset") int offset, @Param("limit") int limit, @Param("v1") String v1, @Param("v2") String v2);
 
-    List<TFile> gearDirContent(@Param("dirId") UUID dirId, @Param("offset") int offset, @Param("limit") int limit, @Param("v1") String v1, @Param("v2") String v2);
+    List<TFile> selectFolderLabels(@Param("dirId") UUID dirId, @Param("offset") int offset, @Param("limit") int limit, @Param("v1") String v1, @Param("v2") String v2);
 
     List<String> lsDirLabels(@Param("dirId") UUID dirId, @Param("v1") String v1);
 

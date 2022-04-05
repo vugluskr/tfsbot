@@ -7,6 +7,8 @@ package utils;
  * tfs ☭ sweat and blood
  */
 public interface Strings {
+    String delim = "⋄";
+
     interface Uni {
         String rewind = "\u25C0\uFE0F"; // ◀️
         String forward = "\u25B6\uFE0F"; // ▶️
@@ -26,5 +28,6 @@ public interface Strings {
         String People = "\uD83D\uDC65"; // 👥
         String mkGrant = "\uD83D\uDC64"; // 👤
         String syncOpds = "\uD83D\uDCBE"; // 💾
+        String bookStore = "\uD83D\uDCDA"; // 📚
     }
 }

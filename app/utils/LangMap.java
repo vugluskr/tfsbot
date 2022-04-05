@@ -1,6 +1,6 @@
 package utils;
 
-import model.User;
+import model.user.TgUser;
 
 import java.util.EnumMap;
 
@@ -259,10 +259,10 @@ public class LangMap {
         init(Value.PASSWORD_CLEARED, "Password removed", "Пароль выключен");
         init(Value.VALID_CLEARED, "Validity limit removed", "Ограничения сняты");
         init(Value.OTU_SET, "Validity limited up to one time", "Ссылка ограничена одним срабатыванием");
-        init(Value.SEND_CONTACT_DIR, "Send me a contact of the person you want to grant access to folder '%s'",
-                "Пришли мне контакт того, кому хочешь предоставить доступ к папке '%s'");
-        init(Value.SEND_CONTACT_FILE, "Send me a contact of the person you want to grant access to file '%s'",
-                "Пришли мне контакт того, кому хочешь предоставить доступ к файлу '%s'");
+        init(Value.SEND_CONTACT_DIR, "Send me a contact or TelegramID of the person you want to grant access to folder '%s'",
+                "Пришли мне контакт или TelegramID того, кому хочешь предоставить доступ к папке '%s'");
+        init(Value.SEND_CONTACT_FILE, "Send me a contact or TelegramID of the person you want to grant access to file '%s'",
+                "Пришли мне контакт или TelegramID того, кому хочешь предоставить доступ к файлу '%s'");
         init(Value.CANT_GRANT, "Access already granted to %s", "%s: доступ уже предоставлен");
         init(Value.SHARE_RW, Strings.Uni.mkGrant + " %s [Read/Write]", Strings.Uni.mkGrant + " %s [полный доступ]");
         init(Value.SHARE_RO, Strings.Uni.mkGrant + " %s [Read only]", Strings.Uni.mkGrant + " %s [только чтение]");
@@ -283,6 +283,11 @@ public class LangMap {
         init(Value.OPDS_STARTED, "OPDS synchronization for folder '%s' started. You'll be notified when it get done", "Синхронизация OPDS каталога '%s' начата. По завершению вы получите уведомление.");
         init(Value.OPDS_FAILED, "OPDS synchronization failed. You have to be in any folder to start it, although valid URL required.", "Синхронизация OPDS каталога не может быть" +
                 " запущена. Для успешного запуска необходимо предоставить верный URL и находиться в какой-либо собственной папке.");
+        init(Value.WELCOME, "Welcome! All questions and discussions are here: @tfsbot_group", "Добро пожаловать! Со всеми вопросами и обсуждениями сюда пожалуйста: @tfsbot_group");
+        init(Value.IS_BOOK_STORE, "Folder '%s' is now your Book Store", "Теперь папка '%s' будет библиотекой");
+        init(Value.IS_NOT_BOOK_STORE, "Folder '%s' is not your Book Store any more", "Папка '%s' больше не будет библиотекой");
+        init(Value.CONFIRM_DROP_DIR, "Are you sure you want to delete folder '%s' with all its content?", "Точно удалить папку '%s' со всем содержимым?");
+        init(Value.CONFIRM_DROP_FILE, "Are you sure you want to delete file '%s'?", "Точно удалить файл '%s'?");
     }
 
     private static void init(final Value key, final String en, final String ru) {
@@ -296,11 +301,11 @@ public class LangMap {
         RESULTS_FOUND, UPLOADED, None, CHECK_ALL, NO_GLOBAL_LINK, NO_PERSONAL_GRANTS, GEARING, PASS_RESET, PASS_DROP, PASSWORD_SET, PASSWORD_NOT_SET, VALID_ONETIME,
         VALID_UNTILL, VALID_CANCEL, VALID_NOT_SET, VALID_SET_OTU, VALID_SET_UNTILL, LINK_DELETED, LINK_SAVED, PASS_SET, TYPE_PASSWORD, TYPE_PASSWORD2, PASSWORD_SET_TXT,
         PASSWORD_NOT_MATCH, PASSWORD_CLEARED, VALID_CLEARED, OTU_SET, SEND_CONTACT_DIR, SEND_CONTACT_FILE, CANT_GRANT, SHARE_RW, SHARE_RO, SHARES, SHARES_ANONYM, NOT_ALLOWED,
-        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_REWRITE, SHARE_DIR_HELP, TYPE_LOCK_DIR, TYPE_LOCK_FILE, TYPE_PASSWORD_FILE, TYPE_PASSWORD_DIR, PASSWORD_FAILED, OPDS_DONE, OPDS_STARTED, OPDS_FAILED, DIR_ACCESS
+        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_REWRITE, SHARE_DIR_HELP, TYPE_LOCK_DIR, TYPE_LOCK_FILE, TYPE_PASSWORD_FILE, TYPE_PASSWORD_DIR, PASSWORD_FAILED, OPDS_DONE, OPDS_STARTED, OPDS_FAILED, WELCOME, IS_NOT_BOOK_STORE, IS_BOOK_STORE, CONFIRM_DROP_FILE, CONFIRM_DROP_DIR, DIR_ACCESS
     }
 
-    public static String v(final Value name, final User user, final Object... args) {
-        return v(name, notNull(user.lang, "ru"), args);
+    public static String v(final Value name, final TgUser user, final Object... args) {
+        return v(name, notNull(user.lng, "ru"), args);
     }
 
     public static String v(final Value name, final String langTag, final Object... args) {

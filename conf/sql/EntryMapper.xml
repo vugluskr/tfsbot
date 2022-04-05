@@ -7,7 +7,7 @@
         where id in
         <foreach collection="uuids" item="uuid" close=")" open="(" separator=",">#{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}</foreach>
     </delete>
-    <select id="gearDirContent" resultMap="EntryMap">
+    <select id="selectFolderLabels" resultMap="EntryMap">
         select f.*, fp.path
         from ${v1} f
                  left join ${v2} fp on (f.id = fp.id)
