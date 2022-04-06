@@ -3,6 +3,7 @@ package services;
 import com.google.inject.ImplementedBy;
 import model.Share;
 import model.TFile;
+import model.opds.OpdsPage;
 import model.user.TgUser;
 import model.user.UDbData;
 import services.impl.DataStoreImpl;
@@ -91,5 +92,5 @@ public interface DataStore {
 
     void buildHistoryTo(UUID targetEntryId, TgUser user);
 
-    void doOpdsSearch(String query, TgUser user);
+    OpdsPage doOpdsSearch(String query, int page);
 }

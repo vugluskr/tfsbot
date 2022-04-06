@@ -1,11 +1,8 @@
 package services;
 
 import com.google.inject.ImplementedBy;
-import model.opds.Book;
+import model.opds.OpdsPage;
 import services.impl.OpdsSearchFlibusta;
-
-import java.util.List;
-import java.util.concurrent.CompletionStage;
 
 /**
  * @author Denis Danilin | me@loslobos.ru
@@ -14,5 +11,5 @@ import java.util.concurrent.CompletionStage;
  */
 @ImplementedBy(OpdsSearchFlibusta.class)
 public interface OpdsSearch {
-    CompletionStage<List<Book>> search(String query);
+    OpdsPage search(String query, int pageNum);
 }

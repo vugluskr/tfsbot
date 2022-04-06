@@ -1,6 +1,9 @@
 package model.user;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import model.opds.OpdsPage;
+import play.libs.Json;
+import services.DataStore;
 import states.AState;
 import states.DirViewer;
 import states.UserState;
@@ -23,6 +26,7 @@ public class TgUser {
     public Consumer<UDbData> asyncSaver;
 
     private UUID root, bookStore;
+    private OpdsSearch opdsSearch;
 
     private final List<UserState> states = new ArrayList<>();
 
@@ -99,6 +103,9 @@ public class TgUser {
                     wins.add(getLong(q.substring(pos.get(i) + 1, pos.get(i + 1))));
             }
         }
+
+        if (!isEmpty(data.getS4()))
+            opdsSearch = Json.fromJson(Json.parse(data.getS4()), OpdsSearch.class);
     }
 
     public UUID getBookStore() {
@@ -117,6 +124,9 @@ public class TgUser {
 
         if (!isEmpty(wins))
             data.setS3(wins.stream().map(String::valueOf).collect(Collectors.joining(",")));
+
+        if (opdsSearch != null)
+            data.setS4(Json.toJson(opdsSearch).toString());
 
         return data;
     }
@@ -159,4 +169,42 @@ public class TgUser {
             else
                 break;
     }
+
+    public OpdsPage getOpdsPage(final String query, final int pageNum, final DataStore store) {
+        OpdsPage page;
+
+        if (opdsSearch == null || !opdsSearch.query.equals(query) || pageNum >= opdsSearch.pages.size())
+            page = null;
+        else
+            page = opdsSearch.pages.get(pageNum);
+
+        if (page == null) {
+            page = store.doOpdsSearch(query, pageNum);
+            opdsSearch.pages.add(page);
+        }
+
+        return page;
+    }
+
+    private static class OpdsSearch {
+        private String query;
+        private List<OpdsPage> pages;
+
+        public String getQuery() {
+            return query;
+        }
+
+        public void setQuery(final String query) {
+            this.query = query;
+        }
+
+        public List<OpdsPage> getPages() {
+            return pages;
+        }
+
+        public void setPages(final List<OpdsPage> pages) {
+            this.pages = pages;
+        }
+    }
+
 }

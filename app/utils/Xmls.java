@@ -112,9 +112,9 @@ public class Xmls {
                         }
 
                         if (rel.equals("http://opds-spec.org/acquisition/open-access")) {
-                            if (type.contains("/fb2"))
+                            if (type.contains("application/fb2"))
                                 b.setFbLink(href);
-                            else if (type.contains("/epub"))
+                            else if (type.contains("application/epub"))
                                 b.setEpubLink(href);
                         }
 
@@ -122,7 +122,7 @@ public class Xmls {
                 }
             }
 
-            if (b.getYear() > 0 && (!isEmpty(b.getFbLink()) || !isEmpty(b.getEpubLink())))
+            if (!isEmpty(b.getFbLink()) || !isEmpty(b.getEpubLink()))
                 list.add(b);
         }
 

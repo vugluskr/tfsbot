@@ -1,6 +1,7 @@
 package model.opds;
 
-import static utils.TextUtils.isEmpty;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * @author Denis Danilin | me@loslobos.ru
@@ -8,22 +9,26 @@ import static utils.TextUtils.isEmpty;
  * tfs ☭ sweat and blood
  */
 public class Book {
-    private long id;
     private String title;
-    private String author;
+    private String content;
+    private SortedSet<String> authors;
     private int year;
-    private String opdsTag;
+    private String id;
     private String fbLink;
     private String epubLink;
     private String fbRefId;
     private String epubRefId;
 
-    public long getId() {
-        return id;
+    {
+        authors = new TreeSet<>();
     }
 
-    public void setId(final long id) {
-        this.id = id;
+    public SortedSet<String> getAuthors() {
+        return authors;
+    }
+
+    public void setAuthors(final SortedSet<String> authors) {
+        this.authors = authors;
     }
 
     public String getTitle() {
@@ -34,12 +39,12 @@ public class Book {
         this.title = title;
     }
 
-    public String getAuthor() {
-        return author;
+    public String getContent() {
+        return content;
     }
 
-    public void setAuthor(final String author) {
-        this.author = author;
+    public void setContent(final String content) {
+        this.content = content;
     }
 
     public int getYear() {
@@ -50,12 +55,12 @@ public class Book {
         this.year = year;
     }
 
-    public String getOpdsTag() {
-        return opdsTag;
+    public String getId() {
+        return id;
     }
 
-    public void setOpdsTag(final String opdsTag) {
-        this.opdsTag = opdsTag;
+    public void setId(final String id) {
+        this.id = id;
     }
 
     public String getFbLink() {
@@ -88,12 +93,5 @@ public class Book {
 
     public void setEpubRefId(final String epubRefId) {
         this.epubRefId = epubRefId;
-    }
-
-    public void addAuthor(final String author) {
-        if (this.author == null)
-            this.author = "";
-
-        this.author += (isEmpty(this.author) ? "" : ", ") + author;
     }
 }

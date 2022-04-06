@@ -4,6 +4,7 @@ import com.typesafe.config.Config;
 import model.ContentType;
 import model.Share;
 import model.TFile;
+import model.opds.OpdsPage;
 import model.user.TgUser;
 import model.user.UDbData;
 import org.mybatis.guice.transactional.Transactional;
@@ -17,7 +18,6 @@ import utils.TextUtils;
 
 import javax.inject.Inject;
 import java.util.*;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import static utils.LangMap.v;
@@ -471,8 +471,8 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public CompletionStage<List<TFile>> doOpdsSearch(final String query, final TgUser user) {
-        return opdsSearch.search(query)
+    public OpdsPage doOpdsSearch(final String query, final int page) {
+        return opdsSearch.search(query, page)
                 .thenApply(books -> {
 
                 })

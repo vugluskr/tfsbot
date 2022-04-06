@@ -3,21 +3,26 @@ package services.impl;
 import com.sun.org.apache.xerces.internal.util.XMLChar;
 import model.TFile;
 import model.opds.Book;
+import model.opds.OpdsPage;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import play.Logger;
 import services.OpdsSearch;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.concurrent.CompletionStage;
+import java.util.ArrayList;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
+
+import static utils.TextUtils.getInt;
+import static utils.TextUtils.isEmpty;
 
 /**
  * @author Denis Danilin | me@loslobos.ru
@@ -29,7 +34,93 @@ public class OpdsSearchFlibusta implements OpdsSearch {
     private static final String searchUrl = "https://flibusta.is/opds/search?searchType=books&searchTerm=";
 
     @Override
-    public CompletionStage<List<Book>> search(final String query) {
+    public OpdsPage search(final String query, final int page) {
+        final Document doc = getXml(searchUrl + URLEncoder.encode(query, "UTF-8"));
+
+        final NodeList entries = doc.getElementsByTagName("entry");
+        final OpdsPage p = new OpdsPage();
+        p.setBooks(new ArrayList<>(0));
+
+        for (int i = 0; i < entries.getLength(); i++) {
+            final Node el = entries.item(i);
+            final Book b = new Book();
+
+            for (int j = 0; j < el.getChildNodes().getLength(); j++) {
+                final Node child = el.getChildNodes().item(j);
+
+                switch (child.getNodeName()) {
+                    case "content":
+                        b.setContent(child.getTextContent());
+                        break;
+                    case "author":
+                        for (int z = 0; z < child.getChildNodes().getLength(); z++)
+                            if (child.getChildNodes().item(z).getNodeName().equals("name")) {
+                                b.getAuthors().add(child.getChildNodes().item(z).getTextContent());
+                                break;
+                            }
+
+                        break;
+                    case "dc:issued":
+                        b.setYear(getInt(child.getTextContent()));
+                        break;
+                    case "id":
+                        b.setId(child.getTextContent());
+                        break;
+                    case "title":
+                        b.setTitle(child.getTextContent());
+                        break;
+                    case "link":
+                        String type = "", href = "", rel = "";
+
+                        for (int k = 0; k < child.getAttributes().getLength(); k++) {
+                            final Node a = child.getAttributes().item(k);
+
+                            switch (a.getNodeName()) {
+                                case "type":
+                                    type = a.getNodeValue();
+                                    break;
+                                case "href":
+                                    href = a.getNodeValue();
+                                    break;
+                                case "rel":
+                                    rel = a.getNodeValue();
+                                    break;
+                            }
+                        }
+
+                        if (rel.equals("http://opds-spec.org/acquisition/open-access")) {
+                            if (type.contains("application/fb2"))
+                                b.setFbLink(href);
+                            else if (type.contains("application/epub"))
+                                b.setEpubLink(href);
+                        }
+
+                        break;
+                }
+            }
+
+            if (!isEmpty(b.getTitle()) && (!isEmpty(b.getFbLink()) || !isEmpty(b.getEpubLink())))
+                p.getBooks().add(b);
+        }
+
+
+            final URL base = new URL(dir.getRefId());
+
+        final Function<String, String> urler = path -> {
+            try {
+                final URL self = new URL(path);
+                if (self.getProtocol().toLowerCase().startsWith("http"))
+                    return self.toExternalForm();
+            } catch (final Exception ignore) { }
+
+            try {
+                return new URL(base.getProtocol(), base.getHost(), base.getPort(), path).toExternalForm();
+            } catch (MalformedURLException e) {
+                logger.error(e.getMessage(), e);
+            }
+
+            return null;
+        };
         return null;
     }
 

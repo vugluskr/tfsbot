@@ -280,6 +280,7 @@ public class LangMap {
         init(Value.TYPE_PASSWORD_FILE, "File '%s' is protected with password, type it:", "Доступ к Файлу '%s' ограничен, напиши пароль:");
         init(Value.TYPE_PASSWORD_DIR, "Folder '%s' is protected with password, type it:", "Доступ к папке '%s' ограничен, напиши пароль:");
         init(Value.PASSWORD_FAILED, "Wrong password", "Неверный пароль");
+        init(Value.SEARCH, "Book search", "Поиск книг");
 
         init(Value.OPDS_DONE, "OPDS catalog '%s' synchronization done", "Синхронизация OPDS каталога '%s' завершена");
         init(Value.OPDS_STARTED, "OPDS synchronization for folder '%s' started. You'll be notified when it get done", "Синхронизация OPDS каталога '%s' начата. По завершению вы получите уведомление.");
@@ -305,7 +306,7 @@ public class LangMap {
         RESULTS_FOUND, UPLOADED, None, CHECK_ALL, NO_GLOBAL_LINK, NO_PERSONAL_GRANTS, GEARING, PASS_RESET, PASS_DROP, PASSWORD_SET, PASSWORD_NOT_SET, VALID_ONETIME,
         VALID_UNTILL, VALID_CANCEL, VALID_NOT_SET, VALID_SET_OTU, VALID_SET_UNTILL, LINK_DELETED, LINK_SAVED, PASS_SET, TYPE_PASSWORD, TYPE_PASSWORD2, PASSWORD_SET_TXT,
         PASSWORD_NOT_MATCH, PASSWORD_CLEARED, VALID_CLEARED, OTU_SET, SEND_CONTACT_DIR, SEND_CONTACT_FILE, CANT_GRANT, SHARE_RW, SHARE_RO, SHARES, SHARES_ANONYM, NOT_ALLOWED,
-        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_EDIT_LABEL, SHARE_DIR_HELP, TYPE_LOCK_DIR, TYPE_LOCK_FILE, TYPE_PASSWORD_FILE, TYPE_PASSWORD_DIR, PASSWORD_FAILED, OPDS_DONE, OPDS_STARTED, OPDS_FAILED, WELCOME, IS_NOT_BOOK_STORE, IS_BOOK_STORE, CONFIRM_DROP_FILE, CONFIRM_DROP_DIR, NO_CONTENT_START, NO_BOOKSTORE, DIR_ACCESS
+        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_EDIT_LABEL, SHARE_DIR_HELP, TYPE_LOCK_DIR, TYPE_LOCK_FILE, TYPE_PASSWORD_FILE, TYPE_PASSWORD_DIR, PASSWORD_FAILED, OPDS_DONE, OPDS_STARTED, OPDS_FAILED, WELCOME, IS_NOT_BOOK_STORE, IS_BOOK_STORE, CONFIRM_DROP_FILE, CONFIRM_DROP_DIR, NO_CONTENT_START, NO_BOOKSTORE, SEARCH, DIR_ACCESS
     }
 
     public static String v(final Value name, final TgUser user, final Object... args) {
