@@ -14,18 +14,16 @@ import static utils.TextUtils.getInt;
  */
 public class CallbackRequest extends TgRequest {
     private static final Logger.ALogger logger = Logger.of(CallbackRequest.class);
-    private final JsonNode cbNode;
     public final long queryId;
 
     private Command command;
 
     public CallbackRequest(final JsonNode node) {
-        super(node.get("callback_query").get("from"));
-        cbNode = node.get("callback_query");
-        queryId = cbNode.get("id").asLong();
+        super(node.get("from"));
+        queryId = node.get("id").asLong();
         command = null;
 
-        final String cb = cbNode.get("data").asText();
+        final String cb = node.get("data").asText();
 
         final int del = cb.indexOf(':');
 
@@ -34,7 +32,7 @@ public class CallbackRequest extends TgRequest {
             command.elementIdx = del < cb.length() - 1 ? getInt(cb.substring(del + 1)) : -1;
             command.type = CommandType.ofString(cb);
         } else
-            logger.debug("Cant resolve '" + cbNode + "' to callback. From user " + user);
+            logger.debug("Cant resolve '" + node + "' to callback. From user " + user);
     }
 
     @Override

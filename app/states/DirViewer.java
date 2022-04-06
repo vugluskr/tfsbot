@@ -27,11 +27,8 @@ import static utils.TextUtils.*;
  * tfs ☭ sweat and blood
  */
 public class DirViewer extends AState {
-    private UUID entryId;
     private int offset;
     private boolean passwordIsOk;
-
-    private TFile entry;
 
     public DirViewer(final TFile entry) {
         this.entryId = entry.getId();
@@ -53,19 +50,15 @@ public class DirViewer extends AState {
                         break;
                     case 1:
                         offset = getInt(s);
-                        break;
-                    case 3:
-                        passwordIsOk = s.equals("1");
-                        break;
+                        passwordIsOk = stored.charAt(i+1) == '1';
+                        return;
                 }
             }
     }
 
     @Override
     public String encode() {
-        return entryId + ":" + offset +
-                (entry.isLocked() ? ":" + (passwordIsOk ? 1 : 0) : "")
-                + ":";
+        return entryId + ":" + offset + ":" + (passwordIsOk ? '1' : '0');
     }
 
     @Override
@@ -74,7 +67,7 @@ public class DirViewer extends AState {
             return null;
 
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
 
         if (!entry.isRw())
             return null;
@@ -85,10 +78,10 @@ public class DirViewer extends AState {
         if (file.refId == null) file.refId = attachNode.get("file_id").asText();
         if (file.uniqId == null) file.uniqId = attachNode.get("file_unique_id").asText();
 
-        if (file.name == null)
-            file.name = r.getSrcNode().has("caption") && !r.getSrcNode().get("caption").asText().trim().isEmpty()
+        if (isEmpty(file.getName()))
+            file.setName(r.getSrcNode().has("caption") && !r.getSrcNode().get("caption").asText().trim().isEmpty()
                     ? r.getSrcNode().get("caption").asText().trim()
-                    : file.type.name().toLowerCase() + "_" + file.uniqId;
+                    : file.type.name().toLowerCase() + "_" + file.uniqId);
 
         if (file.type == ContentType.CONTACT)
             file.refId = attachNode.toString();
@@ -107,7 +100,7 @@ public class DirViewer extends AState {
     }
 
     @Override
-    public UserState onCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
         switch (request.getCommand().type) {
             case openDir:
                 return new DirViewer(store.getSingleFolderEntry(entryId, request.getCommand().elementIdx + offset, user.id));
@@ -132,7 +125,7 @@ public class DirViewer extends AState {
 
     @Override
     public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
-        entry = store.getEntry(entryId, user.id);
+        entry = store.getEntry(entryId, user);
 
         if (entry.isLocked() && !passwordIsOk) {
             if (store.isPasswordOk(entryId, request.getText()))
@@ -147,7 +140,7 @@ public class DirViewer extends AState {
     @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
 
         final MsgStruct struct = new MsgStruct();
 
@@ -174,7 +167,7 @@ public class DirViewer extends AState {
             if (ls.length() > 0)
                 body.append(ls);
             else if (count <= 0)
-                body.append("\n_").append(escapeMd(v(LangMap.Value.NO_CONTENT, user))).append("_");
+                body.append("\n_").append(escapeMd(v(entryId.equals(user.getRoot()) ? LangMap.Value.NO_CONTENT_START : LangMap.Value.NO_CONTENT, user))).append("_");
 
             struct.body = body.toString();
 
@@ -184,7 +177,7 @@ public class DirViewer extends AState {
                 struct.kbd.button(CommandType.gearDir.b());
             }
 
-            pagedList(store.listFolder(entryId, offset, 10, user.id), count, offset, struct);
+            pagedList(store.listFolder(entryId, offset, 10, user), count, offset, struct);
         }
 
         struct.mode = BotApi.ParseMode.Md2;

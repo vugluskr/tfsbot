@@ -9,8 +9,18 @@
     <appender class="ru.gang.logdoc.appenders.LogdocUdpAppender" name="LOGDOC">
         <host>localhost</host>
         <port>5555</port>
-        <appName>Bot TFS</appName>
+        <appName>TFS_Bot</appName>
     </appender>
+
+    <logger name="play" level="ERROR" />
+    <logger name="akka" level="ERROR" />
+    <logger name="com.zaxxer" level="ERROR" />
+    <logger name="org.apache" level="ERROR" />
+    <logger name="org.mybatis" level="ERROR" />
+
+    <logger name="controllers" level="INFO" />
+    <logger name="modules" level="OFF" />
+<!--    <logger name="mappers" level="OFF" />-->
 
     <root level="DEBUG">
         <appender-ref ref="STDOUT"/>

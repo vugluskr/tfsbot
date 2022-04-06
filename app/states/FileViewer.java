@@ -3,11 +3,16 @@ package states;
 import model.CommandType;
 import model.MsgStruct;
 import model.TFile;
+import model.request.CallbackRequest;
 import model.request.FileRequest;
 import model.request.TextRequest;
 import model.user.TgUser;
 import services.BotApi;
 import services.DataStore;
+import states.prompts.DropConfirmer;
+import states.prompts.Locker;
+import states.prompts.Renamer;
+import states.prompts.Unlocker;
 import utils.LangMap;
 
 import java.util.UUID;
@@ -20,10 +25,7 @@ import static utils.TextUtils.escapeMd;
  * tfs ☭ sweat and blood
  */
 public class FileViewer extends AState {
-    private final UUID entryId;
     private boolean passwordIsOk;
-
-    private TFile entry;
 
     public FileViewer(final TFile entry) {
         this.entry = entry;
@@ -35,12 +37,14 @@ public class FileViewer extends AState {
     }
 
     public FileViewer(final String encoded) {
-        this.entryId = UUID.fromString(encoded);
+        final int idx = encoded.indexOf(':');
+        this.entryId = UUID.fromString(encoded.substring(0, idx == -1 ? encoded.length() : idx));
+        this.passwordIsOk = idx == -1 || encoded.charAt(idx + 1) == '1';
     }
 
     @Override
     public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
-        entry = store.getEntry(entryId, user.id);
+        entry = store.getEntry(entryId, user);
 
         if (entry.isLocked() && !passwordIsOk) {
             if (store.isPasswordOk(entryId, request.getText()))
@@ -58,7 +62,7 @@ public class FileViewer extends AState {
             return null;
 
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
 
         if (entry.getOwner() != user.id)
             return null;
@@ -71,9 +75,33 @@ public class FileViewer extends AState {
     }
 
     @Override
+    public UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+        switch (request.getCommand().type) {
+            case rename:
+                return new Renamer(entryId);
+            case drop:
+                return new DropConfirmer(entryId);
+            case share:
+                return new EntrySharer(entryId);
+            case lock:
+                return new Locker(entryId);
+            case unlock:
+                return new Unlocker(entryId);
+        }
+
+        return null;
+    }
+
+    @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
+
+        if (entry == null) {
+            user.backHistory();
+            user.state().display(user, api, store);
+            return;
+        }
 
         final MsgStruct struct = new MsgStruct();
 
@@ -91,7 +119,7 @@ public class FileViewer extends AState {
                     struct.kbd.button(CommandType.share.b());
                 }
 
-                struct.kbd.button(CommandType.renameFile.b(), CommandType.dropFile.b());
+                struct.kbd.button(CommandType.rename.b(), CommandType.drop.b());
             }
 
             struct.file = entry;
@@ -105,7 +133,7 @@ public class FileViewer extends AState {
 
     @Override
     public String encode() {
-        return entryId.toString();
+        return entryId.toString() + ':' + (passwordIsOk ? '1' : '0');
     }
 
     @Override

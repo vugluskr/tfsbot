@@ -23,8 +23,6 @@ import static utils.TextUtils.hash256;
  * tfs ☭ sweat and blood
  */
 public class Locker extends AState {
-    private final UUID entryId;
-
     public Locker(final UUID entryId) {
         this.entryId = entryId;
     }
@@ -40,7 +38,7 @@ public class Locker extends AState {
 
     @Override
     public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
-        final TFile entry = store.getEntry(entryId, user.id);
+        final TFile entry = store.getEntry(entryId, user);
 
         if (!entry.isLocked()) {
             final String salt = new BigInteger(130, TextUtils.rnd).toString(32);
@@ -56,7 +54,7 @@ public class Locker extends AState {
 
     @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
-        final TFile entry = store.getEntry(entryId, user.id);
+        final TFile entry = store.getEntry(entryId, user);
         final MsgStruct struct = new MsgStruct();
         struct.body = escapeMd(LangMap.v(entry.isDir() ? LangMap.Value.TYPE_LOCK_DIR : LangMap.Value.TYPE_LOCK_FILE, user, entry.getName()));
         struct.kbd = BotApi.voidKbd;

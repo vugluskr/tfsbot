@@ -41,11 +41,6 @@ public final class BACKSTATE implements UserState {
     }
 
     @Override
-    public String encode() {
-        return null;
-    }
-
-    @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
     }
 

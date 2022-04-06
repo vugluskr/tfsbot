@@ -22,10 +22,12 @@ public class TFile implements Comparable<TFile>, Optioned, AsButton {
     private long owner;
     public String refId;
     public ContentType type;
-    public String name;
+    private String name;
     private String path;
     private int options;
     private boolean rw;
+
+    private boolean bookStore;
 
     @Override
     public BotApi.Button toButton(final int idx) {
@@ -91,7 +93,7 @@ public class TFile implements Comparable<TFile>, Optioned, AsButton {
     }
 
     public String getName() {
-        return name;
+        return (bookStore ? Strings.Uni.bookStore + " " : "") + name;
     }
 
     public void setName(final String name) {
@@ -167,19 +169,6 @@ public class TFile implements Comparable<TFile>, Optioned, AsButton {
         refId = String.valueOf(shareOwner);
     }
 
-    public void asOpds(final String url) {
-        if (isLabel())
-            return;
-
-        Optz.Opds.set(this);
-        Optz.OpdsUnsynced.set(this);
-        setRefId(url);
-    }
-
-    public void setOpdsSynced() {
-        Optz.OpdsUnsynced.remove(this);
-    }
-
     public boolean isShareFor() {
         return Optz.shareFor.is(this);
     }
@@ -192,26 +181,15 @@ public class TFile implements Comparable<TFile>, Optioned, AsButton {
         Optz.locked.remove(this);
     }
 
-    public boolean isOpdsUnsynced() {
-        return Optz.OpdsUnsynced.is(this);
-    }
-
-    public boolean isOpds() {
-        return Optz.Opds.is(this);
-    }
-
     public boolean isBookStore() {
-        return Optz.BookStore.is(this);
+        return bookStore;
     }
 
-    public void changeBookStore() {
-        if (isBookStore())
-            Optz.BookStore.remove(this);
-        else
-            Optz.BookStore.set(this);
+    public void setBookStore(final boolean bookStore) {
+        this.bookStore = bookStore;
     }
 
     enum Optz implements BMasked {
-        unused, locked, sharesRoot, shareFor, Opds, BookStore, OpdsUnsynced
+        unused, locked, sharesRoot, shareFor
     }
 }

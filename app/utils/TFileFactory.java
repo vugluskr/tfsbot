@@ -39,20 +39,6 @@ public class TFileFactory {
         return f;
     }
 
-    public static TFile opdsDir(final String name, final String url, final UUID parentId, final long owner) {
-        final TFile f = dir(name, parentId, owner);
-        f.asOpds(url);
-
-        return f;
-    }
-
-    public static TFile opdsFile(final String title, final UUID parentDirId, final long owner, final String url) {
-        final TFile file = file(title, parentDirId, owner, null);
-        file.asOpds(url);
-
-        return file;
-    }
-
     public static TFile file(final String title, final UUID parentDirId, final long owner, final String refId) {
         final TFile file = new TFile();
         file.setOwner(owner);

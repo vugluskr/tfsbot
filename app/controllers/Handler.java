@@ -32,16 +32,19 @@ public class Handler extends Controller {
     }
 
     public Result post(final Http.Request request) {
+        try {logger.info(">> " + request.body().asJson());} catch (final Exception ignore) {}
         try {
             final JsonNode js;
             final TgRequest r = request.hasBody() && ((js = request.body().asJson()) != null) ? TgRequest.resolve(js) : null;
+            CompletableFuture.runAsync(() -> {
+                try {
+                    final JsonNode msg = request.body().asJson().get("message");
+                    api.dropMessage(msg.get("message_id").asLong(), msg.get("from").get("id").asLong());
+                } catch (final Exception ignore) {}
+            });
 
-            if (r != null) {
-                if (!(r instanceof CallbackRequest))
-                    CompletableFuture.runAsync(() -> api.dropMessage(BotApi.Chat.of(r.user.id), request.body().asJson().get("message").get("message_id").asLong()));
-
+            if (r != null)
                 CompletableFuture.runAsync(() -> router.handle(r));
-            }
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
         }

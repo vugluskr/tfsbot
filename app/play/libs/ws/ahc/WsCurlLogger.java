@@ -5,6 +5,7 @@ import play.libs.ws.InMemoryBodyWritable;
 import play.libs.ws.WSRequestExecutor;
 import play.libs.ws.WSRequestFilter;
 import play.shaded.ahc.org.asynchttpclient.util.HttpUtils;
+import services.BotApi;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -20,7 +21,7 @@ import static utils.TextUtils.generateUuid;
  * core ☭ sweat and blood
  */
 public class WsCurlLogger implements WSRequestFilter {
-    private static final Logger.ALogger logger = Logger.of(WsCurlLogger.class);
+    private static final Logger.ALogger logger = Logger.of(BotApi.class);
     private static final Pattern SINGLE_QUOTE_REPLACE = Pattern.compile("'", Pattern.LITERAL);
 
     private final String tracing;
@@ -35,25 +36,17 @@ public class WsCurlLogger implements WSRequestFilter {
 
     @Override
     public WSRequestExecutor apply(final WSRequestExecutor requestExecutor) {
-        return request -> {
-            logger.debug("Start call [" + request.getUrl() + "] :: " + tracing);
+        return request -> requestExecutor
+                .apply(request)
+                .thenApply(response -> {
+                    logger.debug(toCurl((StandaloneAhcWSRequest) request) + "\t=>\n" + response.getBody());
+                    return response;
+                })
+                .exceptionally(e -> {
+                    logger.debug(toCurl((StandaloneAhcWSRequest) request) + "\t=>\n" + e.getMessage(), e);
 
-            return requestExecutor
-                    .apply(request)
-                    .thenApply(response -> {
-                        logger.debug("Call completed :: " + tracing);
-                        logger.debug(toCurl((StandaloneAhcWSRequest) request));
-                        logger.debug("\t" + response);
-                        return response;
-                    })
-                    .exceptionally(e -> {
-                        logger.debug("Call completed with ERROR :: " + tracing + " :: ");
-                        logger.debug(toCurl((StandaloneAhcWSRequest) request));
-                        logger.debug(e.getMessage(), e);
-
-                        return null;
-                    });
-        };
+                    return null;
+                });
     }
 
     private String toCurl(final StandaloneAhcWSRequest request) {

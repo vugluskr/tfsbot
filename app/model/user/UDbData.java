@@ -1,5 +1,7 @@
 package model.user;
 
+import states.DirViewer;
+
 import java.util.UUID;
 
 /**
@@ -9,7 +11,6 @@ import java.util.UUID;
  */
 public class UDbData {
     private long id;
-    private long msgId;
     private String s1, s2, s3, s4;
 
     public UDbData() {
@@ -18,6 +19,7 @@ public class UDbData {
     public UDbData(final long id, final UUID rootId) {
         setId(id);
         setS1(rootId.toString());
+        setS2(new DirViewer(rootId).save());
     }
 
     public long getId() {
@@ -26,14 +28,6 @@ public class UDbData {
 
     public void setId(final long id) {
         this.id = id;
-    }
-
-    public long getMsgId() {
-        return msgId;
-    }
-
-    public void setMsgId(final long msgId) {
-        this.msgId = msgId;
     }
 
     public String getS1() {

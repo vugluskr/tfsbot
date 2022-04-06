@@ -30,23 +30,25 @@ import static utils.TextUtils.notNull;
  */
 @ImplementedBy(BotApiImpl.class)
 public interface BotApi {
-    CompletionStage<Reply> sendText(String body, ParseMode mode, Chat target, Keyboard kbd);
+    CompletionStage<Reply> sendText(TextMessage message);
 
-    CompletionStage<Reply> sendMedia(TFile media, String caption, ParseMode mode, Chat target, Keyboard kbd);
+    CompletionStage<Reply> sendMedia(MediaMessage message);
 
-    CompletionStage<Reply> sendReaction(String reaction, boolean asAlert, long queryId, int showTime);
+    CompletionStage<Boolean> editText(TextMessage message, long editMessageId);
 
-    CompletionStage<Reply> uploadMedia(RawMedia media, String caption, ParseMode mode, Chat target, Keyboard kbd);
+    CompletionStage<Boolean> editMedia(MediaMessage message, long editMessageId);
 
-    CompletionStage<Reply> editBody(String body, ParseMode mode, Chat target, long editMessageId);
+    CompletionStage<Void> sendReaction(ReactionMessage message);
 
-    CompletionStage<Reply> editCaption(String caption, ParseMode mode, Chat target, long editMessageId);
+    CompletionStage<Void> dropMessage(long messageId, Chat target);
 
-    CompletionStage<Reply> editKeyboard(Keyboard kbd, Chat target, long editMessageId);
+    default CompletionStage<Void> dropMessage(long messageId, long userId) {
+        return dropMessage(messageId, Chat.of(userId));
+    }
 
-    CompletionStage<Reply> editMedia(TFile media, Chat target, long editMessageId);
-
-    CompletionStage<Reply> dropMessage(Chat target, long messageId);
+    default CompletionStage<Void> dropMessage(long messageId, String channelId) {
+        return dropMessage(messageId, Chat.of(channelId));
+    }
 
     enum ParseMode {Md2, Html;
         public String asText() {
@@ -54,7 +56,7 @@ public interface BotApi {
         }
     }
 
-    Keyboard helpKbd = new Keyboard().button(CommandType.contextHelp.b());
+    Keyboard helpKbd = new Keyboard().button(CommandType.justCloseCmd.b());
     Keyboard voidKbd = new Keyboard().button(CommandType.Void.b());
     Keyboard yesNoKbd = new Keyboard().button(CommandType.confirm.b()).button(CommandType.cancel.b());
 
@@ -231,6 +233,130 @@ public interface BotApi {
         public Button(final String text, final String data) {
             this.text = text;
             this.data = data;
+        }
+    }
+
+    class ReactionMessage {
+        public final Chat chat;
+        public final String text;
+        public final boolean alert;
+        public final long queryId;
+
+        public ReactionMessage(final long queryId, final String text, final boolean alert, final Chat chat) {
+            this.chat = chat;
+            this.text = text;
+            this.alert = alert;
+            this.queryId = queryId;
+        }
+
+        public ReactionMessage(final long queryId, final String text, final boolean alert, final long userId) {
+            this(queryId, text, alert, Chat.of(userId));
+        }
+
+        public ReactionMessage(final long queryId, final String text, final boolean alert, final String channelId) {
+            this(queryId, text, alert, Chat.of(channelId));
+        }
+
+        public ReactionMessage(final long queryId, final String text, final Chat chat) {
+            this(queryId, text, false, chat);
+        }
+
+        public ReactionMessage(final long queryId, final String text, final long userId) {
+            this(queryId, text, false, Chat.of(userId));
+        }
+
+        public ReactionMessage(final long queryId, final String text, final String channelId) {
+            this(queryId, text, false, Chat.of(channelId));
+        }
+    }
+
+    class AMessage {
+        public final ParseMode mode;
+        public final Keyboard kbd;
+        public final Chat chat;
+
+        public AMessage(final ParseMode mode, final Keyboard kbd, final Chat chat) {
+            this.mode = mode;
+            this.kbd = kbd;
+            this.chat = chat;
+        }
+
+        public AMessage(final ParseMode mode, final Keyboard kbd, final String channelId) {
+            this(mode, kbd, Chat.of(channelId));
+        }
+
+        public AMessage(final ParseMode mode, final Keyboard kbd, final long userId) {
+            this(mode, kbd, Chat.of(userId));
+        }
+    }
+
+    class TextMessage extends AMessage {
+        public final String body;
+
+        public TextMessage(final String body, final ParseMode mode, final Keyboard kbd, final Chat chat) {
+            super(mode, kbd, chat);
+            this.body = body;
+        }
+
+        public TextMessage(final String body, final ParseMode mode, final Keyboard kbd, final long userId) {
+            super(mode, kbd, userId);
+            this.body = body;
+        }
+
+        public TextMessage(final String body, final ParseMode mode, final Keyboard kbd, final String channelId) {
+            super(mode, kbd, channelId);
+            this.body = body;
+        }
+    }
+
+    class MediaMessage extends AMessage {
+        public final TFile media;
+        public final RawMedia rawMedia;
+        public final String caption;
+
+        public MediaMessage(final TFile media, final RawMedia rawMedia, final String caption, final ParseMode mode, final Keyboard kbd, final Chat chat) {
+            super(mode, kbd, chat);
+            this.media = media;
+            this.rawMedia = rawMedia;
+            this.caption = caption;
+        }
+
+        public MediaMessage(final TFile media, final RawMedia rawMedia, final String caption, final ParseMode mode, final Keyboard kbd, final long userId) {
+            super(mode, kbd, userId);
+            this.media = media;
+            this.rawMedia = rawMedia;
+            this.caption = caption;
+        }
+
+        public MediaMessage(final TFile media, final RawMedia rawMedia, final String caption, final ParseMode mode, final Keyboard kbd, final String channelId) {
+            super(mode, kbd, channelId);
+            this.media = media;
+            this.rawMedia = rawMedia;
+            this.caption = caption;
+        }
+
+        public MediaMessage(final TFile media, final String caption, final ParseMode mode, final Keyboard kbd, final Chat chat) {
+            this(media, null, caption, mode, kbd, chat);
+        }
+
+        public MediaMessage(final String caption, final ParseMode mode, final Keyboard kbd, final Chat chat) {
+            this(null, null, caption, mode, kbd, chat);
+        }
+
+        public MediaMessage(final TFile media, final String caption, final ParseMode mode, final Keyboard kbd, final long userId) {
+            this(media, null, caption, mode, kbd, userId);
+        }
+
+        public MediaMessage(final String caption, final ParseMode mode, final Keyboard kbd, final long userId) {
+            this(null, null, caption, mode, kbd, userId);
+        }
+
+        public MediaMessage(final TFile media, final String caption, final ParseMode mode, final Keyboard kbd, final String channelId) {
+            this(media, null, caption, mode, kbd, channelId);
+        }
+
+        public MediaMessage(final String caption, final ParseMode mode, final Keyboard kbd, final String channelId) {
+            this(null, null, caption, mode, kbd, channelId);
         }
     }
 }

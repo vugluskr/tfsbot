@@ -147,6 +147,7 @@
         WHERE table_schema = 'public'
           AND table_name like #{query}
     </select>
+
     <select id="selectRootDirs" resultType="model.TFile">
         select id, name, options
         from ${tableName}
@@ -161,5 +162,8 @@
     </select>
     <select id="isNameBusy" resultType="_boolean">
         select exists(select 1 from ${tableName} where name = #{name} and parent_id = #{parentId,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
+    </select>
+    <select id="selectRootId" resultType="java.util.UUID">
+        select id from ${tableName} where parent_id is null
     </select>
 </mapper>

@@ -23,19 +23,19 @@ public abstract class TgRequest {
         TgRequest request = null;
 
         if (node.has("callback_query"))
-            request = new CallbackRequest(node);
+            request = new CallbackRequest(node.get("callback_query"));
         else if (node.has("message")) {
-            if (node.has("text")) {
-                final String t = notNull(node.get("text").asText());
+            if (node.get("message").has("text")) {
+                final String t = notNull(node.get("message").get("text").asText());
 
                 if (t.startsWith("/"))
-                    request = new CmdRequest(node, t);
+                    request = new CmdRequest(node.get("message"), t);
                 else
-                    request = new TextRequest(node, t);
+                    request = new TextRequest(node.get("message"), t);
             } else
                 for (final ContentType t : media)
-                    if (node.has(t.getParamName())) {
-                        request = new FileRequest(node, t);
+                    if (node.get("message").has(t.getParamName())) {
+                        request = new FileRequest(node.get("message"), t);
                         break;
                     }
         }

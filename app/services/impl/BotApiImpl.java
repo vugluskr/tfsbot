@@ -40,27 +40,27 @@ public class BotApiImpl implements BotApi {
     }
 
     @Override
-    public CompletionStage<Reply> sendText(final String body, final ParseMode mode, final Chat target, final Keyboard kbd) {
-        if (isEmpty(body)) {
-            logger.warn("Not send empty text to " + target);
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send empty text"));
+    public CompletionStage<Reply> sendText(final TextMessage msg) {
+        if (isEmpty(msg.body)) {
+            logger.warn("Not send empty text to " + msg.chat);
+            return CompletableFuture.completedFuture(new Reply(false));
         }
 
-        if (target == null) {
+        if (msg.chat == null) {
             logger.warn("Not send anything to null target");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send anything to null target"));
+            return CompletableFuture.completedFuture(new Reply(false));
         }
 
         final ObjectNode node = Json.newObject();
 
-        target.set("chat_id", node);
-        node.put("text", body);
+        msg.chat.set("chat_id", node);
+        node.put("text", msg.body);
         node.put("disable_web_page_preview", true);
 
-        if (mode != null)
-            node.put("parse_mode", mode.asText());
-        if (kbd != null)
-            node.set("reply_markup", kbd.toJson());
+        if (msg.mode != null)
+            node.put("parse_mode", msg.mode.asText());
+        if (msg.kbd != null)
+            node.set("reply_markup", msg.kbd.toJson());
 
         return ws.url(apiUrl + "sendMessage")
                 .setRequestFilter(new WsCurlLogger())
@@ -69,208 +69,194 @@ public class BotApiImpl implements BotApi {
     }
 
     @Override
-    public CompletionStage<Reply> sendMedia(final TFile media, final String caption, final ParseMode mode, final Chat target, final Keyboard kbd) {
-        if (target == null) {
+    public CompletionStage<Reply> sendMedia(final MediaMessage msg) {
+        if (msg.rawMedia != null)
+            return uploadMedia(msg);
+
+        if (msg.chat == null) {
             logger.warn("Not send anything to null target");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send anything to null target"));
+            return CompletableFuture.completedFuture(new Reply(false));
         }
 
-        if (media == null) {
-            logger.warn("Not send empty media to " + target);
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send empty media"));
+        if (msg.media == null) {
+            logger.warn("Not send empty media to " + msg.chat);
+            return CompletableFuture.completedFuture(new Reply(false));
         }
 
-        if (media.type == null || media.type == ContentType.DIR || media.type == ContentType.LABEL) {
-            logger.warn("Not send this media to " + target + " :: " + media.type);
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send this media :: " + media.type));
+        if (msg.media.type == null || msg.media.type == ContentType.DIR || msg.media.type == ContentType.LABEL) {
+            logger.warn("Not send this media to " + msg.chat + " :: " + msg.media.type);
+            return CompletableFuture.completedFuture(new Reply(false));
         }
 
         final ObjectNode node = Json.newObject();
-        target.set("chat_id", node);
-        node.put(media.type.getParamName(), media.getRefId());
+        msg.chat.set("chat_id", node);
+        node.put(msg.media.type.getParamName(), msg.media.getRefId());
 
-        if (!isEmpty(caption)) {
-            node.put("caption", caption);
+        if (!isEmpty(msg.caption)) {
+            node.put("caption", msg.caption);
 
-            if (mode != null)
-                node.put("parse_mode", mode.asText());
+            if (msg.mode != null)
+                node.put("parse_mode", msg.mode.asText());
         }
 
-        if (kbd != null)
-            node.set("reply_markup", kbd.toJson());
+        if (msg.kbd != null)
+            node.set("reply_markup", msg.kbd.toJson());
 
-        return ws.url(apiUrl + media.type.getUrlPath())
+        return ws.url(apiUrl + msg.media.type.getUrlPath())
                 .setRequestFilter(new WsCurlLogger())
                 .post(node)
                 .thenApply(Reply::new);
     }
 
     @Override
-    public CompletionStage<Reply> sendReaction(final String reaction, final boolean asAlert, final long queryId, final int showTime) {
-        if (isEmpty(reaction)) {
-            logger.warn("Not send empty reaction to " + queryId);
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send empty reaction"));
+    public CompletionStage<Void> sendReaction(final ReactionMessage msg) {
+        if (isEmpty(msg.text)) {
+            logger.warn("Not send empty reaction to " + msg.queryId);
+            return CompletableFuture.completedFuture(null);
         }
 
-        if (queryId <= 0) {
+        if (msg.queryId <= 0) {
             logger.warn("Not send anything to null target");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send anything to null target"));
+            return CompletableFuture.completedFuture(null);
         }
 
         final ObjectNode node = Json.newObject();
-        node.put("callback_query_id", queryId);
-        node.put("text", reaction);
-        node.put("show_alert", asAlert);
-        node.put("cache_time", showTime);
+        node.put("callback_query_id", msg.queryId);
+        node.put("text", msg.text);
+        node.put("show_alert", msg.alert);
+        node.put("cache_time", 0);
 
         return ws.url(apiUrl + "answerCallbackQuery")
                 .setRequestFilter(new WsCurlLogger())
                 .post(node)
-                .thenApply(Reply::new);
+                .thenAccept(wsResponse -> {});
     }
 
-    @Override
-    public CompletionStage<Reply> uploadMedia(final RawMedia media, final String caption, final ParseMode mode, final Chat target, final Keyboard kbd) {
-        if (target == null) {
+    private CompletionStage<Reply> uploadMedia(final MediaMessage msg) {
+        if (msg.chat == null) {
             logger.warn("Not send anything to null target");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send anything to null target"));
+            return CompletableFuture.completedFuture(new Reply(false));
         }
 
-        if (media == null || !media.isComplete()) {
-            logger.warn("Not send empty media to " + target);
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send empty media"));
+        if (msg.rawMedia == null || !msg.rawMedia.isComplete()) {
+            logger.warn("Not send empty media to " + msg.chat);
+            return CompletableFuture.completedFuture(new Reply(false));
         }
 
         final List<Http.MultipartFormData.Part<?>> parts = new ArrayList<>(0);
 
-        parts.add(new Http.MultipartFormData.FilePart<>(media.type.getParamName(), media.filename, media.mimeType, media.src));
-        parts.add(new Http.MultipartFormData.DataPart("chat_id", target.toString()));
-        if (!isEmpty(caption)) {
-            parts.add(new Http.MultipartFormData.DataPart("caption", caption));
+        parts.add(new Http.MultipartFormData.FilePart<>(msg.rawMedia.type.getParamName(), msg.rawMedia.filename, msg.rawMedia.mimeType, msg.rawMedia.src));
+        parts.add(new Http.MultipartFormData.DataPart("chat_id", msg.chat.toString()));
+        if (!isEmpty(msg.caption)) {
+            parts.add(new Http.MultipartFormData.DataPart("caption", msg.caption));
 
-            if (mode != null)
-                parts.add(new Http.MultipartFormData.DataPart("parse_mode", mode.asText()));
+            if (msg.mode != null)
+                parts.add(new Http.MultipartFormData.DataPart("parse_mode", msg.mode.asText()));
         }
-        if (kbd != null)
-            parts.add(new Http.MultipartFormData.DataPart("reply_markup", kbd.toJson().toString()));
+        if (msg.kbd != null)
+            parts.add(new Http.MultipartFormData.DataPart("reply_markup", msg.kbd.toJson().toString()));
 
-        return ws.url(apiUrl + media.type.getUrlPath())
+        return ws.url(apiUrl + msg.rawMedia.type.getUrlPath())
                 .setRequestFilter(new WsCurlLogger())
                 .post(Source.from(parts))
                 .thenApply(Reply::new);
     }
 
     @Override
-    public CompletionStage<Reply> editBody(final String body, final ParseMode mode, final Chat target, final long editMessageId) {
-        if (target == null) {
+    public CompletionStage<Boolean> editText(final TextMessage msg, final long editMessageId) {
+        if (msg.chat == null) {
             logger.warn("Not send anything to null target");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send anything to null target"));
+            return CompletableFuture.completedFuture(false);
         }
 
-        if (isEmpty(body)) {
-            logger.warn("Not send empty text to " + target);
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send empty text"));
+        if (isEmpty(msg.body)) {
+            logger.warn("Not send empty text to " + msg.chat);
+            return CompletableFuture.completedFuture(false);
         }
 
         if (editMessageId <= 0) {
             logger.warn("Not editing message #0");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant edit message #0"));
+            return CompletableFuture.completedFuture(false);
         }
 
         final ObjectNode node = Json.newObject();
-        target.set("chat_id", node);
-        node.put("text", body);
+        msg.chat.set("chat_id", node);
+        node.put("text", msg.body);
         node.put("message_id", editMessageId);
         node.put("disable_web_page_preview", true);
-        if (mode != null)
-            node.put("parse_mode", mode.asText());
+        if (msg.mode != null)
+            node.put("parse_mode", msg.mode.asText());
+        if (msg.kbd != null)
+            node.set("reply_markup", msg.kbd.toJson());
 
         return ws.url(apiUrl + "editMessageText")
                 .setRequestFilter(new WsCurlLogger())
                 .post(node)
-                .thenApply(Reply::new);
+                .thenApply(Reply::new)
+                .thenApply(Reply::isOk);
     }
 
     @Override
-    public CompletionStage<Reply> editCaption(final String caption, final ParseMode mode, final Chat target, final long editMessageId) {
-        if (target == null) {
+    public CompletionStage<Boolean> editMedia(final MediaMessage msg, final long editMessageId) {
+        if (msg.chat == null) {
             logger.warn("Not send anything to null target");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send anything to null target"));
+            return CompletableFuture.completedFuture(false);
         }
 
-        if (isEmpty(caption)) {
-            logger.warn("Not send empty caption to " + target);
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send empty caption"));
+        if (isEmpty(msg.caption) && msg.media == null) {
+            logger.warn("Not send empty caption to " + msg.chat);
+            return CompletableFuture.completedFuture(false);
         }
 
         if (editMessageId <= 0) {
             logger.warn("Not editing message #0");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant edit message #0"));
+            return CompletableFuture.completedFuture(false);
         }
 
-        final ObjectNode node = Json.newObject();
-        target.set("chat_id", node);
-        node.put("message_id", editMessageId);
-        node.put("caption", caption);
+        if (isEmpty(msg.caption))
+            return editMedia(msg.media, msg.chat, editMessageId);
 
-        if (mode != null)
-            node.put("parse_mode", mode.asText());
+        final ObjectNode node = Json.newObject();
+        msg.chat.set("chat_id", node);
+        node.put("message_id", editMessageId);
+        node.put("caption", msg.caption);
+
+        if (msg.mode != null)
+            node.put("parse_mode", msg.mode.asText());
+
+        if (msg.kbd != null)
+            node.set("reply_markup", msg.kbd.toJson());
 
         return ws.url(apiUrl + "editMessageCaption")
                 .setRequestFilter(new WsCurlLogger())
                 .post(node)
-                .thenApply(Reply::new);
+                .thenApply(Reply::new)
+                .thenApply(Reply::isOk)
+                .thenCombine(msg.media != null
+                                ? editMedia(msg.media, msg.chat, editMessageId)
+                                : CompletableFuture.completedFuture(true),
+                        (metaUpdate, mediaUpdate) -> mediaUpdate && metaUpdate);
     }
 
-    @Override
-    public CompletionStage<Reply> editKeyboard(final Keyboard kbd, final Chat target, final long editMessageId) {
-        if (editMessageId <= 0) {
-            logger.warn("Not editing message #0");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant edit message #0"));
-        }
-
-        if (target == null) {
-            logger.warn("Not send anything to null target");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send anything to null target"));
-        }
-
-        if (kbd == null) {
-            logger.warn("Not editing null keyboard");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant edit null keyboard"));
-        }
-
-        final ObjectNode node = Json.newObject();
-        target.set("chat_id", node);
-
-        node.put("message_id", editMessageId);
-        node.set("reply_markup", kbd.toJson());
-
-        return ws.url(apiUrl + "editMessageReplyMarkup")
-                .setRequestFilter(new WsCurlLogger())
-                .post(node)
-                .thenApply(Reply::new);
-    }
-
-    @Override
-    public CompletionStage<Reply> editMedia(final TFile media, final Chat target, final long editMessageId) {
+    private CompletionStage<Boolean> editMedia(final TFile media, final Chat target, final long editMessageId) {
         if (media == null) {
             logger.warn("Not send empty media to " + target);
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send empty media"));
+            return CompletableFuture.completedFuture(false);
         }
 
         if (target == null) {
             logger.warn("Not send anything to null target");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send anything to null target"));
+            return CompletableFuture.completedFuture(false);
         }
 
         if (media.type == null || media.type == ContentType.DIR || media.type == ContentType.LABEL) {
             logger.warn("Not send this media to " + target + " :: " + media.type);
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant send this media :: " + media.type));
+            return CompletableFuture.completedFuture(false);
         }
 
         if (editMessageId <= 0) {
             logger.warn("Not editing message #0");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant edit message #0"));
+            return CompletableFuture.completedFuture(false);
         }
 
         final ObjectNode node = Json.newObject();
@@ -284,19 +270,20 @@ public class BotApiImpl implements BotApi {
         return ws.url(apiUrl + "editMessageMedia")
                 .setRequestFilter(new WsCurlLogger())
                 .post(node)
-                .thenApply(Reply::new);
+                .thenApply(Reply::new)
+                .thenApply(Reply::isOk);
     }
 
     @Override
-    public CompletionStage<Reply> dropMessage(final Chat target, final long messageId) {
+    public CompletionStage<Void> dropMessage(final long messageId, final Chat target) {
         if (messageId <= 0) {
             logger.warn("Not deleting message #0");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant delete message #0"));
+            return CompletableFuture.completedFuture(null);
         }
 
         if (target == null) {
             logger.warn("Not delete anything of null target");
-            return CompletableFuture.completedFuture(new Reply(false).withDesc("Cant delete anything of null target"));
+            return CompletableFuture.completedFuture(null);
         }
 
         final ObjectNode node = Json.newObject();
@@ -307,6 +294,6 @@ public class BotApiImpl implements BotApi {
         return ws.url(apiUrl + "deleteMessage")
                 .setRequestFilter(new WsCurlLogger())
                 .post(node)
-                .thenApply(Reply::new);
+                .thenApply(wsResponse -> null);
     }
 }

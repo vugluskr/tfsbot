@@ -2,7 +2,6 @@ package states;
 
 import model.CommandType;
 import model.MsgStruct;
-import model.TFile;
 import model.request.CallbackRequest;
 import model.user.TgUser;
 import services.BotApi;
@@ -22,10 +21,7 @@ import static utils.TextUtils.getInt;
  * tfs ☭ sweat and blood
  */
 public class EntrySharesGearer extends AState {
-    private final UUID entryId;
     private int offset;
-
-    private TFile entry;
 
     public EntrySharesGearer(final UUID entryId, final int offset) {
         this.entryId = entryId;
@@ -39,7 +35,7 @@ public class EntrySharesGearer extends AState {
     }
 
     @Override
-    public UserState onCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
         switch (request.getCommand().type) {
             case dropGrant:
                 store.dropEntryGrant(entryId, store.selectEntryGrants(entryId, offset, 10, user.id).get(request.getCommand().elementIdx));
@@ -58,7 +54,7 @@ public class EntrySharesGearer extends AState {
     @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
 
         final int count = store.countEntryGrants(entryId);
 

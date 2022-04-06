@@ -2,6 +2,7 @@ package states;
 
 import model.CommandType;
 import model.MsgStruct;
+import model.TFile;
 import model.request.CallbackRequest;
 import model.request.CmdRequest;
 import model.request.FileRequest;
@@ -13,15 +14,13 @@ import services.DataStore;
 import states.prompts.*;
 import utils.AsButton;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
+import static utils.TextUtils.getInt;
 import static utils.TextUtils.isEmpty;
 
 /**
@@ -33,6 +32,9 @@ public abstract class AState implements UserState {
     private static final Logger.ALogger logger = Logger.of(UserState.class);
     public final static UserState _back = new BACKSTATE();
 
+    protected UUID entryId;
+    protected TFile entry;
+
     public static UserState resolve(final String saved, final TgUser user) {
         final int idx;
         if (isEmpty(saved) || (idx = saved.indexOf(';')) < 0)
@@ -40,7 +42,7 @@ public abstract class AState implements UserState {
 
         final String left = saved.substring(idx + 1);
 
-        switch (idx) {
+        switch (getInt(saved.substring(0, idx))) {
             case 0:
                 return new DirMaker(left);
             case 1:
@@ -67,6 +69,8 @@ public abstract class AState implements UserState {
                 return new LabelViewer(left);
             case 13:
                 return new Searcher(left);
+            case 14:
+                return new LabelEditor(left);
             default:
                 return new DirViewer(left);
         }
@@ -101,11 +105,15 @@ public abstract class AState implements UserState {
             idx = 12;
         else if (this instanceof Searcher)
             idx = 13;
+        else if (this instanceof LabelEditor)
+            idx = 14;
         else
             idx = 7;
 
         return idx + ";" + encode();
     }
+
+    protected abstract String encode();
 
     protected void pagedList(final List<? extends AsButton> scope, final int count, final int offset, final MsgStruct struct) {
         pagedList(scope, count, offset, struct, AsButton::toButton);
@@ -125,77 +133,39 @@ public abstract class AState implements UserState {
         }
     }
 
-    protected void doSend(final MsgStruct struct, final TgUser user, final BotApi api) {
-        final BotApi.Chat target = BotApi.Chat.of(user.id);
+    @Override
+    public final void doSend(final MsgStruct struct, final TgUser user, final BotApi api) {
+        if (isEmpty(user.wins)) {
+            freshSend(struct, user, api);
+            return;
+        }
 
-        if (!isEmpty(user.wins)) {
-            final List<Long> oldWins = new ArrayList<>(user.wins);
+        final long winId = user.wins.first();
 
-            final Function<Long, CompletionStage<Boolean>> editAction =
-                    struct.file != null ? editMsgId -> {
-                        final AtomicBoolean succeeded = new AtomicBoolean(true);
-                        final CompletableFuture<?>[] chain = new CompletableFuture[3];
+        final CompletionStage<Boolean> sendAction = isEmpty(struct.caption)
+                ? api.editText(new BotApi.TextMessage(struct.body, struct.mode, struct.kbd, user.id), winId)
+                : api.editMedia(new BotApi.MediaMessage(struct.file, struct.caption, struct.mode, struct.kbd, user.id), winId);
 
-                        chain[0] = api.editMedia(struct.file, target, editMsgId)
-                                .thenAccept(reply -> {
-                                    if (!reply.isOk())
-                                        succeeded.set(false);
-                                })
-                                .exceptionally(e -> {
-                                    logger.error("Error edit media: " + e.getMessage(), e);
-                                    succeeded.set(false);
-
-                                    return null;
-                                }).toCompletableFuture();
-
-                        chain[1] = api.editCaption(struct.caption, struct.mode, target, editMsgId).toCompletableFuture();
-                        chain[2] = api.editKeyboard(struct.kbd, target, editMsgId).toCompletableFuture();
-
-                        return CompletableFuture.allOf(chain).thenApply(unused -> succeeded.get());
+        CompletableFuture.runAsync(() -> sendAction
+                .thenAccept(success -> {
+                    if (success) {
+                        user.interactionDone();
+                        return;
                     }
-                            :
-                            editMsgId -> {
-                                final AtomicBoolean succeeded = new AtomicBoolean(true);
-                                final CompletableFuture<?>[] chain = new CompletableFuture[2];
 
-                                chain[0] = api.editBody(struct.body, struct.mode, target, editMsgId).toCompletableFuture();
-                                chain[1] = api.editKeyboard(struct.kbd, target, editMsgId).toCompletableFuture();
-
-                                return CompletableFuture.allOf(chain).thenApply(unused -> succeeded.get());
-                            };
-
-            final AtomicLong succeededWin = new AtomicLong(0);
-            for (final long win : oldWins) {
-                editAction.apply(win)
-                        .thenAccept(result -> {
-                            if (result)
-                                succeededWin.set(win);
-                        })
-                        .toCompletableFuture().join();
-
-                if (succeededWin.get() > 0) {
-                    user.wins.remove(succeededWin.get());
-
-                    user.wins.forEach(w -> CompletableFuture.runAsync(() -> api.dropMessage(target, w)));
-                    user.wins = null;
-                    user.addWin(succeededWin.get());
+                    user.wins.remove(winId);
                     user.interactionDone();
-
-                    return;
-                }
-            }
-
-            freshSend(struct, user, target, api);
-        } else
-            freshSend(struct, user, target, api);
+                    CompletableFuture.runAsync(() -> api.dropMessage(winId, user.id));
+                    doSend(struct, user, api);
+                }));
     }
 
-    private void freshSend(final MsgStruct struct, final TgUser user, final BotApi.Chat target, final BotApi api) {
+    private void freshSend(final MsgStruct struct, final TgUser user, final BotApi api) {
         final CompletionStage<BotApi.Reply> action;
         if (struct.file != null)
-            action = api.sendMedia(struct.file, struct.caption, struct.mode, target, struct.kbd);
+            action = api.sendMedia(new BotApi.MediaMessage(struct.file, struct.caption, struct.mode, struct.kbd, user.id));
         else
-            action = api.sendText(struct.body, struct.mode, target, struct.kbd);
+            action = api.sendText(new BotApi.TextMessage(struct.body, struct.mode, struct.kbd, user.id));
 
         CompletableFuture.runAsync(() -> action
                 .thenAccept(reply -> {
@@ -211,15 +181,27 @@ public abstract class AState implements UserState {
     }
 
     @Override
-    public UserState onCallback(CallbackRequest request, TgUser user, BotApi api, DataStore store) {return _back;}
+    public UserState onCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+        api.sendReaction(new BotApi.ReactionMessage(request.queryId, "", user.id));
+
+        return voidOnCallback(request, user, api, store);
+    }
+
+    protected UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+        return _back;
+    }
 
     @Override
-    public UserState onCommand(CmdRequest request, TgUser user, BotApi api, DataStore store) {return _back;}
+    public UserState onCommand(final CmdRequest request, final TgUser user, final BotApi api, final DataStore store) {return _back;}
 
     @Override
-    public UserState onFile(FileRequest request, TgUser user, BotApi api, DataStore store) {return _back;}
+    public UserState onFile(final FileRequest request, final TgUser user, final BotApi api, final DataStore store) {return _back;}
 
     @Override
-    public UserState onText(TextRequest request, TgUser user, BotApi api, DataStore store) {return _back;}
+    public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {return _back;}
 
+    @Override
+    public final UUID entryId() {
+        return entryId;
+    }
 }

@@ -3,7 +3,6 @@ package states;
 import model.CommandType;
 import model.MsgStruct;
 import model.Share;
-import model.TFile;
 import model.request.CallbackRequest;
 import model.user.TgUser;
 import services.BotApi;
@@ -23,10 +22,7 @@ import static utils.TextUtils.getInt;
  * tfs ☭ sweat and blood
  */
 public class EntrySharer extends AState {
-    private final UUID entryId;
     private int offset;
-
-    private TFile entry;
 
     public EntrySharer(final UUID entryId) {
         this.entryId = entryId;
@@ -39,7 +35,7 @@ public class EntrySharer extends AState {
     }
 
     @Override
-    public UserState onCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
         switch (request.getCommand().type) {
             case dropEntryLink:
                 store.dropEntryLink(entryId, user.id);
@@ -68,7 +64,7 @@ public class EntrySharer extends AState {
     @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
 
         final int count = store.countEntryGrants(entryId);
 
@@ -90,11 +86,11 @@ public class EntrySharer extends AState {
         struct.body = body.toString();
 
         struct.kbd = new BotApi.Keyboard();
+        struct.kbd.button(CommandType.goBack.b());
         struct.kbd.button(glob != null ? CommandType.dropEntryLink.b() : CommandType.makeEntryLink.b());
         struct.kbd.button(CommandType.mkGrant.b());
         if (count > 0)
             struct.kbd.button(CommandType.gearDir.b());
-        struct.kbd.button(CommandType.goBack.b());
 
         pagedList(store.selectEntryGrants(entryId, offset, 10, user.id), count, offset, struct, (share, idx) ->
                 CommandType.changeGrantRw.b(LangMap.v(share.isReadWrite() ? LangMap.Value.SHARE_RW : LangMap.Value.SHARE_RO, user.lng, share.getName()), idx));

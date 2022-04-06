@@ -21,8 +21,6 @@ import static utils.TextUtils.escapeMd;
  * tfs ☭ sweat and blood
  */
 public class Renamer extends AState {
-    private final UUID entryId;
-
     public Renamer(final UUID entryId) {
         this.entryId = entryId;
     }
@@ -43,12 +41,14 @@ public class Renamer extends AState {
 
     @Override
     public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
-        final TFile entry = store.getEntry(entryId, user.id);
+        final TFile entry = store.getEntry(entryId, user);
 
         if (!entry.getName().equals(request.getText()) && store.isEntryMissed(entry.getParentId(), request.getText(), user)) {
             entry.setName(request.getText());
             entry.setPath(Paths.get(entry.getPath()).getParent().resolve(request.getText()).toString());
             store.updateEntry(entry);
+
+            return _back;
         }
 
         return null;
@@ -56,7 +56,7 @@ public class Renamer extends AState {
 
     @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
-        final TFile entry = store.getEntry(entryId, user.id);
+        final TFile entry = store.getEntry(entryId, user);
         final MsgStruct struct = new MsgStruct();
         struct.body = escapeMd(LangMap.v(LangMap.Value.TYPE_RENAME, user, entry.getName()));
         struct.kbd = BotApi.voidKbd;

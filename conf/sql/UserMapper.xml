@@ -2,28 +2,26 @@
 
 <mapper namespace="sql.UserMapper">
     <insert id="insertUser">
-        insert into users(id, last_message_id, last_ref_id, last_text, last_kbd, data)
-        VALUES (#{u.id}, #{u.msgId}, #{u.s1}, #{u.s2}, #{u.s3}, #{u.s4})
+        insert into users(id, last_ref_id, last_text, last_kbd, data)
+        VALUES (#{u.id}, #{u.s1}, #{u.s2}, #{u.s3}, #{u.s4})
     </insert>
 
     <select id="getUser" resultType="model.user.UDbData">
         select id,
-               last_message_id as "msgId",
-               last_ref_id     as "s1",
-               last_text       as "s2",
-               last_kbd        as "s3",
-               data            as "s4"
+               last_ref_id as "s1",
+               last_text   as "s2",
+               last_kbd    as "s3",
+               data        as "s4"
         from users
         where id = #{id}
     </select>
 
     <update id="updateUser">
         update users
-        set last_message_id = #{u.msgId},
-            last_ref_id     = #{u.s1},
-            last_text       = #{u.s2},
-            last_kbd        = #{u.s3},
-            data            = #{u.s4}
+        set last_ref_id = #{u.s1},
+            last_text   = #{u.s2},
+            last_kbd    = #{u.s3},
+            data        = #{u.s4}
         where id = #{u.id}
     </update>
 </mapper>

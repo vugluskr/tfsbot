@@ -21,9 +21,9 @@ public interface DataStore {
 
     List<String> listFolderLabels(UUID folderId, long userId);
 
-    List<TFile> listFolder(UUID folderId, int offset, int limit, long userId);
+    List<TFile> listFolder(UUID folderId, int offset, int limit, TgUser user);
 
-    TFile getEntry(UUID id, long userId);
+    TFile getEntry(UUID id, TgUser user);
 
     boolean isPasswordOk(UUID entryId, String password);
 
@@ -31,7 +31,9 @@ public interface DataStore {
 
     int countFolderLabels(UUID folderId, long userId);
 
-    void reinitUserTables(long userId);
+    UUID reinitUserTables(long userId);
+
+    TFile applyShareByLink(Share share, TgUser consumer);
 
     TFile mk(TFile entry);
 
@@ -84,4 +86,10 @@ public interface DataStore {
     void insertUser(UDbData data);
 
     void updateUser(UDbData u);
+
+    void dropUserShares(long userId);
+
+    void buildHistoryTo(UUID targetEntryId, TgUser user);
+
+    void doOpdsSearch(String query, TgUser user);
 }

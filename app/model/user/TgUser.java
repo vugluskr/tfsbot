@@ -20,11 +20,9 @@ import static utils.TextUtils.*;
 public class TgUser {
     public final long id;
     public final String f, l, nik, lng, fio;
-    public Consumer<UDbData> backSaver;
+    public Consumer<UDbData> asyncSaver;
 
     private UUID root, bookStore;
-
-    private long msgId;
 
     private final List<UserState> states = new ArrayList<>();
 
@@ -39,10 +37,11 @@ public class TgUser {
         lng = node.has("language_code") ? node.get("language_code").asText() : "en";
     }
 
-    public TgUser(final long id, final UUID root) {
+    public TgUser(final long id, final UUID root, final String fio) {
         this.id = id;
         this.root = root;
-        f = l = nik = lng = fio = null;
+        this.fio = fio;
+        f = l = nik = lng = null;
     }
 
     public void setRoot(final UUID root) {
@@ -51,15 +50,6 @@ public class TgUser {
 
     public UUID getRoot() {
         return root;
-    }
-
-
-    public long getMsgId() {
-        return msgId;
-    }
-
-    public void setMsgId(final long msgId) {
-        this.msgId = msgId;
     }
 
     @Override
@@ -75,38 +65,40 @@ public class TgUser {
     }
 
     public void resolveSaved(final UDbData data) {
-        if (data != null) {
-            final int p = data.getS1().indexOf(':');
-            root = UUID.fromString(p != -1 ? data.getS1().substring(0, p) : data.getS1());
-            bookStore = p != -1 ? UUID.fromString(data.getS1().substring(p + 1)) : null;
+        if (data == null)
+            return;
+
+        final int p = data.getS1().indexOf(':');
+        root = UUID.fromString(p != -1 ? data.getS1().substring(0, p) : data.getS1());
+        bookStore = p != -1 ? UUID.fromString(data.getS1().substring(p + 1)) : null;
+        if (!isEmpty(data.getS2())) {
             int idx;
             if ((idx = data.getS2().indexOf(Strings.delim)) != -1)
-                for (int from = 0; idx != -1; from = idx + 1, idx = data.getS2().indexOf(Strings.delim))
+                for (int from = 0; idx != -1; from = idx + 1, idx = data.getS2().indexOf(Strings.delim, from))
                     states.add(AState.resolve(data.getS2().substring(from, idx), this));
             else
                 states.add(AState.resolve(data.getS2(), this));
+        }
 
-            if (!isEmpty(data.getS3())) {
-                wins = new TreeSet<>();
-                final List<Integer> pos = new ArrayList<>();
-                final String q = data.getS3();
+        if (!isEmpty(data.getS3())) {
+            wins = new TreeSet<>();
+            final List<Integer> pos = new ArrayList<>();
+            final String q = data.getS3();
 
-                for (int i = 0; i < q.length(); i++)
-                    if (q.charAt(i) == ',')
-                        pos.add(i);
+            for (int i = 0; i < q.length(); i++)
+                if (q.charAt(i) == ',')
+                    pos.add(i);
 
-                if (pos.isEmpty())
-                    wins.add(getLong(q));
-                else {
-                    pos.add(0, -1);
-                    pos.add(q.length());
+            if (pos.isEmpty())
+                wins.add(getLong(q));
+            else {
+                pos.add(0, -1);
+                pos.add(q.length());
 
-                    for (int i = 0; i < pos.size() - 1; i++)
-                        wins.add(getLong(q.substring(pos.get(i) + 1, pos.get(i + 1))));
-                }
+                for (int i = 0; i < pos.size() - 1; i++)
+                    wins.add(getLong(q.substring(pos.get(i) + 1, pos.get(i + 1))));
             }
-        } else
-            states.add(new DirViewer(root));
+        }
     }
 
     public UUID getBookStore() {
@@ -120,8 +112,8 @@ public class TgUser {
     public UDbData encodeToSave() {
         final UDbData data = new UDbData();
         data.setId(id);
-        data.setS1(root + ":" + (bookStore == null ? "" : ":" + bookStore));
-        data.setS2(states.stream().map(UserState::save).collect(Collectors.joining(Strings.delim)));
+        data.setS1(root + (bookStore == null ? "" : ":" + bookStore));
+        data.setS2(states.stream().map(UserState::save).collect(Collectors.joining(Strings.delim)) + Strings.delim);
 
         if (!isEmpty(wins))
             data.setS3(wins.stream().map(String::valueOf).collect(Collectors.joining(",")));
@@ -137,11 +129,13 @@ public class TgUser {
     }
 
     public UserState state() {
-        return states.get(states.size() - 1);
+        return states.isEmpty() ? null : states.get(states.size() - 1);
     }
 
     public void backHistory() {
         states.remove(states.size() - 1);
+        if (states.isEmpty())
+            states.add(new DirViewer(root));
     }
 
     public void addState(final UserState state) {
@@ -149,7 +143,20 @@ public class TgUser {
     }
 
     public void interactionDone() {
-        if (backSaver != null)
-            backSaver.accept(encodeToSave());
+        if (asyncSaver != null)
+            asyncSaver.accept(encodeToSave());
+    }
+
+    public void resetState() {
+        states.clear();
+        states.add(new DirViewer(root));
+    }
+
+    public void clearHistoryTail(final UUID entryId) {
+        for (int i = states.size() - 1; i >= 0; i--)
+            if (states.get(i).entryId().equals(entryId))
+                states.remove(i);
+            else
+                break;
     }
 }

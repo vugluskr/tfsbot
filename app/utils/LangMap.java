@@ -232,6 +232,8 @@ public class LangMap {
         init(Value.MOVED, "Moved %s entry(s)", "Перенесено %s файл(ов)");
         init(Value.TYPE_LABEL, "Type label:", "Текст заметки:");
         init(Value.NO_CONTENT, "No content here yet. Send me some files.", "В этой папке пока ничего нет.");
+        init(Value.NO_CONTENT_START, "No content here yet. You can store some files here or create subfolders.\nHelp context anywhere: /help", "В этой папке пока ничего нет" +
+                ".\nСюда можно сложить файлы или создать поддиректории.\nПодсказка доступна в любом месте: /help");
         init(Value.LANG_SWITCHED, "Switched to English", "Используется русский язык");
         init(Value.SEARCHED, "Search for '%s' in '%s'", "Поиск '%s' в '%s'");
         init(Value.UPLOADED, "File stored '%s'", "Файл сохранён '%s'");
@@ -272,7 +274,7 @@ public class LangMap {
         init(Value.NOT_ALLOWED_THIS, "You're not allowed to do it to this entry", "Это действие запрещено в для данного элемента");
         init(Value.FILE_ACCESS, "Grant access to file %s", "Доступ к файлу %s");
         init(Value.DIR_ACCESS, "Grant access to folder %s", "Доступ к папке %s");
-        init(Value.TYPE_REWRITE, "Write new text for label:", "Напиши новый текст заметки:");
+        init(Value.TYPE_EDIT_LABEL, "Write new text for label:", "Напиши новый текст заметки:");
         init(Value.TYPE_LOCK_DIR, "Type a new password for folder '%s'", "Напиши новый пароль для папки '%s'");
         init(Value.TYPE_LOCK_FILE, "Type a new password for file '%s'", "Напиши новый пароль для файла '%s'");
         init(Value.TYPE_PASSWORD_FILE, "File '%s' is protected with password, type it:", "Доступ к Файлу '%s' ограничен, напиши пароль:");
@@ -288,6 +290,8 @@ public class LangMap {
         init(Value.IS_NOT_BOOK_STORE, "Folder '%s' is not your Book Store any more", "Папка '%s' больше не будет библиотекой");
         init(Value.CONFIRM_DROP_DIR, "Are you sure you want to delete folder '%s' with all its content?", "Точно удалить папку '%s' со всем содержимым?");
         init(Value.CONFIRM_DROP_FILE, "Are you sure you want to delete file '%s'?", "Точно удалить файл '%s'?");
+        init(Value.NO_BOOKSTORE, "Before search you have to mark any folder as 'Bookstore " + Strings.Uni.bookStore + "'", "Для того, чтобы пользоваться поиском необходимо пометить какую-то (любую) папку как" +
+                " 'библиотека " + Strings.Uni.bookStore + "'");
     }
 
     private static void init(final Value key, final String en, final String ru) {
@@ -301,7 +305,7 @@ public class LangMap {
         RESULTS_FOUND, UPLOADED, None, CHECK_ALL, NO_GLOBAL_LINK, NO_PERSONAL_GRANTS, GEARING, PASS_RESET, PASS_DROP, PASSWORD_SET, PASSWORD_NOT_SET, VALID_ONETIME,
         VALID_UNTILL, VALID_CANCEL, VALID_NOT_SET, VALID_SET_OTU, VALID_SET_UNTILL, LINK_DELETED, LINK_SAVED, PASS_SET, TYPE_PASSWORD, TYPE_PASSWORD2, PASSWORD_SET_TXT,
         PASSWORD_NOT_MATCH, PASSWORD_CLEARED, VALID_CLEARED, OTU_SET, SEND_CONTACT_DIR, SEND_CONTACT_FILE, CANT_GRANT, SHARE_RW, SHARE_RO, SHARES, SHARES_ANONYM, NOT_ALLOWED,
-        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_REWRITE, SHARE_DIR_HELP, TYPE_LOCK_DIR, TYPE_LOCK_FILE, TYPE_PASSWORD_FILE, TYPE_PASSWORD_DIR, PASSWORD_FAILED, OPDS_DONE, OPDS_STARTED, OPDS_FAILED, WELCOME, IS_NOT_BOOK_STORE, IS_BOOK_STORE, CONFIRM_DROP_FILE, CONFIRM_DROP_DIR, DIR_ACCESS
+        NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_EDIT_LABEL, SHARE_DIR_HELP, TYPE_LOCK_DIR, TYPE_LOCK_FILE, TYPE_PASSWORD_FILE, TYPE_PASSWORD_DIR, PASSWORD_FAILED, OPDS_DONE, OPDS_STARTED, OPDS_FAILED, WELCOME, IS_NOT_BOOK_STORE, IS_BOOK_STORE, CONFIRM_DROP_FILE, CONFIRM_DROP_DIR, NO_CONTENT_START, NO_BOOKSTORE, DIR_ACCESS
     }
 
     public static String v(final Value name, final TgUser user, final Object... args) {

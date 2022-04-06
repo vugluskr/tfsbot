@@ -63,4 +63,6 @@ public interface TfsMapper {
     boolean isViewMissed(@Param("viewName") String viewName);
 
     boolean isEntrySharedTo(@Param("shareName") String shareName, @Param("entryId") UUID entryId);
+
+    UUID selectRootId(@Param("tableName") String tableName);
 }

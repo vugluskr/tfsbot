@@ -20,10 +20,6 @@ import static utils.TextUtils.escapeMd;
  * tfs ☭ sweat and blood
  */
 public class Unlocker extends AState {
-    private final UUID entryId;
-
-    private TFile entry;
-
     public Unlocker(final TFile entry) {
         this.entry = entry;
         this.entryId = entry.getId();
@@ -38,14 +34,14 @@ public class Unlocker extends AState {
     }
 
     @Override
-    public String encode() {
+    protected String encode() {
         return entryId.toString();
     }
 
     @Override
     public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
 
         if (entry.isLocked() && store.isPasswordOk(entryId, request.getText())) {
             store.unlockEntry(entry);
@@ -59,7 +55,7 @@ public class Unlocker extends AState {
     @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
         final MsgStruct struct = new MsgStruct();
         struct.body = escapeMd(LangMap.v(entry.isDir() ? LangMap.Value.TYPE_PASSWORD_DIR : LangMap.Value.TYPE_PASSWORD_FILE, user, entry.getName()));
         struct.kbd = BotApi.voidKbd;

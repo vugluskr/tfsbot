@@ -13,7 +13,8 @@ import utils.LangMap;
 
 import java.util.UUID;
 
-import static utils.TextUtils.*;
+import static utils.TextUtils.escapeMd;
+import static utils.TextUtils.getLong;
 
 /**
  * @author Denis Danilin | me@loslobos.ru
@@ -21,8 +22,6 @@ import static utils.TextUtils.*;
  * tfs ☭ sweat and blood
  */
 public class EntrySharesGranter extends AState {
-    private final UUID entryId;
-
     private TFile entry;
 
     public EntrySharesGranter(final UUID entryId) {
@@ -45,7 +44,7 @@ public class EntrySharesGranter extends AState {
         if (id > 0 && request.getText().matches("[0-9]+")) {
             final TFile file = new TFile();
             file.type = ContentType.CONTACT;
-            file.name = "u" + id;
+            file.setName("u" + id);
             file.setOwner(id);
 
             return onFile(file, user, store);
@@ -66,9 +65,15 @@ public class EntrySharesGranter extends AState {
         final long grantToId = contact.getOwner();
 
         final UDbData db = store.getUser(grantToId);
-        final UUID rootId = db == null ? store.initUserTables(grantToId) : UUID.fromString(db.getS1().substring(0, db.getS1().indexOf(':')));
+        final UUID rootId;
+        if (db == null)
+            rootId = store.initUserTables(grantToId);
+        else {
+            final int p = db.getS1().indexOf(':');
+            rootId = UUID.fromString(db.getS1().substring(0, p < 0 ? db.getS1().length() : p));
+        }
 
-        final TgUser target = new TgUser(grantToId, rootId);
+        final TgUser target = new TgUser(grantToId, rootId, contact.getName());
 
         if (db == null)
             store.insertUser(new UDbData(grantToId, rootId));
@@ -83,7 +88,7 @@ public class EntrySharesGranter extends AState {
     @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
 
         final MsgStruct struct = new MsgStruct();
         struct.mode = BotApi.ParseMode.Md2;

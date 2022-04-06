@@ -12,7 +12,9 @@ import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 import play.Logger;
 import services.DataStore;
+import services.OpdsSearch;
 import sql.*;
+import states.DirViewer;
 import utils.LangMap;
 import utils.TextUtils;
 
@@ -24,6 +26,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -53,6 +56,9 @@ public class DataStoreImpl implements DataStore {
     private OpdsMapper bookMapper;
 
     @Inject
+    private OpdsSearch opdsSearch;
+
+    @Inject
     private UserMapper userMapper;
 
     @Inject
@@ -79,12 +85,14 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public void reinitUserTables(final long userId) {
+    public UUID reinitUserTables(final long userId) {
+        final UUID rootId;
         if (fs.isTableMissed(tablePrefix + userId)) {
             fs.createRootTable(tablePrefix + userId);
             fs.createIndex(tablePrefix + userId, tablePrefix + userId + "_names", "name");
-            fs.makeEntry(generateUuid(), "", null, ContentType.DIR, null, 0, tablePrefix + userId);
-        }
+            fs.makeEntry((rootId = generateUuid()), "", null, ContentType.DIR, null, 0, tablePrefix + userId);
+        } else
+            rootId = fs.selectRootId(tablePrefix + userId);
 
         if (!fs.isViewMissed(userFsPrefix + userId))
             fs.dropView(userFsPrefix + userId);
@@ -95,6 +103,8 @@ public class DataStoreImpl implements DataStore {
             fs.dropView(pathesTree + userId);
 
         fs.createFsTree(pathesTree + userId, userFsPrefix + userId);
+
+        return rootId;
     }
 
     @Transactional
@@ -130,6 +140,7 @@ public class DataStoreImpl implements DataStore {
             fs.updateEntry(file.getName(), file.getParentId(), file.getOptions(), file.getId(), tablePrefix + file.getOwner());
     }
 
+    @Override
     public TFile applyShareByLink(final Share share, final TgUser consumer) {
         if (share.isPersonal())
             return null;
@@ -270,8 +281,12 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public TFile getEntry(final UUID id, final long userId) {
-        return entries.getEntry(id, userFsPrefix + userId, pathesTree + userId);
+    public TFile getEntry(final UUID id, final TgUser user) {
+        final TFile entry = entries.getEntry(id, userFsPrefix + user.id, pathesTree + user.id);
+
+        if (entry != null)
+            entry.setBookStore(entry.isDir() && entry.getId().equals(user.getBookStore()));
+        return entry;
     }
 
     @Override
@@ -327,7 +342,7 @@ public class DataStoreImpl implements DataStore {
 
         final Map<String, Object> accessRow = fs.selectEntryPassword(uuid);
 
-        return accessRow != null && accessRow.get("password") != null && accessRow.get("salt") != null && !String.valueOf(accessRow.get("password")).equalsIgnoreCase(hash256(accessRow.get("salt") + password));
+        return accessRow == null || String.valueOf(accessRow.get("password")).equalsIgnoreCase(hash256(accessRow.get("salt") + password));
     }
 
     @Override
@@ -336,8 +351,17 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public List<TFile> listFolder(final UUID dirId, final int offset, final int limit, final long userId) {
-        return entries.lsDirContent(dirId, offset, limit, userFsPrefix + userId, pathesTree + userId);
+    public List<TFile> listFolder(final UUID dirId, final int offset, final int limit, final TgUser user) {
+        final List<TFile> list = entries.lsDirContent(dirId, offset, limit, userFsPrefix + user.id, pathesTree + user.id);
+
+        if (!isEmpty(user.getBookStore()))
+            for (final TFile f : list)
+                if (f.getId().equals(user.getBookStore())) {
+                    f.setBookStore(true);
+                    break;
+                }
+
+        return list;
     }
 
     @Override
@@ -422,7 +446,7 @@ public class DataStoreImpl implements DataStore {
 
     @Override
     public void entryGrantTo(final UUID entryId, final TgUser shareTo, final TgUser owner) {
-        makeShare(owner.fio, owner, entryId, shareTo);
+        makeShare(shareTo.fio, owner, entryId, shareTo);
     }
 
     @Override
@@ -433,6 +457,37 @@ public class DataStoreImpl implements DataStore {
 
     @Override
     public void updateUser(final UDbData u) {userMapper.updateUser(u);}
+
+    @Override
+    public void dropUserShares(final long userId) {
+        fs.selectShareViewsLike(sharesByConsumer(userId)).forEach(name -> fs.dropView(name));
+    }
+
+    @Override
+    public void buildHistoryTo(final UUID targetEntryId, final TgUser user) {
+        final List<DirViewer> all = new ArrayList<>(0);
+        all.add(new DirViewer(targetEntryId));
+
+        UUID next = targetEntryId;
+
+        while (next != null) {
+            all.add(new DirViewer(next));
+            next = entries.getParent(targetEntryId, tablePrefix + user.id, pathesTree + user.id).getId();
+        }
+
+        user.resetState();
+        Collections.reverse(all);
+        for (int i = 1; i < all.size(); i++)
+            user.addState(all.get(i));
+    }
+
+    @Override
+    public CompletionStage<List<TFile>> doOpdsSearch(final String query, final TgUser user) {
+        return opdsSearch.search(query)
+                .thenApply(books -> {
+
+                })
+    }
 
     File loadFile(final TFile file, final String ext) {
         try {

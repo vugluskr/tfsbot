@@ -37,7 +37,8 @@ public class FileRequest extends TgRequest {
             attachNode = map.lastEntry().getValue();
         }
 
-        if (type == ContentType.DOCUMENT) file.name = attachNode.get("file_name").asText();
+        if (type == ContentType.DOCUMENT)
+            file.setName(attachNode.get("file_name").asText());
         else if (type == ContentType.CONTACT) {
             file.setOwner(attachNode.get("user_id").asLong());
             final String f = attachNode.has("first_name") ? attachNode.get("first_name").asText() : "";
@@ -46,8 +47,7 @@ public class FileRequest extends TgRequest {
             final String p = attachNode.has("phone_number") ? attachNode.get("phone_number").asText() : "";
             file.uniqId = node.has("file_unique_id") ? node.get("file_unique_id").asText() : p;
             file.refId = node.has("file_id") ? node.get("file_id").asText() : p;
-            file.name = notNull((notNull(f) + " " + notNull(l)), notNull(u, notNull(p, "u" + attachNode.get("user_id").asText())));
-
+            file.setName(notNull((notNull(f) + " " + notNull(l)), notNull(u, notNull(p, "u" + attachNode.get("user_id").asText()))));
         }
     }
 

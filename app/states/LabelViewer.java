@@ -3,6 +3,7 @@ package states;
 import model.CommandType;
 import model.MsgStruct;
 import model.TFile;
+import model.request.CallbackRequest;
 import model.user.TgUser;
 import services.BotApi;
 import services.DataStore;
@@ -19,10 +20,6 @@ import static utils.TextUtils.notNull;
  * tfs ☭ sweat and blood
  */
 public class LabelViewer extends AState {
-    private final UUID entryId;
-
-    private TFile entry;
-
     public LabelViewer(final TFile entry) {
         this.entry = entry;
         this.entryId = entry.getId();
@@ -42,19 +39,32 @@ public class LabelViewer extends AState {
     }
 
     @Override
+    public UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+        switch (request.getCommand().type) {
+            case rename:
+                return new LabelEditor(entryId);
+            case drop:
+                store.rm(entryId, user);
+                return _back;
+        }
+
+        return null;
+    }
+
+    @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
 
         final MsgStruct struct = new MsgStruct();
         struct.kbd = new BotApi.Keyboard();
         struct.kbd.button(CommandType.goBack.b());
 
         if (entry.isRw())
-            struct.kbd.button(CommandType.editLabel.b(), CommandType.dropLabel.b());
+            struct.kbd.button(CommandType.rename.b(), CommandType.drop.b());
 
-        struct.mode = BotApi.ParseMode.Md2;
-        struct.body = notNull(escapeMd(entry.parentPath()), "/")+"*\n\n"+escapeMd(entry.name);
+//        struct.mode = BotApi.ParseMode.Md2;
+        struct.body = /*"*" +*/ notNull(escapeMd(entry.parentPath()), "/") + "\n\n" + escapeMd(entry.getName());
 
         doSend(struct, user, api);
     }

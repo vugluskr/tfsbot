@@ -20,8 +20,6 @@ import static utils.TextUtils.escapeMd;
  * tfs ☭ sweat and blood
  */
 public class DirMaker extends AState {
-    private final UUID entryId;
-
     public DirMaker(final UUID entryId) {
         this.entryId = entryId;
     }

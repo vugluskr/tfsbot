@@ -2,7 +2,6 @@ package states;
 
 import model.CommandType;
 import model.MsgStruct;
-import model.TFile;
 import model.request.CallbackRequest;
 import model.user.TgUser;
 import services.BotApi;
@@ -24,10 +23,7 @@ import static utils.TextUtils.*;
  * tfs ☭ sweat and blood
  */
 public class DirGearer extends AState {
-    private final UUID entryId;
     private int offset;
-
-    private TFile entry;
 
     public DirGearer(final UUID entryId) {
         this.entryId = entryId;
@@ -41,9 +37,12 @@ public class DirGearer extends AState {
 
     @Override
     public UserState onCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+        if (request.getCommand().type != CommandType.setBooks)
+            api.sendReaction(new BotApi.ReactionMessage(request.queryId, "", user.id));
+
         switch (request.getCommand().type) {
             case openLabel:
-                return new LabelViewer(store.getSingleFolderLabel(entryId, offset + request.getCommand().elementIdx, user.id));
+                return new LabelViewer(store.getSingleFolderLabel(entryId, offset + request.getCommand().elementIdx, user.id).getId());
             case rename:
                 return new Renamer(entryId);
             case drop:
@@ -55,10 +54,11 @@ public class DirGearer extends AState {
             case unlock:
                 return new Unlocker(entryId);
             case setBooks:
-                entry = store.getEntry(entryId, user.id);
-                entry.changeBookStore();
+                entry = store.getEntry(entryId, user);
+                entry.setBookStore(!entry.isBookStore());
+                api.sendReaction(new BotApi.ReactionMessage(request.queryId, LangMap.v(entry.isBookStore() ? LangMap.Value.IS_BOOK_STORE : LangMap.Value.IS_NOT_BOOK_STORE, user.lng,
+                        entry.getName()), true, user.id));
                 user.setBookStore(entry.isBookStore() ? entryId : null);
-                store.updateEntry(entry);
                 break;
             case rewind:
                 offset -= 10;
@@ -74,7 +74,7 @@ public class DirGearer extends AState {
     @Override
     public void display(final TgUser user, final BotApi api, final DataStore store) {
         if (entry == null)
-            entry = store.getEntry(entryId, user.id);
+            entry = store.getEntry(entryId, user);
 
         final int count = store.countFolderLabels(entryId, user.id);
 
