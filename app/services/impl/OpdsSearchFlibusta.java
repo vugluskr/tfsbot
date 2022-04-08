@@ -30,7 +30,6 @@ public class OpdsSearchFlibusta implements OpdsSearch {
     private static final Logger.ALogger logger = Logger.of(OpdsSearch.class);
     private static final String searchUrl = "https://flibusta.is/opds/search?searchType=books&searchTerm=";
     private static final Function<String, String> urler;
-    private static final Proxy proxy;
 
     static {
         URL base = null;
@@ -51,8 +50,6 @@ public class OpdsSearchFlibusta implements OpdsSearch {
 
             return null;
         };
-
-        proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress("127.0.0.1", 8544));
     }
 
     @Override
@@ -246,7 +243,7 @@ public class OpdsSearchFlibusta implements OpdsSearch {
     }
 
     private InputStream get(final String url) throws Exception {
-        final URLConnection cn = new URL(url).openConnection(proxy); // todo
+        final URLConnection cn = new URL(url).openConnection();
 
         cn.setDoInput(true);
         cn.setDoOutput(true);
