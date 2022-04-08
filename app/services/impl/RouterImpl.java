@@ -59,7 +59,8 @@ public class RouterImpl implements Router {
                 r.user.resolveSaved(userMapper.getUser(r.user.id));
             } catch (final Exception e) {
                 r.user.resetState();
-                r.user.addState(new DirViewer(store.findRootId(r.user.id)));
+                r.user.setRoot(store.findRootId(r.user.id));
+                r.user.addState(new DirViewer(r.user.getRoot()));
             }
             if (r.user.state() == null) {
                 final UDbData data = new UDbData(r.user.id, store.reinitUserTables(r.user.id));
