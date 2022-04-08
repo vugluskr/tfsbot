@@ -13,6 +13,7 @@ import services.BotApi;
 import services.DataStore;
 import services.Router;
 import sql.UserMapper;
+import states.DirViewer;
 import states.FileViewer;
 import states.meta.AState;
 import states.OpdsSearcher;
@@ -54,7 +55,12 @@ public class RouterImpl implements Router {
             UserState backState = null;
             r.user.asyncSaver = state -> store.updateUser(state);
 
-            r.user.resolveSaved(userMapper.getUser(r.user.id));
+            try {
+                r.user.resolveSaved(userMapper.getUser(r.user.id));
+            } catch (final Exception e) {
+                r.user.resetState();
+                r.user.addState(new DirViewer(store.findRootId(r.user.id)));
+            }
             if (r.user.state() == null) {
                 final UDbData data = new UDbData(r.user.id, store.reinitUserTables(r.user.id));
                 if (userMapper.getUser(r.user.id) == null)

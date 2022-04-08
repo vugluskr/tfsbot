@@ -584,7 +584,7 @@ public class DataStoreImpl implements DataStore {
                 if (nextEvent.isStartElement()) {
                     final StartElement startElement = nextEvent.asStartElement();
                     String content = "";
-                    try { content = notNull(reader.nextEvent().asCharacters().getData()); } catch (final Exception ignore) { }
+                    try {content = notNull(reader.nextEvent().asCharacters().getData());} catch (final Exception ignore) {}
 
                     switch (startElement.getName().getLocalPart()) {
                         case "title-info":
@@ -736,6 +736,11 @@ public class DataStoreImpl implements DataStore {
         dirs.add(mkIfMissed(TFileFactory.abcDir(Character.isAlphabetic(subChar) ? String.valueOf(subChar) : "#", abcDir.getId(), user.id)));
 
         return dirs;
+    }
+
+    @Override
+    public UUID findRootId(final long id) {
+        return fs.selectRootId(tablePrefix + id);
     }
 
     @Override

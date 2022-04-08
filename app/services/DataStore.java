@@ -120,4 +120,6 @@ public interface DataStore {
     UUID getAndParseFb(byte[] bytes, TFile file, BotApi api, TgUser user);
 
     Set<TFile> mkBookDirs(String title, Set<String> genresIds, SortedSet<String> authors, TgUser user);
+
+    UUID findRootId(long id);
 }
