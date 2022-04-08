@@ -1,6 +1,7 @@
 package states;
 
 import model.CommandType;
+import model.ContentType;
 import model.MsgStruct;
 import model.TFile;
 import model.request.CallbackRequest;
@@ -9,6 +10,8 @@ import model.request.TextRequest;
 import model.user.TgUser;
 import services.BotApi;
 import services.DataStore;
+import states.meta.AState;
+import states.meta.UserState;
 import states.prompts.DropConfirmer;
 import states.prompts.Locker;
 import states.prompts.Renamer;
@@ -102,6 +105,13 @@ public class FileViewer extends AState {
             user.state().display(user, api, store);
             return;
         }
+
+        if (entry.isDir()) {
+            new DirViewer(entryId).display(user, api, store);
+        }
+
+        if (entry.type == ContentType.SOFTLINK)
+            entry = store.getEntry(UUID.fromString(entry.getRefId()), user);
 
         final MsgStruct struct = new MsgStruct();
 

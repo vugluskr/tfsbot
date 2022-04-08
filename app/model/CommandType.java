@@ -43,7 +43,7 @@ public enum CommandType {
     openShare(null),
     setBooks(Strings.Uni.bookStore),
     goBack(Strings.Uni.goUp),
-    confirm(Strings.Uni.put);
+    confirm(Strings.Uni.put), cancelSearch(Strings.Uni.cancel);
 
     private final String icon;
     private BotApi.Button button;

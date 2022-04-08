@@ -1,6 +1,6 @@
 package sql;
 
-import model.opds.Book;
+import model.opds.TgBook;
 import org.apache.ibatis.annotations.Param;
 
 /**
@@ -9,11 +9,7 @@ import org.apache.ibatis.annotations.Param;
  * tfs ☭ sweat and blood
  */
 public interface OpdsMapper {
-    void insertBook(@Param("b") Book b);
+    void insertBook(@Param("b") TgBook b);
 
-    Book findBook(@Param("tag") String tag);
-
-    void updateBookEpub(@Param("epubRef") String epubRef, @Param("url") String url);
-
-    void updateBookFb(@Param("fbRef") String fbRef, @Param("url") String url);
+    TgBook findBook(@Param("id") String tag, @Param("fb") boolean fb, @Param("epub") boolean epub);
 }

@@ -36,4 +36,8 @@ public interface EntryMapper {
     List<TFile> getTree(@Param("id") UUID id, @Param("v1") String v1);
 
     TFile getParent(@Param("id") UUID id, @Param("v1") String v1, @Param("v2") String v2);
+
+    UUID getParentId(@Param("id") UUID id, @Param("v1") String v1);
+
+    void rmSoftLinks(@Param("ref") String refId, @Param("table") String tableName);
 }

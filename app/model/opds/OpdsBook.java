@@ -1,5 +1,7 @@
 package model.opds;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -8,9 +10,8 @@ import java.util.TreeSet;
  * 25.03.2022 14:02
  * tfs ☭ sweat and blood
  */
-public class Book {
+public class OpdsBook {
     private String title;
-    private String content;
     private SortedSet<String> authors;
     private int year;
     private String id;
@@ -18,9 +19,19 @@ public class Book {
     private String epubLink;
     private String fbRefId;
     private String epubRefId;
+    private Set<String> genres;
 
     {
         authors = new TreeSet<>();
+        genres = new HashSet<>(0);
+    }
+
+    public Set<String> getGenres() {
+        return genres;
+    }
+
+    public void setGenres(final Set<String> genres) {
+        this.genres = genres;
     }
 
     public SortedSet<String> getAuthors() {
@@ -37,14 +48,6 @@ public class Book {
 
     public void setTitle(final String title) {
         this.title = title;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(final String content) {
-        this.content = content;
     }
 
     public int getYear() {
@@ -93,5 +96,20 @@ public class Book {
 
     public void setEpubRefId(final String epubRefId) {
         this.epubRefId = epubRefId;
+    }
+
+    @Override
+    public String toString() {
+        return "OpdsBook{" +
+                "title='" + title + '\'' +
+                ", authors=" + authors +
+                ", year=" + year +
+                ", id='" + id + '\'' +
+                ", fbLink='" + fbLink + '\'' +
+                ", epubLink='" + epubLink + '\'' +
+                ", fbRefId='" + fbRefId + '\'' +
+                ", epubRefId='" + epubRefId + '\'' +
+                ", genres=" + genres +
+                '}';
     }
 }

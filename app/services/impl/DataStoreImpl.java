@@ -4,21 +4,37 @@ import com.typesafe.config.Config;
 import model.ContentType;
 import model.Share;
 import model.TFile;
+import model.opds.OpdsBook;
 import model.opds.OpdsPage;
+import model.opds.TgBook;
 import model.user.TgUser;
 import model.user.UDbData;
 import org.mybatis.guice.transactional.Transactional;
 import play.Logger;
+import services.BotApi;
 import services.DataStore;
 import services.OpdsSearch;
 import sql.*;
 import states.DirViewer;
 import utils.LangMap;
+import utils.Strings;
+import utils.TFileFactory;
 import utils.TextUtils;
 
 import javax.inject.Inject;
+import javax.xml.stream.XMLEventReader;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.events.EndElement;
+import javax.xml.stream.events.StartElement;
+import javax.xml.stream.events.XMLEvent;
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import static utils.LangMap.v;
 import static utils.TextUtils.*;
@@ -130,6 +146,12 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
+    public void updateEntryRef(final TFile file) {
+        if (file.isRw())
+            fs.updateEntryRef(file.getRefId(), file.getId(), tablePrefix + file.getOwner());
+    }
+
+    @Override
     public TFile applyShareByLink(final Share share, final TgUser consumer) {
         if (share.isPersonal())
             return null;
@@ -208,8 +230,25 @@ public class DataStoreImpl implements DataStore {
             return null;
         }
 
-        final UUID uuid = generateUuid();
+        final UUID uuid = file.getId() == null ? generateUuid() : file.getId();
         fs.dropEntry(file.getName(), file.getParentId(), file.getOwner(), tablePrefix + file.getOwner());
+        fs.makeEntry(uuid, file.getName(), file.getParentId(), file.getType(), file.getRefId(), file.getOptions(), tablePrefix + file.getOwner());
+
+        return entries.getEntry(uuid, userFsPrefix + file.getOwner(), pathesTree + file.getOwner());
+    }
+
+    @Transactional
+    @Override
+    public TFile mkIfMissed(final TFile file) {
+        if (file.getParentId() == null) {
+            logger.error("Попытка создать что-то в корне: " + file, new Throwable());
+            return null;
+        }
+
+        if (fs.isEntryExist(file.getName(), file.getParentId(), tablePrefix + file.getOwner()))
+            return entries.findEntry(file.getParentId(), file.getName(), tablePrefix + file.getOwner(), pathesTree + file.getOwner());
+
+        final UUID uuid = file.getId() == null ? generateUuid() : file.getId();
         fs.makeEntry(uuid, file.getName(), file.getParentId(), file.getType(), file.getRefId(), file.getOptions(), tablePrefix + file.getOwner());
 
         return entries.getEntry(uuid, userFsPrefix + file.getOwner(), pathesTree + file.getOwner());
@@ -256,13 +295,10 @@ public class DataStoreImpl implements DataStore {
         return dir;
     }
 
-//    Share getShare(final String id) {
-//        return shared.selectShare(id);
-//    }
-
-//    boolean entryMissed(final String name, final TgUser user) {
-//        return !fs.isEntryExist(name, user.getLocation(), userFsPrefix + user.id);
-//    }
+    @Override
+    public TgBook getStoredBook(final OpdsBook book, final boolean fb2, final boolean epub) {
+        return bookMapper.findBook(book.getId(), fb2, epub);
+    }
 
     @Override
     public boolean isEntryMissed(final UUID parentEntryId, final String name, final TgUser user) {
@@ -299,6 +335,9 @@ public class DataStoreImpl implements DataStore {
                     if (!isEmpty(uuids))
                         entries.rmList(uuids, tablePrefix + userId);
                 });
+
+        if (selfIncluded)
+            entries.rmSoftLinks(entryId.toString(), tablePrefix + user.id);
     }
 
     @Override
@@ -457,11 +496,11 @@ public class DataStoreImpl implements DataStore {
         final List<DirViewer> all = new ArrayList<>(0);
         all.add(new DirViewer(targetEntryId));
 
-        UUID next = targetEntryId;
+        UUID next = entries.getParentId(targetEntryId, tablePrefix + user.id);
 
         while (next != null) {
             all.add(new DirViewer(next));
-            next = entries.getParent(targetEntryId, tablePrefix + user.id, pathesTree + user.id).getId();
+            next = entries.getParentId(next, tablePrefix + user.id);
         }
 
         user.resetState();
@@ -472,10 +511,236 @@ public class DataStoreImpl implements DataStore {
 
     @Override
     public OpdsPage doOpdsSearch(final String query, final int page) {
-        return opdsSearch.search(query, page)
-                .thenApply(books -> {
+        return opdsSearch.search(query, page);
+    }
 
-                })
+    @Override
+    public TgBook loadBookFile(final OpdsBook book, final boolean fb2, final boolean epub, final BotApi api) {
+        final File file = opdsSearch.loadFile(book, fb2, epub);
+
+        if (file == null)
+            return null;
+
+        final TgBook b = new TgBook();
+        b.title = book.getTitle();
+        b.epub = epub;
+        b.fb = fb2;
+        b.year = book.getYear();
+        b.id = book.getId();
+
+        final Fb2Meta meta;
+
+        if (fb2)
+            meta = parseFb2Meta(file);
+        else if (epub) {
+            meta = new Fb2Meta();
+            try {
+                meta.authors.addAll(book.getAuthors());
+                if (!isEmpty(book.getGenres()))
+                    meta.genres.addAll(book.getGenres());
+                else
+                    meta.genres.add("other");
+            } catch (final Exception e) {
+                logger.error(e.getMessage(), e);
+            }
+        } else
+            meta = null;
+
+        if (meta != null && !isEmpty(meta.genres))
+            b.genres = String.join(Strings.delim, meta.genres);
+
+        if (meta != null && !isEmpty(meta.authors))
+            b.authors = String.join(Strings.delim, meta.authors);
+
+        b.file = file;
+
+        return b;
+    }
+
+    @Override
+    public Fb2Meta parseFb2Meta(final File file) {
+        final Fb2Meta meta = new Fb2Meta();
+
+        try {
+            final XMLEventReader reader;
+            if (file.getName().toLowerCase().endsWith(".zip")) {
+                final ZipFile zip = new ZipFile(file);
+                final ZipEntry entry = zip.stream().filter(e -> e.getName().endsWith(".fb2")).findAny().orElse(null);
+                if (entry == null) {
+                    logger.warn("Didnt find any fb2 inside zip");
+                    return null;
+                }
+
+                reader = XMLInputFactory.newInstance().createXMLEventReader(zip.getInputStream(entry));
+            } else
+                reader = XMLInputFactory.newInstance().createXMLEventReader(new FileInputStream(file));
+
+            boolean inTitle = false, inLocalTitle = false, inAuthor = false;
+            Author author = null;
+
+            LOOP:
+            while (reader.hasNext()) {
+                XMLEvent nextEvent = reader.nextEvent();
+                if (nextEvent.isStartElement()) {
+                    final StartElement startElement = nextEvent.asStartElement();
+                    String content = "";
+                    try { content = notNull(reader.nextEvent().asCharacters().getData()); } catch (final Exception ignore) { }
+
+                    switch (startElement.getName().getLocalPart()) {
+                        case "title-info":
+                            inLocalTitle = true;
+                        case "src-title-info":
+                            inTitle = true;
+                            break;
+                        case "author":
+                            inAuthor = inTitle;
+                            author = new Author();
+                            break;
+                        case "date":
+                            if (inTitle)
+                                meta.year = getInt(content);
+                            break;
+                        case "book-title":
+                            if (inLocalTitle || (isEmpty(meta.title) && inTitle))
+                                meta.title = content;
+                            break;
+                        case "genre":
+                            if (inTitle)
+                                meta.genres.add(content);
+                            break;
+                        case "first-name":
+                            if (inAuthor)
+                                author.first = content;
+                            break;
+                        case "last-name":
+                            if (inAuthor)
+                                author.last = content;
+                            break;
+                        case "middle-name":
+                            if (inAuthor)
+                                author.middle = content;
+                            break;
+                        case "nickname":
+                            if (inAuthor)
+                                author.nick = content;
+                            break;
+                        case "body":
+                            break LOOP;
+                    }
+                } else if (nextEvent.isEndElement()) {
+                    final EndElement endElement = nextEvent.asEndElement();
+                    switch (endElement.getName().getLocalPart()) {
+                        case "title-info":
+                        case "src-title-info":
+                            inTitle = inAuthor = false;
+                            break;
+                        case "author":
+                            inAuthor = false;
+                            if (author != null && author.hasSomething())
+                                meta.authors.add(author.toString());
+                            break;
+                    }
+                }
+            }
+        } catch (final Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+
+        return meta;
+    }
+
+    @Override
+    public TFile findEntry(final String title, final UUID parentId, final long userId) {
+        return entries.findEntry(parentId, title, tablePrefix + userId, pathesTree + userId);
+    }
+
+    @Override
+    public List<String> resolveOpdsGenrePath(final String path) {
+        return opdsSearch.resolveGenrePath(path);
+    }
+
+    @Override
+    public void insertBook(final TgBook db) {
+        bookMapper.insertBook(db);
+    }
+
+    @Override
+    public UUID getAndParseFb(final byte[] bytes, final TFile file, final BotApi api, final TgUser user) {
+        File tmp = null;
+        try {
+            tmp = File.createTempFile(String.valueOf(System.currentTimeMillis()), file.getName());
+            Files.write(tmp.toPath(), bytes, StandardOpenOption.WRITE);
+
+            final Fb2Meta meta = parseFb2Meta(tmp);
+
+            if (meta == null)
+                return null;
+
+            final SortedSet<String> authors = new TreeSet<>(meta.authors);
+            final Map<String, String> genres = meta.genres.stream().collect(Collectors.toMap(id -> id, this::getOpdsGenreName));
+
+            final Set<TFile> dirs = mkBookDirs(meta.title, genres.keySet(), authors, user);
+
+            final String nameWithAuthors = meta.title +
+                    (isEmpty(authors) ? "" : " [" + authors.stream().map(TextUtils::fio2shortName).collect(Collectors.joining(", ")) + "]") +
+                    (meta.year > 0 ? " (" + meta.year + ")" : "");
+
+            final String simpleName = meta.title + (meta.year > 0 ? " (" + meta.year + ")" : "");
+
+            final String nameWithGenres = meta.title +
+                    (isEmpty(genres) ? "" : " [" + String.join(", ", new TreeSet<>(genres.values())) + "]") +
+                    (meta.year > 0 ? " (" + meta.year + ")" : "");
+
+            final TFile abc = dirs.stream().filter(TFile::isAbc).findFirst().orElseThrow(() -> new RuntimeException("No abc dir"));
+
+            final UUID uuid = mk(TFileFactory.file(meta.title, abc.getId(), user.id, file.refId)).getId();
+
+            dirs.stream().filter(d -> !d.isAbc() && d.isBookDir()).forEach(d -> mkIfMissed(TFileFactory.softLink(d.isAbc() ? simpleName : d.isAuthors() ? nameWithGenres :
+                    nameWithAuthors, uuid.toString(), d.getId(), user.id)));
+
+            return uuid;
+        } catch (final Exception e) {
+            logger.error(file.getName() + " :: " + e.getMessage(), e);
+        } finally {
+            if (tmp != null)
+                try {Files.delete(tmp.toPath());} catch (final Exception ignore) {}
+        }
+
+        return null;
+    }
+
+    @Override
+    public Set<TFile> mkBookDirs(final String name, final Set<String> genresIds, final SortedSet<String> authors, final TgUser user) {
+        final Set<TFile> dirs = new HashSet<>();
+
+        if (!isEmpty(genresIds)) {
+            final TFile genresDir = mkIfMissed(TFileFactory.dir(LangMap.v(LangMap.Value.BOOKS_GENRES, user.lng), user.getBookStore(), user.id));
+
+            for (final String path : genresIds)
+                resolveOpdsGenrePath(path).forEach(genreId -> dirs.add(mkIfMissed(TFileFactory.genresDir(getOpdsGenreName(genreId), genresDir.getId(), user.id))));
+        }
+
+        if (!isEmpty(authors)) {
+            final TFile authorsDir = mkIfMissed(TFileFactory.dir(LangMap.v(LangMap.Value.BOOKS_AUTHORS, user.lng), user.getBookStore(), user.id));
+
+            for (final String author : authors) {
+                final char subChar = author.toUpperCase().charAt(0);
+                final TFile joinDir = mkIfMissed(TFileFactory.dir(Character.isAlphabetic(subChar) ? String.valueOf(subChar) : "#", authorsDir.getId(), user.id));
+
+                dirs.add(mkIfMissed(TFileFactory.authorsDir(author, joinDir.getId(), user.id)));
+            }
+        }
+
+        final TFile abcDir = mkIfMissed(TFileFactory.dir(LangMap.v(LangMap.Value.BOOKS_ABC, user.lng), user.getBookStore(), user.id));
+        final char subChar = name.toUpperCase().charAt(0);
+        dirs.add(mkIfMissed(TFileFactory.abcDir(Character.isAlphabetic(subChar) ? String.valueOf(subChar) : "#", abcDir.getId(), user.id)));
+
+        return dirs;
+    }
+
+    @Override
+    public String getOpdsGenreName(final String genreId) {
+        return opdsSearch.resolveGenreName(genreId);
     }
 
     static class ShareView {
@@ -490,5 +755,24 @@ public class DataStoreImpl implements DataStore {
             sharedById = getLong(parts[1]);
             shareId = notNull(parts[2]);
         }
+    }
+
+    private static class Author {
+        String first, last, middle, nick;
+
+        public boolean hasSomething() {
+            return !isEmpty(first) || !isEmpty(last) || !isEmpty(nick);
+        }
+
+        @Override
+        public String toString() {
+            return notNull(notNull(middle) + " " + notNull(first) + " " + last, nick);
+        }
+    }
+
+    public static class Fb2Meta {
+        public final Set<String> genres = new HashSet<>(0), authors = new HashSet<>(0);
+        public String title;
+        public int year;
     }
 }

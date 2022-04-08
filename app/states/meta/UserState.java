@@ -1,4 +1,4 @@
-package states;
+package states.meta;
 
 import model.MsgStruct;
 import model.request.CallbackRequest;
@@ -11,6 +11,7 @@ import services.DataStore;
 import utils.LangMap;
 
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 
 /**
  * @author Denis Danilin | me@loslobos.ru
@@ -27,6 +28,10 @@ public interface UserState {
     String save();
 
     void doSend(MsgStruct struct, TgUser user, BotApi api);
+
+    void doSend(MsgStruct struct, TgUser user, BotApi api, boolean forceNew);
+
+    CompletionStage<BotApi.Reply> doBookUpload(MsgStruct struct, TgUser user, BotApi api);
 
     UserState onCallback(CallbackRequest request, TgUser user, BotApi api, DataStore store);
 

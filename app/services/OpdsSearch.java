@@ -1,8 +1,12 @@
 package services;
 
 import com.google.inject.ImplementedBy;
+import model.opds.OpdsBook;
 import model.opds.OpdsPage;
 import services.impl.OpdsSearchFlibusta;
+
+import java.io.File;
+import java.util.List;
 
 /**
  * @author Denis Danilin | me@loslobos.ru
@@ -12,4 +16,10 @@ import services.impl.OpdsSearchFlibusta;
 @ImplementedBy(OpdsSearchFlibusta.class)
 public interface OpdsSearch {
     OpdsPage search(String query, int pageNum);
+
+    File loadFile(OpdsBook book, boolean fb2, boolean epub);
+
+    List<String> resolveGenrePath(String path);
+
+    String resolveGenreName(String genreId);
 }

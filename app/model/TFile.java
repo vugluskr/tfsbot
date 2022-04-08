@@ -189,7 +189,35 @@ public class TFile implements Comparable<TFile>, Optioned, AsButton {
         this.bookStore = bookStore;
     }
 
+    public void setGenres() {
+        Optz.Genres.set(this);
+    }
+
+    public void setAuthors() {
+        Optz.Authors.set(this);
+    }
+
+    public void setAbc() {
+        Optz.Abc.set(this);
+    }
+
+    public boolean isAbc() {
+        return Optz.Abc.is(this);
+    }
+
+    public boolean isAuthors() {
+        return Optz.Authors.is(this);
+    }
+
+    public boolean isGenres() {
+        return Optz.Genres.is(this);
+    }
+
+    public boolean isBookDir() {
+        return isAbc() || isAuthors() || isGenres();
+    }
+
     enum Optz implements BMasked {
-        unused, locked, sharesRoot, shareFor
+        unused, locked, sharesRoot, Genres, Authors, Abc, shareFor
     }
 }

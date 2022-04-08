@@ -9,13 +9,13 @@ import java.util.ArrayList;
  */
 public class OpdsPage {
     private boolean hasPrev, hasNext;
-    private ArrayList<Book> books;
+    private ArrayList<OpdsBook> books;
 
-    public ArrayList<Book> getBooks() {
+    public ArrayList<OpdsBook> getBooks() {
         return books;
     }
 
-    public void setBooks(final ArrayList<Book> books) {
+    public void setBooks(final ArrayList<OpdsBook> books) {
         this.books = books;
     }
 

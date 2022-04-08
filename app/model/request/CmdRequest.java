@@ -35,6 +35,12 @@ public class CmdRequest extends TgRequest {
         } else if (text.toLowerCase().startsWith(fbsMark) && text.length() > fbsMark.length()) {
             cmd = Cmd.FbSearch;
             arg = text.substring(fbsMark.length());
+        } else if (text.toLowerCase().startsWith("/fb") && text.length() > 2 && Character.isDigit(text.charAt(3))) {
+            cmd = Cmd.FbBook;
+            arg = text.substring(3);
+        } else if (text.toLowerCase().startsWith("/ep") && text.length() > 2 && Character.isDigit(text.charAt(3))) {
+            cmd = Cmd.EpubBook;
+            arg = text.substring(3);
         }
 
         if (cmd == null)
@@ -58,5 +64,5 @@ public class CmdRequest extends TgRequest {
         return arg;
     }
 
-    public enum Cmd {Start, Help, Reset, JoinShare, FbSearch}
+    public enum Cmd {Start, Help, Reset, JoinShare, FbSearch, FbBook, EpubBook}
 }

@@ -17,6 +17,7 @@ public class FileRequest extends TgRequest {
     private final TFile file;
     private final JsonNode srcNode;
     private JsonNode attachNode;
+    private boolean fb2;
 
     public FileRequest(final JsonNode node, final ContentType type) {
         super(node.get("from"));
@@ -37,9 +38,12 @@ public class FileRequest extends TgRequest {
             attachNode = map.lastEntry().getValue();
         }
 
-        if (type == ContentType.DOCUMENT)
+        if (type == ContentType.DOCUMENT) {
             file.setName(attachNode.get("file_name").asText());
-        else if (type == ContentType.CONTACT) {
+            file.refId = attachNode.get("file_id").asText();
+            final String mimeType = attachNode.get("mime_type").asText();
+            fb2 = mimeType.equalsIgnoreCase("application/x-zip-compressed-fb2") || mimeType.equalsIgnoreCase("application/x-fictionbook+xml");
+        } else if (type == ContentType.CONTACT) {
             file.setOwner(attachNode.get("user_id").asLong());
             final String f = attachNode.has("first_name") ? attachNode.get("first_name").asText() : "";
             final String l = attachNode.has("last_name") ? attachNode.get("last_name").asText() : "";
@@ -49,6 +53,10 @@ public class FileRequest extends TgRequest {
             file.refId = node.has("file_id") ? node.get("file_id").asText() : p;
             file.setName(notNull((notNull(f) + " " + notNull(l)), notNull(u, notNull(p, "u" + attachNode.get("user_id").asText()))));
         }
+    }
+
+    public boolean isFb2() {
+        return fb2;
     }
 
     @Override

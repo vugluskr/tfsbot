@@ -5,16 +5,18 @@ import model.MsgStruct;
 import model.Share;
 import model.TFile;
 import model.request.*;
+import model.user.TgUser;
 import model.user.UDbData;
 import play.Logger;
+import play.libs.Json;
 import services.BotApi;
 import services.DataStore;
-import services.OpdsSearch;
 import services.Router;
 import sql.UserMapper;
-import states.AState;
+import states.FileViewer;
+import states.meta.AState;
 import states.OpdsSearcher;
-import states.UserState;
+import states.meta.UserState;
 import utils.LangMap;
 
 import javax.inject.Inject;
@@ -22,7 +24,9 @@ import javax.inject.Singleton;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
+import static states.meta.AState._hold;
 import static utils.TextUtils.isEmpty;
 
 /**
@@ -44,13 +48,10 @@ public class RouterImpl implements Router {
     @Inject
     private DataStore store;
 
-    @Inject
-    private OpdsSearch opdsSearch;
-
     @Override
     public void handle(final TgRequest r) {
         try {
-            final UserState backState;
+            UserState backState = null;
             r.user.asyncSaver = state -> store.updateUser(state);
 
             r.user.resolveSaved(userMapper.getUser(r.user.id));
@@ -61,14 +62,12 @@ public class RouterImpl implements Router {
                 else
                     userMapper.updateUser(data);
                 r.user.resolveSaved(data);
-                backState = null;
             } else {
                 if (r instanceof CallbackRequest)
                     if (backTypes.contains(((CallbackRequest) r).getCommand().type))
                         backState = AState._back;
                     else if (((CallbackRequest) r).getCommand().type == CommandType.justCloseCmd) {
                         api.sendReaction(new BotApi.ReactionMessage(((CallbackRequest) r).queryId, "", r.user.id));
-                        backState = null;
                     } else
                         backState = r.user.state().onCallback((CallbackRequest) r, r.user, api, store);
                 else if (r instanceof CmdRequest) {
@@ -86,10 +85,7 @@ public class RouterImpl implements Router {
                         r.user.resetState();
                         store.reinitUserTables(r.user.id);
                         store.dropUserShares(r.user.id);
-                        backState = null;
                     } else if (((CmdRequest) r).getCmd() == CmdRequest.Cmd.JoinShare) {
-                        backState = null;
-
                         final Share share = store.getPublicShare(((CmdRequest) r).getArg());
 
                         if (share != null) {
@@ -99,6 +95,7 @@ public class RouterImpl implements Router {
                                 store.buildHistoryTo(f.getId(), r.user);
                         }
                     } else if (((CmdRequest) r).getCmd() == CmdRequest.Cmd.FbSearch) {
+                        r.user.resetOpds();
                         if (r.user.getBookStore() == null) {
                             api.sendText(new BotApi.TextMessage(
                                     LangMap.v(LangMap.Value.NO_BOOKSTORE, r.user.lng),
@@ -106,25 +103,44 @@ public class RouterImpl implements Router {
                                     BotApi.helpKbd,
                                     r.user.id
                             ));
-                            backState = null;
                         } else if (!isEmpty(((CmdRequest) r).getArg()))
                             backState = new OpdsSearcher(r.user.state().entryId(), ((CmdRequest) r).getArg());
                     } else
                         backState = r.user.state().onCommand((CmdRequest) r, r.user, api, store);
-                } else if (r instanceof FileRequest)
-                    backState = r.user.state().onFile((FileRequest) r, r.user, api, store);
-                else
+                } else if (r instanceof FileRequest) {
+                    if (((FileRequest) r).isFb2()) {
+                        CompletableFuture.runAsync(() ->
+                                api.downloadFile(((FileRequest) r).getFile().refId)
+                                        .thenApply(bytes -> store.getAndParseFb(bytes, ((FileRequest) r).getFile(), api, r.user))
+                                        .thenAccept(uuid -> {
+                                            if (uuid == null)
+                                                handleAfterAction(r.user.state().onFile((FileRequest) r, r.user, api, store), r.user);
+                                            else {
+                                                store.buildHistoryTo(uuid, r.user);
+                                                r.user.state().display(r.user, api, store);
+                                            }
+                                        }));
+
+                        backState = _hold;
+                    } else
+                        backState = r.user.state().onFile((FileRequest) r, r.user, api, store);
+                } else
                     backState = r.user.state().onText((TextRequest) r, r.user, api, store);
             }
 
-            if (backState == AState._back)
-                r.user.backHistory();
-            else if (backState != null)
-                r.user.addState(backState);
-
-            r.user.state().display(r.user, api, store);
+            handleAfterAction(backState, r.user);
         } catch (final Exception e) {
             logger.error(e.getMessage(), e);
         }
+    }
+
+    private void handleAfterAction(final UserState backState, final TgUser user) {
+        if (backState == AState._back)
+            user.backHistory();
+        else if (backState != null && backState != _hold)
+            user.addState(backState);
+
+        if (backState != _hold)
+            user.state().display(user, api, store);
     }
 }

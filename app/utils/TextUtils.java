@@ -173,6 +173,23 @@ public class TextUtils {
         return with + escapeMd(String.valueOf(v)) + with;
     }
 
+    public static String fio2shortName(final String fio) {
+        final String inc = notNull(fio);
+
+        final int f = inc.indexOf(' ');
+        final int s = f == -1 ? -1 : inc.indexOf(' ', f + 1);
+
+        if (f == -1)
+            return inc;
+
+        final String n = " " + Character.toUpperCase(inc.substring(f).trim().charAt(0)) + ".";
+
+        if (s == -1)
+            return inc.substring(0, f) + n;
+
+        return inc.substring(0, f) + n + Character.toUpperCase(inc.substring(s).trim().charAt(0)) + '.';
+    }
+
     public static String hash256(String data) {
         try {
             final MessageDigest md = MessageDigest.getInstance("SHA-256");

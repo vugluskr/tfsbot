@@ -1,6 +1,7 @@
 package services;
 
-import akka.protobuf.ByteString;
+import akka.stream.javadsl.FileIO;
+import akka.util.ByteString;
 import akka.stream.IOResult;
 import akka.stream.javadsl.Source;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,6 +15,7 @@ import play.libs.Json;
 import play.libs.ws.WSResponse;
 import services.impl.BotApiImpl;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,6 +32,8 @@ import static utils.TextUtils.notNull;
  */
 @ImplementedBy(BotApiImpl.class)
 public interface BotApi {
+    CompletionStage<byte[]> downloadFile(String refId);
+
     CompletionStage<Reply> sendText(TextMessage message);
 
     CompletionStage<Reply> sendMedia(MediaMessage message);
@@ -65,6 +69,16 @@ public interface BotApi {
         public String filename;
         public String mimeType;
         public ContentType type;
+
+        public RawMedia(final File file, final String mimeType) {
+            filename = file.getName();
+            this.mimeType = mimeType;
+            type = ContentType.DOCUMENT;
+            src = FileIO.fromFile(file);
+        }
+
+        public RawMedia() {
+        }
 
         public boolean isComplete() {
             return src != null && !isEmpty(filename) && !isEmpty(mimeType) && type != null && ContentType.media.contains(type) && type != ContentType.CONTACT;

@@ -1,4 +1,4 @@
-package states;
+package states.meta;
 
 import model.CommandType;
 import model.MsgStruct;
@@ -11,6 +11,7 @@ import model.user.TgUser;
 import play.Logger;
 import services.BotApi;
 import services.DataStore;
+import states.*;
 import states.prompts.*;
 import utils.AsButton;
 
@@ -30,7 +31,8 @@ import static utils.TextUtils.isEmpty;
  */
 public abstract class AState implements UserState {
     private static final Logger.ALogger logger = Logger.of(UserState.class);
-    public final static UserState _back = new BACKSTATE();
+    public final static UserState _back = new FAKESTATE();
+    public final static UserState _hold = new FAKESTATE();
 
     protected UUID entryId;
     protected TFile entry;
@@ -71,6 +73,8 @@ public abstract class AState implements UserState {
                 return new Searcher(left);
             case 14:
                 return new LabelEditor(left);
+            case 15:
+                return new OpdsSearcher(left);
             default:
                 return new DirViewer(left);
         }
@@ -107,6 +111,8 @@ public abstract class AState implements UserState {
             idx = 13;
         else if (this instanceof LabelEditor)
             idx = 14;
+        else if (this instanceof OpdsSearcher)
+            idx = 15;
         else
             idx = 7;
 
@@ -135,7 +141,12 @@ public abstract class AState implements UserState {
 
     @Override
     public final void doSend(final MsgStruct struct, final TgUser user, final BotApi api) {
-        if (isEmpty(user.wins)) {
+        doSend(struct, user, api, false);
+    }
+
+    @Override
+    public final void doSend(final MsgStruct struct, final TgUser user, final BotApi api, final boolean forceNew) {
+        if (forceNew || isEmpty(user.wins)) {
             freshSend(struct, user, api);
             return;
         }
@@ -162,7 +173,9 @@ public abstract class AState implements UserState {
 
     private void freshSend(final MsgStruct struct, final TgUser user, final BotApi api) {
         final CompletionStage<BotApi.Reply> action;
-        if (struct.file != null)
+        if (struct.rawFile != null)
+            action = doBookUpload(struct, user, api);
+        else if (struct.file != null)
             action = api.sendMedia(new BotApi.MediaMessage(struct.file, struct.caption, struct.mode, struct.kbd, user.id));
         else
             action = api.sendText(new BotApi.TextMessage(struct.body, struct.mode, struct.kbd, user.id));
@@ -178,6 +191,26 @@ public abstract class AState implements UserState {
                     logger.error(throwable.getMessage(), throwable);
                     return null;
                 }));
+    }
+
+    @Override
+    public CompletionStage<BotApi.Reply> doBookUpload(final MsgStruct struct, final TgUser user, final BotApi api) {
+        return api.sendMedia(new BotApi.MediaMessage(
+                        struct.file,
+                        new BotApi.RawMedia(struct.rawFile, struct.rawFile.getName().contains("fb2") ? "application/fb2+zip" : "application/epub"),
+                        struct.caption,
+                        struct.mode,
+                        struct.kbd,
+                        user.id
+                ))
+                .thenApply(reply -> {
+                    if (reply.isOk() && reply.getMsgId() > 0) {
+                        user.addWin(reply.getMsgId());
+                        user.interactionDone();
+                    }
+
+                    return reply;
+                });
     }
 
     @Override

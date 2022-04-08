@@ -6,8 +6,8 @@ import model.request.TextRequest;
 import model.user.TgUser;
 import services.BotApi;
 import services.DataStore;
-import states.AState;
-import states.UserState;
+import states.meta.AState;
+import states.meta.UserState;
 import utils.LangMap;
 import utils.TextUtils;
 

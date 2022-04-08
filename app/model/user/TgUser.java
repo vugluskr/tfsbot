@@ -4,9 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import model.opds.OpdsPage;
 import play.libs.Json;
 import services.DataStore;
-import states.AState;
+import states.meta.AState;
 import states.DirViewer;
-import states.UserState;
+import states.OpdsSearcher;
+import states.meta.UserState;
 import utils.Strings;
 
 import java.util.*;
@@ -180,10 +181,36 @@ public class TgUser {
 
         if (page == null) {
             page = store.doOpdsSearch(query, pageNum);
+            if (opdsSearch == null || !opdsSearch.query.equals(query)) {
+                opdsSearch = new OpdsSearch();
+                opdsSearch.query = query;
+                opdsSearch.setPages(new ArrayList<>());
+            }
+
             opdsSearch.pages.add(page);
         }
 
         return page;
+    }
+
+    public void resetOpds() {
+        opdsSearch = null;
+        for (int i = 0; i < states.size(); i++)
+            if (states.get(i) instanceof OpdsSearcher) {
+                states.removeAll(states.subList(i, states.size()));
+                return;
+            }
+    }
+
+    public void clearHistoryToRoot() {
+        for (int i = 0; i < states.size(); i++)
+            if (states.get(i) instanceof DirViewer && states.get(i).entryId().equals(root))
+                break;
+            else
+                states.removeAll(states.subList(i, states.size()));
+
+        if (states.isEmpty())
+            states.add(new DirViewer(root));
     }
 
     private static class OpdsSearch {

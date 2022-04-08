@@ -1,36 +1,27 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="sql.OpdsMapper">
-    <insert id="insertBook" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
-        insert into opds_books(title, author, tag, fb_link, epub_link)
-        VALUES (#{b.title}, #{b.author}, #{b.opdsTag}, #{b.fbLink}, #{b.epubLink})
+    <insert id="insertBook">
+        insert into books(id, title, authors, year, ref_id, fb, epub, genres)
+        VALUES (#{b.id}, #{b.title}, #{b.authors}, #{b.year}, #{b.refId}, #{b.fb}, #{b.epub}, #{b.genres})
     </insert>
 
-    <update id="updateBookEpub">
-        update opds_books
-        set epub_ref_id = #{epubRef}
-        where epub_link = #{url}
-          and epub_ref_id is null
-    </update>
-
-    <update id="updateBookFb">
-        update opds_books
-        set fb_ref_id = #{fbRef}
-        where fb_link = #{url}
-          and fb_ref_id is null
-    </update>
-
-    <select id="findBook" resultType="model.opds.Book">
-        select id,
-               title,
-               author,
-               year,
-               tag         as "opdsTag",
-               fb_link     as "fbLink",
-               epub_link   as "epubLink",
-               fb_ref_id   as "fbRefId",
-               epub_ref_id as "epubRefId"
-        from opds_books
-        where tag = #{tag}
+    <select id="findBook" resultMap="BookMap">
+        select *
+        from books
+        where id = #{id}
+          and fb = #{fb}
+          and epub = #{epub}
     </select>
+
+    <resultMap id="BookMap" type="model.opds.TgBook">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="fb" column="fb"/>
+        <result property="epub" column="epub"/>
+        <result property="refId" column="ref_id"/>
+        <result property="year" column="year"/>
+        <result property="genres" column="genres"/>
+        <result property="authors" column="genres"/>
+    </resultMap>
 </mapper>

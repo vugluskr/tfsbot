@@ -11,6 +11,8 @@ import model.request.TextRequest;
 import model.user.TgUser;
 import services.BotApi;
 import services.DataStore;
+import states.meta.AState;
+import states.meta.UserState;
 import states.prompts.DirMaker;
 import states.prompts.LabelMaker;
 import utils.LangMap;
@@ -141,6 +143,12 @@ public class DirViewer extends AState {
     public void display(final TgUser user, final BotApi api, final DataStore store) {
         if (entry == null)
             entry = store.getEntry(entryId, user);
+
+        if (entry.isFile()) {
+            new FileViewer(entryId).display(user, api, store);
+            return;
+        }
+
 
         final MsgStruct struct = new MsgStruct();
 

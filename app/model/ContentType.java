@@ -11,7 +11,7 @@ import java.util.List;
  * SIRBot ☭ sweat and blood
  */
 public enum ContentType {
-    DIR, AUDIO(".mp3"), DOCUMENT, PHOTO(".jpg"), STICKER, VIDEO(".mp4"), VOICE(".ogg"), LABEL, CONTACT;
+    DIR, AUDIO(".mp3"), DOCUMENT, PHOTO(".jpg"), STICKER, VIDEO(".mp4"), VOICE(".ogg"), LABEL, CONTACT, SOFTLINK;
 
     public static List<ContentType> media = Arrays.asList(AUDIO, DOCUMENT, PHOTO, STICKER, VIDEO, VOICE, CONTACT);
 

@@ -3,13 +3,19 @@ package services;
 import com.google.inject.ImplementedBy;
 import model.Share;
 import model.TFile;
+import model.opds.OpdsBook;
+import model.opds.TgBook;
 import model.opds.OpdsPage;
 import model.user.TgUser;
 import model.user.UDbData;
 import services.impl.DataStoreImpl;
 
+import java.io.File;
 import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 
 /**
  * @author Denis Danilin | me@loslobos.ru
@@ -34,9 +40,12 @@ public interface DataStore {
 
     UUID reinitUserTables(long userId);
 
+    void updateEntryRef(TFile file);
+
     TFile applyShareByLink(Share share, TgUser consumer);
 
     TFile mk(TFile entry);
+    TFile mkIfMissed(TFile entry);
 
     boolean isEntryMissed(UUID folderId, String name, TgUser user);
 
@@ -93,4 +102,22 @@ public interface DataStore {
     void buildHistoryTo(UUID targetEntryId, TgUser user);
 
     OpdsPage doOpdsSearch(String query, int page);
+
+    TgBook getStoredBook(OpdsBook book, boolean fb2, boolean epub);
+
+    TgBook loadBookFile(OpdsBook book, boolean fb2, boolean epub, BotApi api);
+
+    DataStoreImpl.Fb2Meta parseFb2Meta(File file);
+
+    TFile findEntry(String title, UUID parentId, long userId);
+
+    List<String> resolveOpdsGenrePath(String path);
+
+    String getOpdsGenreName(String genreId);
+
+    void insertBook(TgBook db);
+
+    UUID getAndParseFb(byte[] bytes, TFile file, BotApi api, TgUser user);
+
+    Set<TFile> mkBookDirs(String title, Set<String> genresIds, SortedSet<String> authors, TgUser user);
 }

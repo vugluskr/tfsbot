@@ -1,6 +1,7 @@
 package services.impl;
 
 import akka.stream.javadsl.Source;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.typesafe.config.Config;
 import model.ContentType;
@@ -8,6 +9,7 @@ import model.TFile;
 import play.Logger;
 import play.libs.Json;
 import play.libs.ws.WSClient;
+import play.libs.ws.WSResponse;
 import play.libs.ws.ahc.WsCurlLogger;
 import play.mvc.Http;
 import services.BotApi;
@@ -37,6 +39,25 @@ public class BotApiImpl implements BotApi {
     @Inject
     public BotApiImpl(final Config config) {
         apiUrl = config.getString("service.bot.api_url");
+    }
+
+    @Override
+    public CompletionStage<byte[]> downloadFile(final String refId) {
+        if (isEmpty(refId)) {
+            logger.warn("Not getting file with empty id");
+            return CompletableFuture.completedFuture(null);
+        }
+
+        final ObjectNode node = Json.newObject();
+
+        node.put("file_id", refId);
+
+        return ws.url(apiUrl + "getFile")
+                .setRequestFilter(new WsCurlLogger())
+                .post(node)
+                .thenApply(wsr -> wsr.asJson().get("result").get("file_path").asText())
+                .thenCompose(path -> ws.url(apiUrl.replace(".org/bot", ".org/file/bot") + path).get())
+                .thenApply(WSResponse::asByteArray);
     }
 
     @Override
@@ -213,9 +234,6 @@ public class BotApiImpl implements BotApi {
             return CompletableFuture.completedFuture(false);
         }
 
-        if (isEmpty(msg.caption))
-            return editMedia(msg.media, msg.chat, editMessageId);
-
         final ObjectNode node = Json.newObject();
         msg.chat.set("chat_id", node);
         node.put("message_id", editMessageId);
@@ -227,15 +245,19 @@ public class BotApiImpl implements BotApi {
         if (msg.kbd != null)
             node.set("reply_markup", msg.kbd.toJson());
 
+        if (msg.media != null)
+            return editMedia(msg.media, msg.chat, editMessageId)
+                    .thenCompose(mediaUpdated -> doCaption(node));
+
+        return doCaption(node);
+    }
+
+    private CompletionStage<Boolean> doCaption(final JsonNode node) {
         return ws.url(apiUrl + "editMessageCaption")
                 .setRequestFilter(new WsCurlLogger())
                 .post(node)
                 .thenApply(Reply::new)
-                .thenApply(Reply::isOk)
-                .thenCombine(msg.media != null
-                                ? editMedia(msg.media, msg.chat, editMessageId)
-                                : CompletableFuture.completedFuture(true),
-                        (metaUpdate, mediaUpdate) -> mediaUpdate && metaUpdate);
+                .thenApply(Reply::isOk);
     }
 
     private CompletionStage<Boolean> editMedia(final TFile media, final Chat target, final long editMessageId) {

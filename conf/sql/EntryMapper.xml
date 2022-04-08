@@ -7,6 +7,9 @@
         where id in
         <foreach collection="uuids" item="uuid" close=")" open="(" separator=",">#{uuid,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}</foreach>
     </delete>
+    <delete id="rmSoftLinks">
+        delete from ${table} where ref_id = #{ref}
+    </delete>
     <select id="selectFolderLabels" resultMap="EntryMap">
         select f.*, fp.path
         from ${v1} f
@@ -144,6 +147,12 @@
         from ${v1} f
                  left join ${v2} fp on (f.id = fp.id)
         where f.id = (select parent_id from ${v1} where id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler})
+    </select>
+
+    <select id="getParentId" resultType="java.util.UUID">
+        select f.parent_id
+        from ${v1} f
+        where f.id = #{id,javaType=UUID,jdbcType=OTHER,typeHandler=UUIDTypeHandler}
     </select>
 
     <resultMap id="EntryMap" type="model.TFile">

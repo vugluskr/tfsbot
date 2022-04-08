@@ -26,6 +26,24 @@ public class TFileFactory {
         return f;
     }
 
+    public static TFile genresDir(final String name, final UUID parentId, final long owner) {
+        final TFile dir = dir(name, parentId, owner);
+        dir.setGenres();
+        return dir;
+    }
+
+    public static TFile authorsDir(final String name, final UUID parentId, final long owner) {
+        final TFile dir = dir(name, parentId, owner);
+        dir.setAuthors();
+        return dir;
+    }
+
+    public static TFile abcDir(final String name, final UUID parentId, final long owner) {
+        final TFile dir = dir(name, parentId, owner);
+        dir.setAbc();
+        return dir;
+    }
+
     public static TFile dir(final String name, final UUID parentId, final long owner) {
         final TFile f = new TFile();
         f.setOwner(owner);
@@ -48,5 +66,27 @@ public class TFileFactory {
         file.setRefId(refId);
 
         return file;
+    }
+
+    public static TFile softLink(final TFile trg, final UUID parent) {
+        final TFile link = new TFile();
+        link.setOwner(trg.getOwner());
+        link.setName(trg.getName());
+        link.setParentId(parent);
+        link.setType(ContentType.SOFTLINK);
+        link.setRefId(trg.getId().toString());
+
+        return link;
+    }
+
+    public static TFile softLink(final String name, final String refId, final UUID parentDirId, final long ownerId) {
+        final TFile link = new TFile();
+        link.setOwner(ownerId);
+        link.setName(name);
+        link.setParentId(parentDirId);
+        link.setType(ContentType.SOFTLINK);
+        link.setRefId(refId);
+
+        return link;
     }
 }
