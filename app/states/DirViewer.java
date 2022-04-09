@@ -52,7 +52,7 @@ public class DirViewer extends AState {
                         break;
                     case 1:
                         offset = getInt(s);
-                        passwordIsOk = stored.charAt(i+1) == '1';
+                        passwordIsOk = stored.charAt(i + 1) == '1';
                         return;
                 }
             }
@@ -116,6 +116,8 @@ public class DirViewer extends AState {
                 return new DirGearer(entryId);
             case rewind:
                 offset -= 10;
+                if (offset < 0)
+                    offset = 0;
                 break;
             case forward:
                 offset += 10;
@@ -144,11 +146,18 @@ public class DirViewer extends AState {
         if (entry == null)
             entry = store.getEntry(entryId, user);
 
+        if (entry == null) {
+            user.resetState();
+            store.reinitUserTables(user.id);
+            store.dropUserShares(user.id);
+            user.state().display(user, api, store);
+            return;
+        }
+
         if (entry.isFile()) {
             new FileViewer(entryId).display(user, api, store);
             return;
         }
-
 
         final MsgStruct struct = new MsgStruct();
 
