@@ -1,6 +1,7 @@
 package services.impl;
 
 import com.sun.org.apache.xerces.internal.util.XMLChar;
+import com.typesafe.config.Config;
 import model.opds.OpdsBook;
 import model.opds.OpdsPage;
 import org.w3c.dom.Document;
@@ -10,6 +11,8 @@ import org.xml.sax.InputSource;
 import play.Logger;
 import services.OpdsSearch;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
 import java.net.*;
@@ -26,12 +29,15 @@ import static utils.TextUtils.isEmpty;
  * 06.04.2022 12:51
  * tfs ☭ sweat and blood
  */
-public class OpdsSearchFlibusta implements OpdsSearch {
+@Singleton
+public class OpdsSearchImpl implements OpdsSearch {
     private static final Logger.ALogger logger = Logger.of(OpdsSearch.class);
-    private static final String searchUrl = "https://flibusta.is/opds/search?searchType=books&searchTerm=";
-    private static final Function<String, String> urler;
+    private final String searchUrl;
+    private final Function<String, String> urler;
 
-    static {
+    @Inject
+    public OpdsSearchImpl(final Config config) {
+        searchUrl = config.getString("service.opds");
         URL base = null;
         try {base = new URL(searchUrl);} catch (final Exception ignore) {}
         final URL b = base;
@@ -55,7 +61,7 @@ public class OpdsSearchFlibusta implements OpdsSearch {
     @Override
     public OpdsPage search(final String query, final int page) {
         String u = searchUrl;
-        try {u = searchUrl + URLEncoder.encode(query, "UTF-8") + "&pageNumber=" + page;} catch (final Exception ignore) {}
+        try {u = String.format(searchUrl, URLEncoder.encode(query, "UTF-8"), page);} catch (final Exception ignore) {}
 
         final OpdsPage p = new OpdsPage();
         p.setBooks(new ArrayList<>(0));

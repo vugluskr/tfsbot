@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static states.meta.AState._hold;
+import static utils.TextUtils.escapeMd;
 import static utils.TextUtils.isEmpty;
 
 /**
@@ -104,12 +105,13 @@ public class RouterImpl implements Router {
                     } else if (((CmdRequest) r).getCmd() == CmdRequest.Cmd.FbSearch) {
                         r.user.resetOpds();
                         if (r.user.getBookStore() == null) {
-                            api.sendText(new BotApi.TextMessage(
-                                    LangMap.v(LangMap.Value.NO_BOOKSTORE, r.user.lng),
-                                    BotApi.ParseMode.Md2,
-                                    BotApi.helpKbd,
-                                    r.user.id
-                            ));
+                            final MsgStruct struct = new MsgStruct();
+                            struct.body = escapeMd(LangMap.v(LangMap.Value.NO_BOOKSTORE, r.user.lng));
+                            struct.mode = BotApi.ParseMode.Md2;
+                            struct.kbd = BotApi.helpKbd;
+
+                            r.user.state().doSend(struct, r.user, api, true);
+                            backState = _hold;
                         } else if (!isEmpty(((CmdRequest) r).getArg()))
                             backState = new OpdsSearcher(r.user.state().entryId(), ((CmdRequest) r).getArg());
                     } else

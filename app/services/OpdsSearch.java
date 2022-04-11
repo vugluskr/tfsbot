@@ -3,7 +3,7 @@ package services;
 import com.google.inject.ImplementedBy;
 import model.opds.OpdsBook;
 import model.opds.OpdsPage;
-import services.impl.OpdsSearchFlibusta;
+import services.impl.OpdsSearchImpl;
 
 import java.io.File;
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.List;
  * 06.04.2022 12:51
  * tfs ☭ sweat and blood
  */
-@ImplementedBy(OpdsSearchFlibusta.class)
+@ImplementedBy(OpdsSearchImpl.class)
 public interface OpdsSearch {
     OpdsPage search(String query, int pageNum);
 
