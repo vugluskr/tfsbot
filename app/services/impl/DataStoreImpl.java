@@ -339,7 +339,7 @@ public class DataStoreImpl implements DataStore {
                             if (i * rmSize >= uuids.size())
                                 break;
 
-                            final List<UUID> sub = uuids.subList(i * rmSize, Math.max(uuids.size(), (i + 1) * rmSize));
+                            final List<UUID> sub = uuids.subList(i * rmSize, Math.min(uuids.size(), (i + 1) * rmSize));
                             if (!sub.isEmpty())
                                 entries.rmList(sub, tablePrefix + userId);
                         }
