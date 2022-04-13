@@ -28,6 +28,6 @@ public interface Strings {
         String People = "\uD83D\uDC65"; // 👥
         String mkGrant = "\uD83D\uDC64"; // 👤
         String syncOpds = "\uD83D\uDCBE"; // 💾
-        String bookStore = "\uD83D\uDCDA"; // 📚
+        String bookStore = "\uD83D\uDCDA\u0336"; // 📚
     }
 }

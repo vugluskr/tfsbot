@@ -32,7 +32,11 @@ public class TFile implements Comparable<TFile>, Optioned, AsButton {
     @Override
     public BotApi.Button toButton(final int idx) {
         return new BotApi.Button(
-                (isDir() ? (isBookStore() ? Strings.Uni.bookStore : Strings.Uni.folder) + " " : "")
+                (isDir() ? (isBookStore()
+                        ? Strings.Uni.bookStore
+                        : isSharesRoot()
+                        ? Strings.Uni.share
+                        : Strings.Uni.folder) + " " : "")
                         + name,
                 (isDir()
                         ? CommandType.openDir
@@ -217,7 +221,15 @@ public class TFile implements Comparable<TFile>, Optioned, AsButton {
         return isAbc() || isAuthors() || isGenres();
     }
 
+    public void setBook() {
+        Optz.Book.set(this);
+    }
+
+    public boolean isBook() {
+        return Optz.Book.is(this);
+    }
+
     enum Optz implements BMasked {
-        unused, locked, sharesRoot, Genres, Authors, Abc, shareFor
+        unused, locked, sharesRoot, Genres, Authors, Abc, shareFor, Book
     }
 }

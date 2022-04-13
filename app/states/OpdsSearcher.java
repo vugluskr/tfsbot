@@ -130,7 +130,7 @@ public class OpdsSearcher extends AState {
 
                     final TFile abc = dirs.stream().filter(TFile::isAbc).findFirst().orElseThrow(() -> new RuntimeException("No abc dir"));
 
-                    final TFile base = store.mkIfMissed(TFileFactory.file(simpleName, abc.getId(), user.id, null));
+                    final TFile base = store.mkIfMissed(TFileFactory.bookFile(simpleName, abc.getId(), user.id, null));
                     db.refId = base.getId().toString();
                     store.insertBook(db);
 

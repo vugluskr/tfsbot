@@ -114,6 +114,8 @@ public class DirViewer extends AState {
                 return new DirMaker(entryId);
             case gearDir:
                 return new DirGearer(entryId);
+            case share:
+                return new EntrySharer(entryId);
             case rewind:
                 offset -= 10;
                 if (offset < 0)
@@ -189,6 +191,8 @@ public class DirViewer extends AState {
             struct.body = body.toString();
 
             if (entry.isRw()) {
+                if (entry.getOwner() == user.id)
+                    struct.kbd.button(CommandType.share.b());
                 struct.kbd.button(CommandType.mkLabel.b());
                 struct.kbd.button(CommandType.mkDir.b());
                 struct.kbd.button(CommandType.gearDir.b());

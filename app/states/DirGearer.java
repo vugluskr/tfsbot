@@ -49,8 +49,6 @@ public class DirGearer extends AState {
                 return new Renamer(entryId);
             case drop:
                 return new DropConfirmer(entryId);
-            case share:
-                return new EntrySharer(entryId);
             case lock:
                 return new Locker(entryId);
             case unlock:
@@ -85,13 +83,10 @@ public class DirGearer extends AState {
         struct.mode = BotApi.ParseMode.Md2;
         struct.kbd = new BotApi.Keyboard();
 
-        struct.kbd.button(CommandType.goBack.b());
 
         if (!user.getRoot().equals(entryId)) {
-            if (entry.getOwner() == user.id) {
+            if (entry.getOwner() == user.id)
                 struct.kbd.button(entry.isLocked() ? CommandType.unlock.b() : CommandType.lock.b());
-                struct.kbd.button(CommandType.share.b());
-            }
             if (entry.isRw())
                 struct.kbd.button(CommandType.rename.b());
             if (entry.getOwner() == user.id) {
@@ -99,6 +94,7 @@ public class DirGearer extends AState {
                 struct.kbd.button(CommandType.drop.b());
             }
         }
+        struct.kbd.button(CommandType.cancel.b());
 
         pagedList(store.listFolderLabelsAsFiles(entryId, user.id, offset, 10), count, offset, struct);
 

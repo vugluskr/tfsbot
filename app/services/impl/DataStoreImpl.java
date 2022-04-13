@@ -702,7 +702,7 @@ public class DataStoreImpl implements DataStore {
 
             final TFile abc = dirs.stream().filter(TFile::isAbc).findFirst().orElseThrow(() -> new RuntimeException("No abc dir"));
 
-            final UUID uuid = mk(TFileFactory.file(meta.title, abc.getId(), user.id, file.refId)).getId();
+            final UUID uuid = mk(TFileFactory.bookFile(meta.title, abc.getId(), user.id, file.refId)).getId();
 
             dirs.stream().filter(d -> !d.isAbc() && d.isBookDir()).forEach(d -> mkIfMissed(TFileFactory.softLink(d.isAbc() ? simpleName : d.isAuthors() ? nameWithGenres :
                     nameWithAuthors, uuid.toString(), d.getId(), user.id)));

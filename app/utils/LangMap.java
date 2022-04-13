@@ -268,7 +268,7 @@ public class LangMap {
         init(Value.CANT_GRANT, "Access already granted to %s", "%s: доступ уже предоставлен");
         init(Value.SHARE_RW, Strings.Uni.mkGrant + " %s [Read/Write]", Strings.Uni.mkGrant + " %s [полный доступ]");
         init(Value.SHARE_RO, Strings.Uni.mkGrant + " %s [Read only]", Strings.Uni.mkGrant + " %s [только чтение]");
-        init(Value.SHARES, Strings.Uni.share + " network", Strings.Uni.share + " сеть");
+        init(Value.SHARES, "Network", "Сеть");
         init(Value.SHARES_ANONYM, "common", "общие");
         init(Value.NOT_ALLOWED, "You're not allowed to do it here", "Это действие запрещено в текущей папке");
         init(Value.NOT_ALLOWED_THIS, "You're not allowed to do it to this entry", "Это действие запрещено в для данного элемента");

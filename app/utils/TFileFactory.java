@@ -89,4 +89,11 @@ public class TFileFactory {
 
         return link;
     }
+
+    public static TFile bookFile(final String title, final UUID id, final long id1, final String refId) {
+        final TFile f = file(title, id, id1, refId);
+        f.setBook();
+
+        return f;
+    }
 }
