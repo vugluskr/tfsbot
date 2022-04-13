@@ -109,7 +109,7 @@ public class BotApiImpl implements BotApi {
             return CompletableFuture.completedFuture(new Reply(false));
         }
 
-        final ObjectNode node = msg.media.type == ContentType.CONTACT ? (ObjectNode) Json.toJson(msg.media) : Json.newObject();
+        final ObjectNode node = msg.media.type == ContentType.CONTACT ? (ObjectNode) Json.parse(msg.media.getRefId()) : Json.newObject();
         msg.chat.set("chat_id", node);
         node.put(msg.media.type.getParamName(), msg.media.getRefId());
 
