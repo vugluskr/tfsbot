@@ -111,7 +111,8 @@ public class BotApiImpl implements BotApi {
 
         final ObjectNode node = msg.media.type == ContentType.CONTACT ? (ObjectNode) Json.parse(msg.media.getRefId()) : Json.newObject();
         msg.chat.set("chat_id", node);
-        node.put(msg.media.type.getParamName(), msg.media.getRefId());
+        if (msg.media.type != ContentType.CONTACT)
+            node.put(msg.media.type.getParamName(), msg.media.getRefId());
 
         if (!isEmpty(msg.caption)) {
             node.put("caption", msg.caption);
