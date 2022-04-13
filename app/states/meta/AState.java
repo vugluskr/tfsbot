@@ -7,7 +7,7 @@ import model.request.CallbackRequest;
 import model.request.CmdRequest;
 import model.request.FileRequest;
 import model.request.TextRequest;
-import model.user.TgUser;
+import model.TUser;
 import play.Logger;
 import services.BotApi;
 import services.DataStore;
@@ -37,7 +37,7 @@ public abstract class AState implements UserState {
     protected UUID entryId;
     protected TFile entry;
 
-    public static UserState resolve(final String saved, final TgUser user) {
+    public static UserState resolve(final String saved, final TUser user) {
         final int idx;
         if (isEmpty(saved) || (idx = saved.indexOf(';')) < 0)
             return new DirViewer(user.getRoot());
@@ -140,12 +140,12 @@ public abstract class AState implements UserState {
     }
 
     @Override
-    public final void doSend(final MsgStruct struct, final TgUser user, final BotApi api) {
+    public final void doSend(final MsgStruct struct, final TUser user, final BotApi api) {
         doSend(struct, user, api, false);
     }
 
     @Override
-    public final void doSend(final MsgStruct struct, final TgUser user, final BotApi api, final boolean forceNew) {
+    public final void doSend(final MsgStruct struct, final TUser user, final BotApi api, final boolean forceNew) {
         if (forceNew || isEmpty(user.wins)) {
             freshSend(struct, user, api);
             return;
@@ -171,7 +171,7 @@ public abstract class AState implements UserState {
                 }));
     }
 
-    private void freshSend(final MsgStruct struct, final TgUser user, final BotApi api) {
+    private void freshSend(final MsgStruct struct, final TUser user, final BotApi api) {
         final CompletionStage<BotApi.Reply> action;
         if (struct.rawFile != null)
             action = doBookUpload(struct, user, api);
@@ -194,7 +194,7 @@ public abstract class AState implements UserState {
     }
 
     @Override
-    public CompletionStage<BotApi.Reply> doBookUpload(final MsgStruct struct, final TgUser user, final BotApi api) {
+    public CompletionStage<BotApi.Reply> doBookUpload(final MsgStruct struct, final TUser user, final BotApi api) {
         return api.sendMedia(new BotApi.MediaMessage(
                         struct.file,
                         new BotApi.RawMedia(struct.rawFile, struct.rawFile.getName().contains("fb2") ? "application/fb2+zip" : "application/epub"),
@@ -214,24 +214,24 @@ public abstract class AState implements UserState {
     }
 
     @Override
-    public UserState onCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onCallback(final CallbackRequest request, final TUser user, final BotApi api, final DataStore store) {
         api.sendReaction(new BotApi.ReactionMessage(request.queryId, "", user.id));
 
         return voidOnCallback(request, user, api, store);
     }
 
-    protected UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    protected UserState voidOnCallback(final CallbackRequest request, final TUser user, final BotApi api, final DataStore store) {
         return _back;
     }
 
     @Override
-    public UserState onCommand(final CmdRequest request, final TgUser user, final BotApi api, final DataStore store) {return _back;}
+    public UserState onCommand(final CmdRequest request, final TUser user, final BotApi api, final DataStore store) {return _back;}
 
     @Override
-    public UserState onFile(final FileRequest request, final TgUser user, final BotApi api, final DataStore store) {return _back;}
+    public UserState onFile(final FileRequest request, final TUser user, final BotApi api, final DataStore store) {return _back;}
 
     @Override
-    public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {return _back;}
+    public UserState onText(final TextRequest request, final TUser user, final BotApi api, final DataStore store) {return _back;}
 
     @Override
     public final UUID entryId() {

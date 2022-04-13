@@ -4,9 +4,9 @@ import com.google.inject.ImplementedBy;
 import model.Share;
 import model.TFile;
 import model.opds.OpdsBook;
-import model.opds.TgBook;
+import model.TBook;
 import model.opds.OpdsPage;
-import model.user.TgUser;
+import model.TUser;
 import model.user.UDbData;
 import services.impl.DataStoreImpl;
 
@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.UUID;
-import java.util.concurrent.CompletionStage;
 
 /**
  * @author Denis Danilin | me@loslobos.ru
@@ -28,9 +27,9 @@ public interface DataStore {
 
     List<String> listFolderLabels(UUID folderId, long userId);
 
-    List<TFile> listFolder(UUID folderId, int offset, int limit, TgUser user);
+    List<TFile> listFolder(UUID folderId, int offset, int limit, TUser user);
 
-    TFile getEntry(UUID id, TgUser user);
+    TFile getEntry(UUID id, TUser user);
 
     boolean isPasswordOk(UUID entryId, String password);
 
@@ -42,20 +41,20 @@ public interface DataStore {
 
     void updateEntryRef(TFile file);
 
-    TFile applyShareByLink(Share share, TgUser consumer);
+    TFile applyShareByLink(Share share, TUser consumer);
 
     TFile mk(TFile entry);
     TFile mkIfMissed(TFile entry);
 
-    boolean isEntryMissed(UUID folderId, String name, TgUser user);
+    boolean isEntryMissed(UUID folderId, String name, TUser user);
 
     void updateEntry(TFile entry);
 
     Share getPublicShare(String id);
 
-    void rm(UUID entryId, TgUser user);
+    void rm(UUID entryId, TUser user);
 
-    void rm(UUID entryId, TgUser user, boolean selfIncluded);
+    void rm(UUID entryId, TUser user, boolean selfIncluded);
 
     void lockEntry(TFile entry, String salt, String password);
 
@@ -81,13 +80,13 @@ public interface DataStore {
 
     void dropEntryLink(UUID entryId, long userId);
 
-    void makeEntryLink(UUID entryId, TgUser user);
+    void makeEntryLink(UUID entryId, TUser user);
 
     void dropEntryGrant(UUID entryId, Share share);
 
     boolean entryNotGrantedTo(UUID entryId, long targetUserId, long ownerUserId);
 
-    void entryGrantTo(UUID entryId, TgUser target, TgUser owner);
+    void entryGrantTo(UUID entryId, TUser target, TUser owner);
 
     UDbData getUser(long id);
 
@@ -99,13 +98,13 @@ public interface DataStore {
 
     void dropUserShares(long userId);
 
-    void buildHistoryTo(UUID targetEntryId, TgUser user);
+    void buildHistoryTo(UUID targetEntryId, TUser user);
 
     OpdsPage doOpdsSearch(String query, int page);
 
-    TgBook getStoredBook(OpdsBook book, boolean fb2, boolean epub);
+    TBook getStoredBook(OpdsBook book, boolean fb2, boolean epub);
 
-    TgBook loadBookFile(OpdsBook book, boolean fb2, boolean epub, BotApi api);
+    TBook loadBookFile(OpdsBook book, boolean fb2, boolean epub, BotApi api);
 
     DataStoreImpl.Fb2Meta parseFb2Meta(File file);
 
@@ -115,11 +114,11 @@ public interface DataStore {
 
     String getOpdsGenreName(String genreId);
 
-    void insertBook(TgBook db);
+    void insertBook(TBook db);
 
-    UUID getAndParseFb(byte[] bytes, TFile file, BotApi api, TgUser user);
+    UUID getAndParseFb(byte[] bytes, TFile file, BotApi api, TUser user);
 
-    Set<TFile> mkBookDirs(String title, Set<String> genresIds, SortedSet<String> authors, TgUser user);
+    Set<TFile> mkBookDirs(String title, Set<String> genresIds, SortedSet<String> authors, TUser user);
 
     UUID findRootId(long id);
 }

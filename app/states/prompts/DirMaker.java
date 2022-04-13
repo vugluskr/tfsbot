@@ -2,7 +2,7 @@ package states.prompts;
 
 import model.MsgStruct;
 import model.request.TextRequest;
-import model.user.TgUser;
+import model.TUser;
 import services.BotApi;
 import services.DataStore;
 import states.meta.AState;
@@ -34,12 +34,12 @@ public class DirMaker extends AState {
     }
 
     @Override
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return LangMap.Value.LS_HELP;
     }
 
     @Override
-    public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onText(final TextRequest request, final TUser user, final BotApi api, final DataStore store) {
         if (store.isEntryMissed(entryId, request.getText(), user))
             store.mk(TFileFactory.dir(request.getText(), entryId, user.id));
 
@@ -47,7 +47,7 @@ public class DirMaker extends AState {
     }
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
         final MsgStruct struct = new MsgStruct();
         struct.body = escapeMd(LangMap.v(LangMap.Value.TYPE_FOLDER, user));
         struct.kbd = BotApi.voidKbd;

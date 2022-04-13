@@ -2,7 +2,7 @@ package model.request;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import model.ContentType;
-import model.user.TgUser;
+import model.TUser;
 
 import static model.ContentType.media;
 import static utils.TextUtils.notNull;
@@ -13,10 +13,10 @@ import static utils.TextUtils.notNull;
  * tfs ☭ sweat and blood
  */
 public abstract class TgRequest {
-    public final TgUser user;
+    public final TUser user;
 
     protected TgRequest(final JsonNode node) {
-        user = new TgUser(node);
+        user = new TUser(node);
     }
 
     public static TgRequest resolve(final JsonNode node) {

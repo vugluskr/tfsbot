@@ -8,7 +8,7 @@ import model.TFile;
 import model.request.CallbackRequest;
 import model.request.FileRequest;
 import model.request.TextRequest;
-import model.user.TgUser;
+import model.TUser;
 import services.BotApi;
 import services.DataStore;
 import states.meta.AState;
@@ -64,7 +64,7 @@ public class DirViewer extends AState {
     }
 
     @Override
-    public UserState onFile(final FileRequest r, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onFile(final FileRequest r, final TUser user, final BotApi api, final DataStore store) {
         if (r.isCrooked())
             return null;
 
@@ -97,12 +97,12 @@ public class DirViewer extends AState {
     }
 
     @Override
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return entryId.equals(user.getRoot()) ? LangMap.Value.ROOT_HELP : LangMap.Value.LS_HELP;
     }
 
     @Override
-    public UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState voidOnCallback(final CallbackRequest request, final TUser user, final BotApi api, final DataStore store) {
         switch (request.getCommand().type) {
             case openDir:
                 return new DirViewer(store.getSingleFolderEntry(entryId, request.getCommand().elementIdx + offset, user.id));
@@ -128,7 +128,7 @@ public class DirViewer extends AState {
     }
 
     @Override
-    public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onText(final TextRequest request, final TUser user, final BotApi api, final DataStore store) {
         entry = store.getEntry(entryId, user);
 
         if (entry.isLocked() && !passwordIsOk) {
@@ -142,7 +142,7 @@ public class DirViewer extends AState {
     }
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
         if (entry == null)
             entry = store.getEntry(entryId, user);
 

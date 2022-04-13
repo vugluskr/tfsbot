@@ -1,6 +1,6 @@
 package utils;
 
-import model.user.TgUser;
+import model.TUser;
 
 import java.util.EnumMap;
 
@@ -311,7 +311,7 @@ public class LangMap {
         NOT_ALLOWED_THIS, LINK, FILE_ACCESS, TYPE_EDIT_LABEL, SHARE_DIR_HELP, TYPE_LOCK_DIR, TYPE_LOCK_FILE, TYPE_PASSWORD_FILE, TYPE_PASSWORD_DIR, PASSWORD_FAILED, OPDS_DONE, OPDS_STARTED, OPDS_FAILED, WELCOME, IS_NOT_BOOK_STORE, IS_BOOK_STORE, CONFIRM_DROP_FILE, CONFIRM_DROP_DIR, NO_CONTENT_START, NO_BOOKSTORE, SEARCH, BOOKS_GENRES, BOOKS_AUTHORS, BOOKS_ABC, DIR_ACCESS
     }
 
-    public static String v(final Value name, final TgUser user, final Object... args) {
+    public static String v(final Value name, final TUser user, final Object... args) {
         return v(name, notNull(user.lng, "ru"), args);
     }
 

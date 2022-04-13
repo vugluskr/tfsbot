@@ -3,7 +3,7 @@ package states;
 import model.CommandType;
 import model.MsgStruct;
 import model.request.CallbackRequest;
-import model.user.TgUser;
+import model.TUser;
 import services.BotApi;
 import services.DataStore;
 import states.meta.AState;
@@ -38,7 +38,7 @@ public class DirGearer extends AState {
     }
 
     @Override
-    public UserState onCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onCallback(final CallbackRequest request, final TUser user, final BotApi api, final DataStore store) {
         if (request.getCommand().type != CommandType.setBooks)
             api.sendReaction(new BotApi.ReactionMessage(request.queryId, "", user.id));
 
@@ -74,7 +74,7 @@ public class DirGearer extends AState {
     }
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
         if (entry == null)
             entry = store.getEntry(entryId, user);
 
@@ -111,7 +111,7 @@ public class DirGearer extends AState {
     }
 
     @Override
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return LangMap.Value.GEAR_HELP;
     }
 }

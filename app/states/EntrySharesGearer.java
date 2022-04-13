@@ -3,7 +3,7 @@ package states;
 import model.CommandType;
 import model.MsgStruct;
 import model.request.CallbackRequest;
-import model.user.TgUser;
+import model.TUser;
 import services.BotApi;
 import services.DataStore;
 import states.meta.AState;
@@ -37,7 +37,7 @@ public class EntrySharesGearer extends AState {
     }
 
     @Override
-    public UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState voidOnCallback(final CallbackRequest request, final TUser user, final BotApi api, final DataStore store) {
         switch (request.getCommand().type) {
             case dropGrant:
                 store.dropEntryGrant(entryId, store.selectEntryGrants(entryId, offset, 10, user.id).get(request.getCommand().elementIdx));
@@ -54,7 +54,7 @@ public class EntrySharesGearer extends AState {
     }
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
         if (entry == null)
             entry = store.getEntry(entryId, user);
 
@@ -87,7 +87,7 @@ public class EntrySharesGearer extends AState {
         return entryId.toString() + ":" + offset;
     }
 
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return entry != null && entry.isDir() ? LangMap.Value.SHARE_DIR_HELP : LangMap.Value.SHARE_FILE_HELP;
     }
 }

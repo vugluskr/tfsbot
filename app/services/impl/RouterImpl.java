@@ -5,16 +5,14 @@ import model.MsgStruct;
 import model.Share;
 import model.TFile;
 import model.request.*;
-import model.user.TgUser;
+import model.TUser;
 import model.user.UDbData;
 import play.Logger;
-import play.libs.Json;
 import services.BotApi;
 import services.DataStore;
 import services.Router;
 import sql.UserMapper;
 import states.DirViewer;
-import states.FileViewer;
 import states.meta.AState;
 import states.OpdsSearcher;
 import states.meta.UserState;
@@ -143,7 +141,7 @@ public class RouterImpl implements Router {
         }
     }
 
-    private void handleAfterAction(final UserState backState, final TgUser user) {
+    private void handleAfterAction(final UserState backState, final TUser user) {
         if (backState == AState._back)
             user.backHistory();
         else if (backState != null && backState != _hold)

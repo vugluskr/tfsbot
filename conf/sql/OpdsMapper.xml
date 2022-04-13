@@ -14,7 +14,7 @@
           and epub = #{epub}
     </select>
 
-    <resultMap id="BookMap" type="model.opds.TgBook">
+    <resultMap id="BookMap" type="model.TBook">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
         <result property="fb" column="fb"/>

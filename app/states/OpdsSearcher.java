@@ -6,10 +6,10 @@ import model.MsgStruct;
 import model.TFile;
 import model.opds.OpdsBook;
 import model.opds.OpdsPage;
-import model.opds.TgBook;
+import model.TBook;
 import model.request.CallbackRequest;
 import model.request.CmdRequest;
-import model.user.TgUser;
+import model.TUser;
 import play.Logger;
 import play.libs.Json;
 import services.BotApi;
@@ -53,7 +53,7 @@ public class OpdsSearcher extends AState {
     }
 
     @Override
-    protected UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    protected UserState voidOnCallback(final CallbackRequest request, final TUser user, final BotApi api, final DataStore store) {
         switch (request.getCommand().type) {
             case rewind:
                 page--;
@@ -86,14 +86,14 @@ public class OpdsSearcher extends AState {
     }
 
     @Override
-    public UserState onCommand(final CmdRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onCommand(final CmdRequest request, final TUser user, final BotApi api, final DataStore store) {
         switch (request.getCmd()) {
             case FbBook:
             case EpubBook:
                 final OpdsPage opdsPage = user.getOpdsPage(query, page, store);
                 try {
                     final OpdsBook book = opdsPage.getBooks().get(getInt(request.getArg()) - 1);
-                    TgBook db = store.getStoredBook(book, request.getCmd() == CmdRequest.Cmd.FbBook, request.getCmd() == CmdRequest.Cmd.EpubBook);
+                    TBook db = store.getStoredBook(book, request.getCmd() == CmdRequest.Cmd.FbBook, request.getCmd() == CmdRequest.Cmd.EpubBook);
 
                     if (db == null)
                         db = store.loadBookFile(book, request.getCmd() == CmdRequest.Cmd.FbBook, request.getCmd() == CmdRequest.Cmd.EpubBook, api);
@@ -174,7 +174,7 @@ public class OpdsSearcher extends AState {
     }
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
         final OpdsPage opdsPage = user.getOpdsPage(query, page, store);
 
         final StringBuilder md = new StringBuilder();
@@ -238,7 +238,7 @@ public class OpdsSearcher extends AState {
     }
 
     @Override
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return LangMap.Value.SEARCHED_HELP;
     }
 }

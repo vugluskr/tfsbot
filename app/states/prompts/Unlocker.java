@@ -3,7 +3,7 @@ package states.prompts;
 import model.MsgStruct;
 import model.TFile;
 import model.request.TextRequest;
-import model.user.TgUser;
+import model.TUser;
 import services.BotApi;
 import services.DataStore;
 import states.meta.AState;
@@ -39,7 +39,7 @@ public class Unlocker extends AState {
     }
 
     @Override
-    public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onText(final TextRequest request, final TUser user, final BotApi api, final DataStore store) {
         if (entry == null)
             entry = store.getEntry(entryId, user);
 
@@ -53,7 +53,7 @@ public class Unlocker extends AState {
     }
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
         if (entry == null)
             entry = store.getEntry(entryId, user);
         final MsgStruct struct = new MsgStruct();
@@ -65,7 +65,7 @@ public class Unlocker extends AState {
     }
 
     @Override
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return LangMap.Value.GEAR_HELP;
     }
 }

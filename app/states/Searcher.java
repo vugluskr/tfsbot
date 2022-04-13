@@ -3,7 +3,7 @@ package states;
 import model.CommandType;
 import model.MsgStruct;
 import model.request.CallbackRequest;
-import model.user.TgUser;
+import model.TUser;
 import services.BotApi;
 import services.DataStore;
 import states.meta.AState;
@@ -48,7 +48,7 @@ public class Searcher extends AState {
     }
 
     @Override
-    public UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState voidOnCallback(final CallbackRequest request, final TUser user, final BotApi api, final DataStore store) {
         switch (request.getCommand().type) {
             case openDir:
                 return new DirViewer(store.searchFolder(entryId, query, offset, 10, user.id).get(request.getCommand().elementIdx));
@@ -68,7 +68,7 @@ public class Searcher extends AState {
     }
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
         entry = store.getEntry(entryId, user);
 
         final MsgStruct struct = new MsgStruct();
@@ -101,7 +101,7 @@ public class Searcher extends AState {
     }
 
     @Override
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return LangMap.Value.SEARCHED_HELP;
     }
 }

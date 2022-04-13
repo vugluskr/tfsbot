@@ -3,7 +3,7 @@ package states;
 import model.MsgStruct;
 import model.TFile;
 import model.request.TextRequest;
-import model.user.TgUser;
+import model.TUser;
 import services.BotApi;
 import services.DataStore;
 import states.meta.AState;
@@ -34,7 +34,7 @@ public class LabelEditor extends AState {
     }
 
     @Override
-    public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onText(final TextRequest request, final TUser user, final BotApi api, final DataStore store) {
         if (store.isEntryMissed(entryId, request.getText(), user)) {
             final TFile entry = store.getEntry(entryId, user);
             entry.setName(request.getText());
@@ -45,7 +45,7 @@ public class LabelEditor extends AState {
     }
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
         final MsgStruct struct = new MsgStruct();
         struct.body = escapeMd(LangMap.v(LangMap.Value.TYPE_EDIT_LABEL, user));
         struct.kbd = BotApi.voidKbd;
@@ -55,7 +55,7 @@ public class LabelEditor extends AState {
     }
 
     @Override
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return LangMap.Value.LABEL_HELP;
     }
 }

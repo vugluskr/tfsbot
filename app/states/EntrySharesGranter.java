@@ -5,7 +5,7 @@ import model.MsgStruct;
 import model.TFile;
 import model.request.FileRequest;
 import model.request.TextRequest;
-import model.user.TgUser;
+import model.TUser;
 import model.user.UDbData;
 import services.BotApi;
 import services.DataStore;
@@ -40,7 +40,7 @@ public class EntrySharesGranter extends AState {
     }
 
     @Override
-    public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onText(final TextRequest request, final TUser user, final BotApi api, final DataStore store) {
         final long id = getLong(request.getText());
 
         if (id > 0 && request.getText().matches("[0-9]+")) {
@@ -56,11 +56,11 @@ public class EntrySharesGranter extends AState {
     }
 
     @Override
-    public UserState onFile(final FileRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onFile(final FileRequest request, final TUser user, final BotApi api, final DataStore store) {
         return onFile(request.getFile(), user, store);
     }
 
-    private UserState onFile(final TFile contact, final TgUser user, final DataStore store) {
+    private UserState onFile(final TFile contact, final TUser user, final DataStore store) {
         if (contact.type != ContentType.CONTACT || contact.getOwner() == user.id)
             return null;
 
@@ -75,7 +75,7 @@ public class EntrySharesGranter extends AState {
             rootId = UUID.fromString(db.getS1().substring(0, p < 0 ? db.getS1().length() : p));
         }
 
-        final TgUser target = new TgUser(grantToId, rootId, contact.getName());
+        final TUser target = new TUser(grantToId, rootId, contact.getName());
 
         if (db == null)
             store.insertUser(new UDbData(grantToId, rootId));
@@ -88,7 +88,7 @@ public class EntrySharesGranter extends AState {
 
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
         if (entry == null)
             entry = store.getEntry(entryId, user);
 
@@ -101,7 +101,7 @@ public class EntrySharesGranter extends AState {
     }
 
     @Override
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return entry != null && entry.isDir() ? LangMap.Value.SHARE_DIR_HELP : LangMap.Value.SHARE_FILE_HELP;
     }
 }

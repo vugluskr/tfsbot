@@ -6,8 +6,8 @@ import model.Share;
 import model.TFile;
 import model.opds.OpdsBook;
 import model.opds.OpdsPage;
-import model.opds.TgBook;
-import model.user.TgUser;
+import model.TBook;
+import model.TUser;
 import model.user.UDbData;
 import org.mybatis.guice.transactional.Transactional;
 import play.Logger;
@@ -47,6 +47,7 @@ import static utils.TextUtils.*;
 public class DataStoreImpl implements DataStore {
     private static final Logger.ALogger logger = Logger.of(DataStoreImpl.class);
     final static String tablePrefix = "fs_data_", userFsPrefix = "fs_user_", pathesTree = "fs_paths_", sharePrefix = "fs_share_";
+    private final static int rmSize = 100;
 
     @Inject
     private TfsMapper fs;
@@ -113,7 +114,7 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Transactional
-    private void makeShare(final String name, final TgUser user, final UUID entryId, final TgUser sharedTo) {
+    private void makeShare(final String name, final TUser user, final UUID entryId, final TUser sharedTo) {
         final char[] uuid = TextUtils.generateUuid().toString().replace("-", "").toCharArray();
         String tmp = new String(uuid);
 
@@ -152,14 +153,14 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public TFile applyShareByLink(final Share share, final TgUser consumer) {
+    public TFile applyShareByLink(final Share share, final TUser consumer) {
         if (share.isPersonal())
             return null;
 
         return applyShare(share, v(LangMap.Value.SHARES_ANONYM, consumer.lng), consumer.lng, consumer.id, consumer.getRoot());
     }
 
-    private void shareAppliedByProducer(final Share share, final TgUser consumer, final TgUser producer) {
+    private void shareAppliedByProducer(final Share share, final TUser consumer, final TUser producer) {
         applyShare(share, producer.fio, consumer.lng, consumer.id, consumer.getRoot());
     }
 
@@ -296,17 +297,17 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public TgBook getStoredBook(final OpdsBook book, final boolean fb2, final boolean epub) {
+    public TBook getStoredBook(final OpdsBook book, final boolean fb2, final boolean epub) {
         return bookMapper.findBook(book.getId(), fb2, epub);
     }
 
     @Override
-    public boolean isEntryMissed(final UUID parentEntryId, final String name, final TgUser user) {
+    public boolean isEntryMissed(final UUID parentEntryId, final String name, final TUser user) {
         return !fs.isEntryExist(name, parentEntryId, userFsPrefix + user.id);
     }
 
     @Override
-    public TFile getEntry(final UUID id, final TgUser user) {
+    public TFile getEntry(final UUID id, final TUser user) {
         final TFile entry = entries.getEntry(id, userFsPrefix + user.id, pathesTree + user.id);
 
         if (entry != null)
@@ -315,12 +316,12 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public void rm(final UUID entryId, final TgUser user) {
+    public void rm(final UUID entryId, final TUser user) {
         rm(entryId, user, true);
     }
 
     @Override
-    public void rm(final UUID entryId, final TgUser user, final boolean selfIncluded) {
+    public void rm(final UUID entryId, final TUser user, final boolean selfIncluded) {
         final List<TFile> all = entries.getTree(entryId, userFsPrefix + user.id).stream().filter(TFile::isRw).collect(Collectors.toList());
 
         all.forEach(entry -> {
@@ -333,7 +334,15 @@ public class DataStoreImpl implements DataStore {
                     final List<UUID> uuids = tFiles.stream().map(TFile::getId).filter(id -> (selfIncluded || !id.equals(entryId))).collect(Collectors.toList());
 
                     if (!isEmpty(uuids))
-                        entries.rmList(uuids, tablePrefix + userId);
+
+                        for (int i = 0; i <= uuids.size() / rmSize; i++) {
+                            if (i * rmSize >= uuids.size())
+                                break;
+
+                            final List<UUID> sub = uuids.subList(i * rmSize, Math.max(uuids.size(), (i + 1) * rmSize));
+                            if (!sub.isEmpty())
+                                entries.rmList(uuids, tablePrefix + userId);
+                        }
                 });
 
         if (selfIncluded)
@@ -379,7 +388,7 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public List<TFile> listFolder(final UUID dirId, final int offset, final int limit, final TgUser user) {
+    public List<TFile> listFolder(final UUID dirId, final int offset, final int limit, final TUser user) {
         final List<TFile> list = entries.lsDirContent(dirId, offset, limit, userFsPrefix + user.id, pathesTree + user.id);
 
         if (!isEmpty(user.getBookStore()))
@@ -433,7 +442,7 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public void makeEntryLink(final UUID entryId, final TgUser owner) {
+    public void makeEntryLink(final UUID entryId, final TUser owner) {
         makeShare(
                 entries.getEntry(entryId, userFsPrefix + owner.id, pathesTree + owner.id).getName(),
                 owner,
@@ -473,7 +482,7 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public void entryGrantTo(final UUID entryId, final TgUser shareTo, final TgUser owner) {
+    public void entryGrantTo(final UUID entryId, final TUser shareTo, final TUser owner) {
         makeShare(shareTo.fio, owner, entryId, shareTo);
     }
 
@@ -492,7 +501,7 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public void buildHistoryTo(final UUID targetEntryId, final TgUser user) {
+    public void buildHistoryTo(final UUID targetEntryId, final TUser user) {
         final List<DirViewer> all = new ArrayList<>(0);
         all.add(new DirViewer(targetEntryId));
 
@@ -515,13 +524,13 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public TgBook loadBookFile(final OpdsBook book, final boolean fb2, final boolean epub, final BotApi api) {
+    public TBook loadBookFile(final OpdsBook book, final boolean fb2, final boolean epub, final BotApi api) {
         final File file = opdsSearch.loadFile(book, fb2, epub);
 
         if (file == null)
             return null;
 
-        final TgBook b = new TgBook();
+        final TBook b = new TBook();
         b.title = book.getTitle();
         b.epub = epub;
         b.fb = fb2;
@@ -660,12 +669,12 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public void insertBook(final TgBook db) {
+    public void insertBook(final TBook db) {
         bookMapper.insertBook(db);
     }
 
     @Override
-    public UUID getAndParseFb(final byte[] bytes, final TFile file, final BotApi api, final TgUser user) {
+    public UUID getAndParseFb(final byte[] bytes, final TFile file, final BotApi api, final TUser user) {
         File tmp = null;
         try {
             tmp = File.createTempFile(String.valueOf(System.currentTimeMillis()), file.getName());
@@ -710,7 +719,7 @@ public class DataStoreImpl implements DataStore {
     }
 
     @Override
-    public Set<TFile> mkBookDirs(final String name, final Set<String> genresIds, final SortedSet<String> authors, final TgUser user) {
+    public Set<TFile> mkBookDirs(final String name, final Set<String> genresIds, final SortedSet<String> authors, final TUser user) {
         final Set<TFile> dirs = new HashSet<>();
 
         if (!isEmpty(genresIds)) {

@@ -1,7 +1,8 @@
-package model.user;
+package model;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import model.opds.OpdsPage;
+import model.user.UDbData;
 import play.libs.Json;
 import services.DataStore;
 import states.meta.AState;
@@ -21,7 +22,7 @@ import static utils.TextUtils.*;
  * 02.04.2022 15:52
  * tfs ☭ sweat and blood
  */
-public class TgUser {
+public class TUser {
     public final long id;
     public final String f, l, nik, lng, fio;
     public Consumer<UDbData> asyncSaver;
@@ -33,7 +34,7 @@ public class TgUser {
 
     public volatile SortedSet<Long> wins;
 
-    public TgUser(final JsonNode node) {
+    public TUser(final JsonNode node) {
         id = node.get("id").asLong();
         f = node.has("first_name") ? node.get("first_name").asText() : null;
         l = node.has("last_name") ? node.get("last_name").asText() : null;
@@ -42,7 +43,7 @@ public class TgUser {
         lng = node.has("language_code") ? node.get("language_code").asText() : "en";
     }
 
-    public TgUser(final long id, final UUID root, final String fio) {
+    public TUser(final long id, final UUID root, final String fio) {
         this.id = id;
         this.root = root;
         this.fio = fio;

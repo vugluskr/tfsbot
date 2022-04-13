@@ -5,7 +5,7 @@ import model.request.CallbackRequest;
 import model.request.CmdRequest;
 import model.request.FileRequest;
 import model.request.TextRequest;
-import model.user.TgUser;
+import model.TUser;
 import services.BotApi;
 import services.DataStore;
 import utils.LangMap;
@@ -21,23 +21,23 @@ import java.util.concurrent.CompletionStage;
 public interface UserState {
     UUID entryId();
 
-    void display(TgUser user, BotApi api, DataStore store);
+    void display(TUser user, BotApi api, DataStore store);
 
-    LangMap.Value helpValue(TgUser user);
+    LangMap.Value helpValue(TUser user);
 
     String save();
 
-    void doSend(MsgStruct struct, TgUser user, BotApi api);
+    void doSend(MsgStruct struct, TUser user, BotApi api);
 
-    void doSend(MsgStruct struct, TgUser user, BotApi api, boolean forceNew);
+    void doSend(MsgStruct struct, TUser user, BotApi api, boolean forceNew);
 
-    CompletionStage<BotApi.Reply> doBookUpload(MsgStruct struct, TgUser user, BotApi api);
+    CompletionStage<BotApi.Reply> doBookUpload(MsgStruct struct, TUser user, BotApi api);
 
-    UserState onCallback(CallbackRequest request, TgUser user, BotApi api, DataStore store);
+    UserState onCallback(CallbackRequest request, TUser user, BotApi api, DataStore store);
 
-    UserState onCommand(CmdRequest request, TgUser user, BotApi api, DataStore store);
+    UserState onCommand(CmdRequest request, TUser user, BotApi api, DataStore store);
 
-    UserState onFile(FileRequest request, TgUser user, BotApi api, DataStore store);
+    UserState onFile(FileRequest request, TUser user, BotApi api, DataStore store);
 
-    UserState onText(TextRequest request, TgUser user, BotApi api, DataStore store);
+    UserState onText(TextRequest request, TUser user, BotApi api, DataStore store);
 }

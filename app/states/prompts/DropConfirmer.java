@@ -4,7 +4,7 @@ import model.CommandType;
 import model.MsgStruct;
 import model.TFile;
 import model.request.CallbackRequest;
-import model.user.TgUser;
+import model.TUser;
 import services.BotApi;
 import services.DataStore;
 import states.meta.AState;
@@ -35,12 +35,12 @@ public class DropConfirmer extends AState {
     }
 
     @Override
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return LangMap.Value.GEAR_HELP;
     }
 
     @Override
-    public UserState voidOnCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState voidOnCallback(final CallbackRequest request, final TUser user, final BotApi api, final DataStore store) {
         if (request.getCommand().type == CommandType.confirm) {
             store.rm(entryId, user);
             user.clearHistoryTail(entryId);
@@ -50,7 +50,7 @@ public class DropConfirmer extends AState {
     }
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
         final TFile entry = store.getEntry(entryId, user);
 
         final MsgStruct struct = new MsgStruct();

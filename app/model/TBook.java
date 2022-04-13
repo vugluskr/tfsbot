@@ -1,4 +1,4 @@
-package model.opds;
+package model;
 
 import java.io.File;
 
@@ -7,7 +7,7 @@ import java.io.File;
  * 06.04.2022 16:00
  * tfs ☭ sweat and blood
  */
-public class TgBook {
+public class TBook {
     public String id;
     public boolean epub, fb;
     public String refId;

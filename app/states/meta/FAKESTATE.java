@@ -5,7 +5,7 @@ import model.request.CallbackRequest;
 import model.request.CmdRequest;
 import model.request.FileRequest;
 import model.request.TextRequest;
-import model.user.TgUser;
+import model.TUser;
 import services.BotApi;
 import services.DataStore;
 import utils.LangMap;
@@ -25,31 +25,31 @@ public final class FAKESTATE implements UserState {
     }
 
     @Override
-    public UserState onCallback(final CallbackRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onCallback(final CallbackRequest request, final TUser user, final BotApi api, final DataStore store) {
         return null;
     }
 
     @Override
-    public UserState onCommand(final CmdRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onCommand(final CmdRequest request, final TUser user, final BotApi api, final DataStore store) {
         return null;
     }
 
     @Override
-    public UserState onFile(final FileRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onFile(final FileRequest request, final TUser user, final BotApi api, final DataStore store) {
         return null;
     }
 
     @Override
-    public UserState onText(final TextRequest request, final TgUser user, final BotApi api, final DataStore store) {
+    public UserState onText(final TextRequest request, final TUser user, final BotApi api, final DataStore store) {
         return null;
     }
 
     @Override
-    public void display(final TgUser user, final BotApi api, final DataStore store) {
+    public void display(final TUser user, final BotApi api, final DataStore store) {
     }
 
     @Override
-    public LangMap.Value helpValue(final TgUser user) {
+    public LangMap.Value helpValue(final TUser user) {
         return null;
     }
 
@@ -59,16 +59,16 @@ public final class FAKESTATE implements UserState {
     }
 
     @Override
-    public void doSend(final MsgStruct struct, final TgUser user, final BotApi api) {
+    public void doSend(final MsgStruct struct, final TUser user, final BotApi api) {
     }
 
     @Override
-    public void doSend(final MsgStruct struct, final TgUser user, final BotApi api, final boolean forceNew) {
+    public void doSend(final MsgStruct struct, final TUser user, final BotApi api, final boolean forceNew) {
 
     }
 
     @Override
-    public CompletionStage<BotApi.Reply> doBookUpload(final MsgStruct struct, final TgUser user, final BotApi api) {
+    public CompletionStage<BotApi.Reply> doBookUpload(final MsgStruct struct, final TUser user, final BotApi api) {
         return null;
     }
 }
