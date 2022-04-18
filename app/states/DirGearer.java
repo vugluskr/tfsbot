@@ -89,11 +89,11 @@ public class DirGearer extends AState {
                 struct.kbd.button(entry.isLocked() ? CommandType.unlock.b() : CommandType.lock.b());
             if (entry.isRw())
                 struct.kbd.button(CommandType.rename.b());
-            if (entry.getOwner() == user.id) {
-                struct.kbd.button(CommandType.setBooks.b());
+            if (entry.getOwner() == user.id)
                 struct.kbd.button(CommandType.drop.b());
-            }
         }
+        if (entry.getOwner() == user.id)
+            struct.kbd.button(CommandType.setBooks.b());
         struct.kbd.button(CommandType.cancel.b());
 
         pagedList(store.listFolderLabelsAsFiles(entryId, user.id, offset, 10), count, offset, struct);

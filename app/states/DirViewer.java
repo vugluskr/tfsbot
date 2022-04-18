@@ -195,8 +195,7 @@ public class DirViewer extends AState {
                     struct.kbd.button(CommandType.share.b());
                 struct.kbd.button(CommandType.mkLabel.b());
                 struct.kbd.button(CommandType.mkDir.b());
-                if (!entryId.equals(user.getRoot()))
-                    struct.kbd.button(CommandType.gearDir.b());
+                struct.kbd.button(CommandType.gearDir.b());
             }
 
             pagedList(store.listFolder(entryId, offset, 10, user), count, offset, struct);
